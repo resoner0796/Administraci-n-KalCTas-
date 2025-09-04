@@ -15,6 +15,7 @@
             align-items: center;
             min-height: 100vh;
             text-align: center;
+            padding: 20px;
         }
 
         .container {
@@ -23,7 +24,7 @@
             border-radius: 15px;
             box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
             max-width: 900px;
-            width: 90%;
+            width: 100%;
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -88,7 +89,7 @@
             gap: 10px;
         }
         .image-path-group select, .image-path-group input {
-            width: 50%;
+            flex-grow: 1;
         }
 
 
@@ -109,9 +110,14 @@
         }
 
         /* --- Estilos para la tabla de inventario --- */
+        .table-container {
+            width: 100%;
+            overflow-x: auto;
+            margin-top: 20px;
+        }
         #inventory-table {
             width: 100%;
-            margin-top: 20px;
+            min-width: 600px; /* Ancho mínimo para la tabla en móviles */
             border-collapse: collapse;
         }
         #inventory-table th, #inventory-table td {
@@ -194,7 +200,39 @@
             gap: 15px;
             margin-top: 20px;
         }
-        
+
+        /* --- Estilos para móviles (responsive) --- */
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+
+            .container {
+                padding: 20px;
+            }
+
+            .admin-nav {
+                top: 10px;
+                right: 10px;
+            }
+
+            h1 {
+                font-size: 1.5em;
+            }
+
+            h2 {
+                font-size: 1.2em;
+            }
+            
+            .image-path-group {
+                flex-direction: column;
+                gap: 5px;
+            }
+            
+            .image-path-group select, .image-path-group input {
+                width: 100%;
+            }
+        }
     </style>
 </head>
 <body>
@@ -224,21 +262,23 @@
         <section id="inventory-screen" style="display: none;">
             <h1>Inventario de Productos</h1>
             <button class="btn" onclick="showScreen('add-product-screen')">Agregar Nuevo Producto</button>
-            <table id="inventory-table">
-                <thead>
-                    <tr>
-                        <th>Imagen</th>
-                        <th>Nombre</th>
-                        <th>Categoría</th>
-                        <th>Inventario</th>
-                        <th>Precio</th>
-                        <th>Acciones</th>
-                    </tr>
-                </thead>
-                <tbody id="inventory-table-body">
-                    <!-- Los productos se cargarán aquí -->
-                </tbody>
-            </table>
+            <div class="table-container">
+                <table id="inventory-table">
+                    <thead>
+                        <tr>
+                            <th>Imagen</th>
+                            <th>Nombre</th>
+                            <th>Categoría</th>
+                            <th>Inventario</th>
+                            <th>Precio</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="inventory-table-body">
+                        <!-- Los productos se cargarán aquí -->
+                    </tbody>
+                </table>
+            </div>
             <button class="btn close-button" onclick="showScreen('main-menu')">Volver al Menú</button>
         </section>
 
@@ -257,6 +297,8 @@
                         <option value="assets/KalCTas-2-4/">assets/KalCTas-2-4/</option>
                         <option value="assets/KalCTas-3-4/">assets/KalCTas-3-4/</option>
                         <option value="assets/KalCTas-Deportivas/">assets/KalCTas-Deportivas/</option>
+                        <!-- Opción agregada para corregir la ruta -->
+                        <option value="assets/KalCTas-4/">assets/KalCTas-4/</option>
                     </select>
                     <input type="text" id="product-image-filename" placeholder="nombre-del-archivo.png" required>
                 </div>
@@ -287,6 +329,8 @@
                             <option value="assets/KalCTas-2-4/">assets/KalCTas-2-4/</option>
                             <option value="assets/KalCTas-3-4/">assets/KalCTas-3-4/</option>
                             <option value="assets/KalCTas-Deportivas/">assets/KalCTas-Deportivas/</option>
+                            <!-- Opción agregada para corregir la ruta -->
+                            <option value="assets/KalCTas-4/">assets/KalCTas-4/</option>
                         </select>
                         <input type="text" id="edit-image-filename" required>
                     </div>
@@ -486,16 +530,10 @@
                     
                     // Separar la URL para rellenar los campos de edición
                     const lastSlashIndex = data.imagenUrl.lastIndexOf('/');
-                    if (lastSlashIndex !== -1) {
-                        const path = data.imagenUrl.substring(0, lastSlashIndex + 1);
-                        const filename = data.imagenUrl.substring(lastSlashIndex + 1);
-                        document.getElementById('edit-image-path').value = path;
-                        document.getElementById('edit-image-filename').value = filename;
-                    } else {
-                        // En caso de que no se pueda separar, se pone la URL completa en el campo de filename
-                        document.getElementById('edit-image-path').value = '';
-                        document.getElementById('edit-image-filename').value = data.imagenUrl;
-                    }
+                    const path = data.imagenUrl.substring(0, lastSlashIndex + 1);
+                    const filename = data.imagenUrl.substring(lastSlashIndex + 1);
+                    document.getElementById('edit-image-path').value = path;
+                    document.getElementById('edit-image-filename').value = filename;
 
                     document.getElementById('edit-inventory').value = data.inventario;
                     document.getElementById('edit-price').value = data.precio;
