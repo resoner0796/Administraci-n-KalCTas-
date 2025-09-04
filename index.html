@@ -157,7 +157,7 @@
         .btn-yes { background-color: #2ecc71; }
         .btn-no { background-color: #e74c3c; }
         .btn-confirm { background-color: #2ecc71; }
-        .btn-delivered { background-color: #f39c12; }
+        .btn-delivered { background-color: #3498db; }
 
         /* --- Estilos para la lista de pedidos --- */
         #orders-list, #sales-list {
@@ -208,11 +208,13 @@
         }
         .status-Confirmado { background-color: #3498db; }
         .status-Entregado { background-color: #2ecc71; }
-        .status-Pendiente { background-color: #f1c40f; }
+        .status-Pendiente { background-color: #f1c40f; color: #333; }
+        .status-Cancelado { background-color: #e74c3c; }
         .order-actions {
             margin-top: 15px;
             display: flex;
             gap: 10px;
+            flex-wrap: wrap;
         }
         .order-actions button {
             padding: 8px 15px;
@@ -278,35 +280,13 @@
 
         /* --- Estilos para móviles (responsive) --- */
         @media (max-width: 768px) {
-            body {
-                padding: 10px;
-            }
-
-            .container {
-                padding: 20px;
-            }
-
-            .admin-nav {
-                top: 10px;
-                right: 10px;
-            }
-
-            h1 {
-                font-size: 1.5em;
-            }
-
-            h2 {
-                font-size: 1.2em;
-            }
-            
-            .image-path-group {
-                flex-direction: column;
-                gap: 5px;
-            }
-            
-            .image-path-group select, .image-path-group input {
-                width: 100%;
-            }
+            body { padding: 10px; }
+            .container { padding: 20px; }
+            .admin-nav { top: 10px; right: 10px; }
+            h1 { font-size: 1.5em; }
+            h2 { font-size: 1.2em; }
+            .image-path-group { flex-direction: column; gap: 5px; }
+            .image-path-group select, .image-path-group input { width: 100%; }
         }
     </style>
 </head>
@@ -333,7 +313,7 @@
             <div class="main-menu-buttons">
                 <button onclick="showScreen('inventory-screen')">Inventario</button>
                 <button onclick="showScreen('orders-screen')">Pedidos 📦</button>
-                <button onclick="showScreen('sales-screen')">Ventas 💰</button>
+                <button onclick="showScreen('sales-screen')">Historial de Pedidos 💰</button>
             </div>
         </section>
 
@@ -363,13 +343,13 @@
             <h1>Agregar Nuevo Producto</h1>
             <form id="add-product-form">
                 <input type="text" id="product-name" placeholder="Nombre del producto" required>
-                <select type="text" id="product-category" required>
+                <select id="product-category" required>
                     <option value="" disabled selected>Selecciona una categoría</option>
                     <option value="KalCTas2-4">KalCTas 2/4</option>
                     <option value="KalCTas3-4">KalCTas 3/4</option>
                     <option value="KalCTasLargas">KalCTas Largas</option>
                 </select>
-                <input type="text" id="product-image-url" placeholder="assets/nombre-de-carpeta/nombre-del-archivo.png" required>
+                <input type="text" id="product-image-url" placeholder="URL de la imagen (ej: img/producto.png)" required>
                 <input type="number" id="product-stock" placeholder="Inventario" required>
                 <input type="number" id="product-price" placeholder="Precio" step="0.01" required>
                 <button type="submit">Guardar Producto</button>
@@ -384,7 +364,7 @@
         </section>
 
         <section id="sales-screen" style="display: none;">
-            <h1>Historial de Ventas</h1>
+            <h1>Historial de Pedidos</h1>
             <ul id="sales-list"></ul>
             <button class="btn close-button" onclick="showScreen('main-menu')">Volver al Menú</button>
         </section>
@@ -437,7 +417,6 @@
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 
     <script>
-        // Tu configuración de Firebase
         const firebaseConfig = {
           apiKey: "AIzaSyDuNHPsYnLD_qmbG2K9ieTIOCX6U4slD1E",
           authDomain: "tienda-kalctas.firebaseapp.com",
@@ -447,155 +426,120 @@
           appId: "1:374355691085:web:18abb15678c7a6870bbe04"
         };
 
-        // Inicializa Firebase
         firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
         const db = firebase.firestore();
 
-        // Referencias a los elementos del DOM
+        let currentUserId = null;
+        let productToDeleteId = null;
+        let unsubscribeOrders = null;
+        let unsubscribeSales = null;
+        
         const loginForm = document.getElementById('login-form');
         const addProductForm = document.getElementById('add-product-form');
         const editProductForm = document.getElementById('edit-product-form');
-        const loginScreen = document.getElementById('login-screen');
-        const mainMenuScreen = document.getElementById('main-menu');
-        const inventoryScreen = document.getElementById('inventory-screen');
-        const addProductScreen = document.getElementById('add-product-screen');
-        const ordersScreen = document.getElementById('orders-screen');
-        const salesScreen = document.getElementById('sales-screen');
-        const inventoryTableBody = document.getElementById('inventory-table-body');
-        const ordersList = document.getElementById('orders-list');
-        const salesList = document.getElementById('sales-list');
         const messageBox = document.getElementById('message-box');
         const messageText = document.getElementById('message-text');
         const editModal = document.getElementById('edit-modal');
         const confirmModal = document.getElementById('confirm-modal');
-        let currentUserId = null;
-        let productToDeleteId = null;
+        const inventoryTableBody = document.getElementById('inventory-table-body');
+        const ordersList = document.getElementById('orders-list');
+        const salesList = document.getElementById('sales-list');
 
-        // Función para mostrar mensajes
         function showMessage(text) {
             messageText.textContent = text;
             messageBox.style.display = 'flex';
         }
 
-        // Función para cerrar el mensaje
         function closeMessage() {
             messageBox.style.display = 'none';
         }
 
-        // Función para mostrar la pantalla
         function showScreen(screenId) {
-            document.querySelectorAll('section').forEach(screen => {
-                screen.style.display = 'none';
-            });
+            document.querySelectorAll('section').forEach(screen => screen.style.display = 'none');
             document.getElementById(screenId).style.display = 'block';
 
-            if (screenId === 'inventory-screen') {
-                loadInventory();
-            } else if (screenId === 'orders-screen') {
-                loadOrders();
-            } else if (screenId === 'sales-screen') {
-                loadSales();
-            }
+            if (screenId === 'inventory-screen') loadInventory();
+            if (screenId === 'orders-screen') loadOrders();
+            if (screenId === 'sales-screen') loadSales();
         }
 
-        // Lógica de autenticación
         auth.onAuthStateChanged(user => {
             if (user) {
                 currentUserId = user.uid;
-                console.log('Usuario autenticado:', user.email);
                 showScreen('main-menu');
             } else {
                 currentUserId = null;
-                console.log('Usuario no autenticado.');
                 showScreen('login-screen');
+                if (unsubscribeOrders) unsubscribeOrders();
+                if (unsubscribeSales) unsubscribeSales();
             }
         });
 
         loginForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            const email = loginForm['login-email'].value;
-            const password = loginForm['login-password'].value;
             try {
-                await auth.signInWithEmailAndPassword(email, password);
-                showMessage('¡Sesión iniciada correctamente!');
+                await auth.signInWithEmailAndPassword(loginForm['login-email'].value, loginForm['login-password'].value);
             } catch (error) {
-                console.error('Error de inicio de sesión:', error);
-                showMessage('Error al iniciar sesión. Verifica tu correo y contraseña.');
+                showMessage('Error al iniciar sesión. Verifica tus credenciales.');
             }
         });
 
         function logout() {
-            auth.signOut().then(() => {
-                showMessage('Has cerrado sesión.');
-            });
+            auth.signOut();
         }
 
-        // Lógica para agregar productos
         addProductForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            const imageUrl = document.getElementById('product-image-url').value;
-            
-            const producto = {
-                nombre: addProductForm['product-name'].value,
-                categoria: addProductForm['product-category'].value,
-                imagenUrl: imageUrl,
-                stock: parseInt(addProductForm['product-stock'].value),
-                precio: parseFloat(addProductForm['product-price'].value),
-            };
-
             try {
-                // Guarda en la colección 'productos'
-                await db.collection('productos').add(producto);
+                await db.collection('productos').add({
+                    nombre: addProductForm['product-name'].value,
+                    categoria: addProductForm['product-category'].value,
+                    imagenUrl: addProductForm['product-image-url'].value,
+                    stock: parseInt(addProductForm['product-stock'].value),
+                    precio: parseFloat(addProductForm['product-price'].value),
+                });
                 showMessage('¡Producto agregado con éxito!');
                 addProductForm.reset();
-                showScreen('inventory-screen'); // Vuelve a la pantalla de inventario
+                showScreen('inventory-screen');
             } catch (error) {
-                console.error("Error al agregar el producto:", error);
-                showMessage('Hubo un error al agregar el producto. Intenta de nuevo.');
+                showMessage('Hubo un error al agregar el producto.');
             }
         });
 
-        // Lógica para cargar el inventario
         async function loadInventory() {
-            inventoryTableBody.innerHTML = '<tr><td colspan="6">Cargando inventario...</td></tr>';
+            inventoryTableBody.innerHTML = '<tr><td colspan="6">Cargando...</td></tr>';
             try {
-                const snapshot = await db.collection('productos').get();
-                inventoryTableBody.innerHTML = ''; // Limpia la tabla
+                const snapshot = await db.collection('productos').orderBy('nombre').get();
+                inventoryTableBody.innerHTML = '';
                 if (snapshot.empty) {
-                    inventoryTableBody.innerHTML = '<tr><td colspan="6">No hay productos en el inventario.</td></tr>';
+                    inventoryTableBody.innerHTML = '<tr><td colspan="6">No hay productos.</td></tr>';
                     return;
                 }
-                
                 snapshot.forEach(doc => {
                     const data = doc.data();
-                    const row = `
-                        <tr>
-                            <td><img src="${data.imagenUrl}" alt="Producto" onerror="this.onerror=null;this.src='https://placehold.co/50x50/333/FFF?text=No+Img'"></td>
-                            <td>${data.nombre}</td>
-                            <td>${data.categoria}</td>
-                            <td>${data.stock}</td>
-                            <td>$${data.precio.toFixed(2)}</td>
-                            <td class="actions-cell">
-                                <button class="btn btn-edit" onclick="editProduct('${doc.id}')">Editar</button>
-                                <button class="btn btn-delete" onclick="showConfirmModal('${doc.id}')">Eliminar</button>
-                            </td>
-                        </tr>
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td><img src="${data.imagenUrl}" alt="${data.nombre}" style="width:50px; height:auto; border-radius:4px;"></td>
+                        <td>${data.nombre}</td>
+                        <td>${data.categoria}</td>
+                        <td>${data.stock}</td>
+                        <td>$${data.precio.toFixed(2)}</td>
+                        <td class="actions-cell">
+                            <button class="btn btn-edit" onclick="editProduct('${doc.id}')">Editar</button>
+                            <button class="btn btn-delete" onclick="showConfirmModal('${doc.id}')">Eliminar</button>
+                        </td>
                     `;
-                    inventoryTableBody.innerHTML += row;
+                    inventoryTableBody.appendChild(row);
                 });
             } catch (error) {
-                console.error("Error al cargar el inventario:", error);
-                inventoryTableBody.innerHTML = '<tr><td colspan="6">Error al cargar el inventario.</td></tr>';
+                inventoryTableBody.innerHTML = '<tr><td colspan="6">Error al cargar.</td></tr>';
             }
         }
 
-        // Lógica para editar producto
         async function editProduct(id) {
             try {
-                const docRef = db.collection('productos').doc(id);
-                const docSnap = await docRef.get();
-                
+                const docSnap = await db.collection('productos').doc(id).get();
                 if (docSnap.exists) {
                     const data = docSnap.data();
                     document.getElementById('edit-product-id').value = id;
@@ -605,13 +549,8 @@
                     document.getElementById('edit-stock').value = data.stock;
                     document.getElementById('edit-price').value = data.precio;
                     editModal.style.display = 'flex';
-                } else {
-                    showMessage("El producto no se encontró.");
                 }
-            } catch (error) {
-                console.error("Error al obtener el producto:", error);
-                showMessage("Hubo un error al intentar editar el producto.");
-            }
+            } catch (error) { showMessage("Error al cargar el producto."); }
         }
 
         function closeEditModal() {
@@ -621,28 +560,20 @@
         editProductForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             const id = document.getElementById('edit-product-id').value;
-            const imageUrl = document.getElementById('edit-image-url').value;
-
-            const updatedProduct = {
-                nombre: document.getElementById('edit-name').value,
-                categoria: document.getElementById('edit-category').value,
-                imagenUrl: imageUrl,
-                stock: parseInt(document.getElementById('edit-stock').value),
-                precio: parseFloat(document.getElementById('edit-price').value),
-            };
-
             try {
-                await db.collection('productos').doc(id).update(updatedProduct);
-                showMessage('Producto actualizado con éxito.');
+                await db.collection('productos').doc(id).update({
+                    nombre: document.getElementById('edit-name').value,
+                    categoria: document.getElementById('edit-category').value,
+                    imagenUrl: document.getElementById('edit-image-url').value,
+                    stock: parseInt(document.getElementById('edit-stock').value),
+                    precio: parseFloat(document.getElementById('edit-price').value),
+                });
+                showMessage('Producto actualizado.');
                 closeEditModal();
                 loadInventory();
-            } catch (error) {
-                console.error("Error al actualizar el producto:", error);
-                showMessage('Hubo un error al actualizar el producto.');
-            }
+            } catch (error) { showMessage('Error al actualizar.'); }
         });
 
-        // Lógica para el modal de confirmación
         function showConfirmModal(id) {
             productToDeleteId = id;
             confirmModal.style.display = 'flex';
@@ -657,22 +588,20 @@
             if (productToDeleteId) {
                 try {
                     await db.collection('productos').doc(productToDeleteId).delete();
-                    showMessage('Producto eliminado con éxito.');
-                    confirmModal.style.display = 'none';
-                    loadInventory(); // Recargar la tabla
-                } catch (error) {
-                    console.error("Error al eliminar el producto:", error);
-                    showMessage('Hubo un error al eliminar el producto.');
-                }
-                productToDeleteId = null;
+                    showMessage('Producto eliminado.');
+                    cancelAction();
+                    loadInventory();
+                } catch (error) { showMessage('Error al eliminar.'); }
             }
         }
 
-        // Lógica para cargar los pedidos
-        async function loadOrders() {
+        function loadOrders() {
+            if (unsubscribeOrders) unsubscribeOrders();
             ordersList.innerHTML = '<p>Cargando pedidos...</p>';
-            try {
-                const snapshot = await db.collection('pedidos').where('estado', 'in', ['Pendiente', 'Confirmado']).orderBy('fechaCreacion', 'desc').get();
+            
+            const q = db.collection('pedidos').where('estado', 'in', ['Pendiente', 'Confirmado']).orderBy('fechaCreacion', 'desc');
+            
+            unsubscribeOrders = q.onSnapshot(async (snapshot) => {
                 ordersList.innerHTML = '';
                 if (snapshot.empty) {
                     ordersList.innerHTML = '<p>No hay pedidos pendientes.</p>';
@@ -681,11 +610,10 @@
                 
                 for (const doc of snapshot.docs) {
                     const pedido = doc.data();
-                    const pedidoId = doc.id;
                     const clienteDoc = await db.collection('usuarios').doc(pedido.usuarioId).get();
-                    const cliente = clienteDoc.data();
-                    let total = pedido.productos.reduce((sum, p) => sum + p.precio, 0);
-                    
+                    const cliente = clienteDoc.exists ? clienteDoc.data() : { nombre: 'N/A', apellido: '' };
+                    const total = pedido.productos.reduce((sum, p) => sum + p.precio, 0);
+
                     const item = document.createElement('li');
                     item.className = 'order-item';
                     item.onclick = () => {
@@ -693,99 +621,119 @@
                         details.style.display = details.style.display === 'block' ? 'none' : 'block';
                     };
                     
-                    const estadoClass = `status-${pedido.estado.replace(/\s/g, '')}`;
-
                     item.innerHTML = `
                         <div class="order-summary">
-                            <span>Pedido #${pedidoId.substring(0, 6)}</span>
-                            <span class="order-status ${estadoClass}">${pedido.estado}</span>
+                            <span>${pedido.folio}</span>
+                            <span class="order-status status-${pedido.estado}">${pedido.estado}</span>
                             <span>$${total.toFixed(2)}</span>
                         </div>
                         <div class="order-details">
                             <p><strong>Cliente:</strong> ${cliente.nombre} ${cliente.apellido}</p>
                             <p><strong>Correo:</strong> ${cliente.email}</p>
-                            <p><strong>Teléfono:</strong> ${cliente.telefono || 'No registrado'}</p>
-                            <p><strong>Método de pago:</strong> ${pedido.metodoPago}</p>
-                            <p><strong>Fecha de entrega:</strong> ${pedido.fechaEntrega}</p>
-                            <p><strong>Lugar de entrega:</strong> ${pedido.lugarEntrega}</p>
+                            <p><strong>Teléfono:</strong> ${cliente.telefono || 'N/A'}</p>
+                            <p><strong>Fecha Entrega:</strong> ${pedido.fechaEntrega}</p>
+                            <p><strong>Lugar:</strong> ${pedido.lugarEntrega}</p>
                             <p><strong>Productos:</strong></p>
-                            <ul>
-                                ${pedido.productos.map(p => `<li>${p.nombre} ($${p.precio.toFixed(2)})</li>`).join('')}
-                            </ul>
+                            <ul>${pedido.productos.map(p => `<li>${p.nombre}</li>`).join('')}</ul>
                             <div class="order-actions">
-                                <button class="btn btn-confirm" onclick="updateOrderStatus('${pedidoId}', 'Confirmado', event)">Confirmar</button>
-                                <button class="btn btn-delivered" onclick="updateOrderStatus('${pedidoId}', 'Entregado', event)">Entregado</button>
+                                ${pedido.estado === 'Pendiente' ? `<button class="btn btn-confirm" onclick="updateOrderStatus('${doc.id}', 'Confirmado', event)">Confirmar</button>` : ''}
+                                <button class="btn btn-delivered" onclick="updateOrderStatus('${doc.id}', 'Entregado', event)">Marcar Entregado</button>
+                                <button class="btn btn-delete" onclick="promptCancelOrder('${doc.id}', event)">Cancelar</button>
                             </div>
                         </div>
                     `;
                     ordersList.appendChild(item);
                 }
-            } catch (error) {
-                console.error("Error al cargar los pedidos:", error);
-                ordersList.innerHTML = '<p>Error al cargar los pedidos.</p>';
-            }
+            }, (error) => {
+                console.error("Error al escuchar pedidos:", error);
+                ordersList.innerHTML = '<p>Error al cargar pedidos.</p>';
+            });
         }
 
-        // Lógica para actualizar el estado de un pedido
         async function updateOrderStatus(pedidoId, newStatus, event) {
-            event.stopPropagation(); // Evita que se colapse el detalle del pedido
+            event.stopPropagation();
             try {
                 await db.collection('pedidos').doc(pedidoId).update({
                     estado: newStatus,
                     fechaActualizacion: firebase.firestore.FieldValue.serverTimestamp()
                 });
-                showMessage(`Estado del pedido #${pedidoId.substring(0, 6)} actualizado a '${newStatus}'.`);
-                loadOrders(); // Recarga la lista de pedidos pendientes
+                showMessage(`Pedido actualizado a '${newStatus}'.`);
             } catch (error) {
-                console.error("Error al actualizar el estado del pedido:", error);
-                showMessage('Hubo un error al actualizar el estado del pedido.');
+                showMessage('Error al actualizar el estado.');
             }
         }
 
-        // Lógica para cargar las ventas (pedidos entregados)
-        async function loadSales() {
-            salesList.innerHTML = '<p>Cargando ventas...</p>';
+        function promptCancelOrder(pedidoId, event) {
+            event.stopPropagation();
+            const motivo = prompt("Introduce el motivo de la cancelación:");
+            if (motivo && motivo.trim() !== "") {
+                cancelOrder(pedidoId, motivo.trim());
+            } else if (motivo !== null) {
+                showMessage("Debes especificar un motivo para cancelar.");
+            }
+        }
+
+        async function cancelOrder(pedidoId, motivo) {
             try {
-                const snapshot = await db.collection('pedidos').where('estado', '==', 'Entregado').orderBy('fechaActualizacion', 'desc').get();
+                await db.runTransaction(async (transaction) => {
+                    const pedidoRef = db.collection('pedidos').doc(pedidoId);
+                    const pedidoDoc = await transaction.get(pedidoRef);
+                    if (!pedidoDoc.exists) throw new Error("Pedido no encontrado");
+
+                    const productos = pedidoDoc.data().productos;
+
+                    // Devolver el stock de cada producto
+                    for (const producto of productos) {
+                        const productoRef = db.collection('productos').doc(producto.id);
+                        transaction.update(productoRef, { stock: firebase.firestore.FieldValue.increment(1) });
+                    }
+
+                    // Actualizar el estado del pedido
+                    transaction.update(pedidoRef, {
+                        estado: 'Cancelado',
+                        motivoCancelacion: motivo,
+                        fechaActualizacion: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                });
+                showMessage("Pedido cancelado y stock devuelto.");
+            } catch (error) {
+                console.error("Error al cancelar pedido: ", error);
+                showMessage("Error al cancelar el pedido.");
+            }
+        }
+
+        function loadSales() {
+            if (unsubscribeSales) unsubscribeSales();
+            salesList.innerHTML = '<p>Cargando historial...</p>';
+            
+            const q = db.collection('pedidos').where('estado', 'in', ['Entregado', 'Cancelado']).orderBy('fechaCreacion', 'desc');
+
+            unsubscribeSales = q.onSnapshot((snapshot) => {
                 salesList.innerHTML = '';
                 if (snapshot.empty) {
-                    salesList.innerHTML = '<p>No hay ventas registradas.</p>';
+                    salesList.innerHTML = '<p>No hay pedidos en el historial.</p>';
                     return;
                 }
-
                 snapshot.forEach(doc => {
                     const pedido = doc.data();
-                    const pedidoId = doc.id;
-                    let total = pedido.productos.reduce((sum, p) => sum + p.precio, 0);
-                    
-                    const productosHtml = pedido.productos.map(p => {
-                        return `${p.nombre} ($${p.precio.toFixed(2)})`;
-                    }).join(', ');
-
-                    const fechaVenta = pedido.fechaActualizacion ? new Date(pedido.fechaActualizacion.seconds * 1000).toLocaleDateString() : 'N/A';
+                    const total = pedido.productos.reduce((sum, p) => sum + p.precio, 0);
+                    const fecha = pedido.fechaActualizacion ? pedido.fechaActualizacion.toDate().toLocaleDateString() : 'N/A';
                     
                     const item = document.createElement('li');
                     item.className = 'sale-item';
                     item.innerHTML = `
                         <div class="sale-summary">
-                            <span>Venta #${pedidoId.substring(0, 6)}</span>
+                            <span>${pedido.folio}</span>
+                            <span class="order-status status-${pedido.estado}">${pedido.estado}</span>
                             <span>$${total.toFixed(2)}</span>
                         </div>
-                        <div class="sale-details">
-                            <p><strong>Productos:</strong> ${productosHtml}</p>
-                            <p><strong>Fecha de Venta:</strong> ${fechaVenta}</p>
-                        </div>
                     `;
-                    item.onclick = () => {
-                        const details = item.querySelector('.sale-details');
-                        details.style.display = details.style.display === 'block' ? 'none' : 'block';
-                    };
                     salesList.appendChild(item);
                 });
-            } catch (error) {
-                console.error("Error al cargar las ventas:", error);
-                salesList.innerHTML = '<p>Error al cargar las ventas.</p>';
-            }
+            }, (error) => {
+                console.error("Error al escuchar historial:", error);
+                salesList.innerHTML = '<p>Error al cargar el historial.</p>';
+            });
         }
     </script>
 </body>
