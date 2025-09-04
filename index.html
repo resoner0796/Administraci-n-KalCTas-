@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KalCTas Admin</title>
+    <style>
+        /* Estilos generales */
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #ff9f43;
+            color: #333;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            text-align: center;
+        }
+        
+        .container {
+            background-color: #e67e22;
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+            max-width: 450px;
+            width: 90%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            color: #ffffff;
+        }
+
+        h1 {
+            color: #ffffff;
+            font-size: 1.8em;
+            margin-bottom: 20px;
+        }
+
+        form {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        input, select {
+            padding: 12px;
+            border-radius: 8px;
+            border: none;
+            font-size: 1em;
+            background-color: rgba(255, 255, 255, 0.9);
+            width: 100%;
+            box-sizing: border-box; /* Asegura que el padding no afecte el ancho */
+        }
+
+        button {
+            padding: 15px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.1em;
+            font-weight: bold;
+            color: #ffffff;
+            cursor: pointer;
+            background-color: #48dbfb;
+            transition: background-color 0.2s ease;
+        }
+        
+        button:hover {
+            background-color: #2e86de;
+        }
+
+        .message-box {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.6);
+            justify-content: center;
+            align-items: center;
+        }
+
+        .message-content {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            text-align: center;
+        }
+
+        .close-button {
+            margin-top: 15px;
+            background-color: #576574;
+            color: #fff;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        
+        .message-text {
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Administración de KalCTas</h1>
+
+        <section id="login-screen">
+            <h2>Iniciar Sesión</h2>
+            <form id="login-form">
+                <input type="email" id="login-email" placeholder="Correo electrónico" required>
+                <input type="password" id="login-password" placeholder="Contraseña" required>
+                <button type="submit">Entrar</button>
+            </form>
+        </section>
+
+        <section id="admin-screen" style="display: none;">
+            <h2>Agregar Nuevo Producto</h2>
+            <form id="add-product-form">
+                <input type="text" id="product-name" placeholder="Nombre del producto" required>
+                <select id="product-category" required>
+                    <option value="" disabled selected>Selecciona una categoría</option>
+                    <option value="KalCTas2-4">KalCTas 2/4</option>
+                    <option value="KalCTas3-4">KalCTas 3/4</option>
+                    <option value="KalCTasDeportivas">KalCTas Deportivas</option>
+                </select>
+                <input type="text" id="product-image" placeholder="URL de la imagen (ej: assets/...)" required>
+                <input type="number" id="product-inventory" placeholder="Inventario" required>
+                <input type="number" id="product-price" placeholder="Precio" step="0.01" required>
+                <button type="submit">Agregar Producto</button>
+            </form>
+            <button onclick="logout()">Cerrar Sesión</button>
+        </section>
+
+    </div>
+
+    <!-- Mensaje de caja personalizada -->
+    <div id="message-box" class="message-box">
+        <div class="message-content">
+            <p id="message-text" class="message-text"></p>
+            <button class="close-button" onclick="closeMessage()">Aceptar</button>
+        </div>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+
+    <script>
+        // Tu configuración de Firebase
+        const firebaseConfig = {
+          apiKey: "AIzaSyDuNHPsYnLD_qmbG2K9ieTIOCX6U4slD1E",
+          authDomain: "tienda-kalctas.firebaseapp.com",
+          projectId: "tienda-kalctas",
+          storageBucket: "tienda-kalctas.firebasestorage.app",
+          messagingSenderId: "374355691085",
+          appId: "1:374355691085:web:18abb15678c7a6870bbe04"
+        };
+
+        // Inicializa Firebase
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+
+        // Referencias a los elementos del DOM
+        const loginForm = document.getElementById('login-form');
+        const addProductForm = document.getElementById('add-product-form');
+        const loginScreen = document.getElementById('login-screen');
+        const adminScreen = document.getElementById('admin-screen');
+        const messageBox = document.getElementById('message-box');
+        const messageText = document.getElementById('message-text');
+
+        // Función para mostrar mensajes
+        function showMessage(text) {
+            messageText.textContent = text;
+            messageBox.style.display = 'flex';
+        }
+
+        // Función para cerrar el mensaje
+        function closeMessage() {
+            messageBox.style.display = 'none';
+        }
+
+        // Lógica de autenticación
+        auth.onAuthStateChanged(user => {
+            if (user) {
+                console.log('Usuario autenticado:', user.email);
+                loginScreen.style.display = 'none';
+                adminScreen.style.display = 'block';
+            } else {
+                console.log('Usuario no autenticado.');
+                loginScreen.style.display = 'block';
+                adminScreen.style.display = 'none';
+            }
+        });
+
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = loginForm['login-email'].value;
+            const password = loginForm['login-password'].value;
+            try {
+                await auth.signInWithEmailAndPassword(email, password);
+                showMessage('¡Sesión iniciada correctamente!');
+            } catch (error) {
+                console.error('Error de inicio de sesión:', error);
+                showMessage('Error al iniciar sesión. Verifica tu correo y contraseña.');
+            }
+        });
+
+        function logout() {
+            auth.signOut().then(() => {
+                showMessage('Has cerrado sesión.');
+            });
+        }
+
+        // Lógica para agregar productos
+        addProductForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const producto = {
+                nombre: addProductForm['product-name'].value,
+                categoria: addProductForm['product-category'].value,
+                imagenUrl: addProductForm['product-image'].value,
+                inventario: parseInt(addProductForm['product-inventory'].value),
+                precio: parseFloat(addProductForm['product-price'].value),
+            };
+
+            try {
+                await db.collection('productos').add(producto);
+                showMessage('¡Producto agregado con éxito!');
+                addProductForm.reset();
+            } catch (error) {
+                console.error("Error al agregar el producto:", error);
+                showMessage('Hubo un error al agregar el producto. Intenta de nuevo.');
+            }
+        });
+    </script>
+</body>
+</html>
