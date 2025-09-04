@@ -291,14 +291,7 @@
                     <option value="KalCTas3-4">KalCTas 3/4</option>
                     <option value="KalCTasDeportivas">KalCTas Deportivas</option>
                 </select>
-                <div class="image-path-group">
-                    <select id="product-image-path" required>
-                        <option value="assets/KalCTas-2-4/">assets/KalCTas-2-4/</option>
-                        <option value="assets/KalCTas-3-4/">assets/KalCTas-3-4/</option>
-                        <option value="assets/KalCTas-Deportivas/">assets/KalCTas-Deportivas/</option>
-                    </select>
-                    <input type="text" id="product-image-filename" placeholder="nombre-del-archivo.png" required>
-                </div>
+                <input type="text" id="product-image-url" placeholder="assets/nombre-de-carpeta/nombre-del-archivo.png" required>
                 <input type="number" id="product-inventory" placeholder="Inventario" required>
                 <input type="number" id="product-price" placeholder="Precio" step="0.01" required>
                 <button type="submit">Guardar Producto</button>
@@ -320,15 +313,8 @@
                         <option value="KalCTas3-4">KalCTas 3/4</option>
                         <option value="KalCTasDeportivas">KalCTas Deportivas</option>
                     </select>
-                    <label for="edit-image">URL de la imagen:</label>
-                    <div class="image-path-group">
-                        <select id="edit-image-path" required>
-                            <option value="assets/KalCTas-2-4/">assets/KalCTas-2-4/</option>
-                            <option value="assets/KalCTas-3-4/">assets/KalCTas-3-4/</option>
-                            <option value="assets/KalCTas-Deportivas/">assets/KalCTas-Deportivas/</option>
-                        </select>
-                        <input type="text" id="edit-image-filename" required>
-                    </div>
+                    <label for="edit-image-url">URL de la imagen:</label>
+                    <input type="text" id="edit-image-url" required>
                     <label for="edit-inventory">Inventario:</label>
                     <input type="number" id="edit-inventory" required>
                     <label for="edit-price">Precio:</label>
@@ -453,10 +439,8 @@
         // Lógica para agregar productos
         addProductForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            const imagePath = document.getElementById('product-image-path').value;
-            const imageFilename = document.getElementById('product-image-filename').value;
-            const imageUrl = imagePath + imageFilename;
-
+            const imageUrl = document.getElementById('product-image-url').value;
+            
             const producto = {
                 nombre: addProductForm['product-name'].value,
                 categoria: addProductForm['product-category'].value,
@@ -522,14 +506,7 @@
                     document.getElementById('edit-product-id').value = id;
                     document.getElementById('edit-name').value = data.nombre;
                     document.getElementById('edit-category').value = data.categoria;
-                    
-                    // Separar la URL para rellenar los campos de edición
-                    const lastSlashIndex = data.imagenUrl.lastIndexOf('/');
-                    const path = data.imagenUrl.substring(0, lastSlashIndex + 1);
-                    const filename = data.imagenUrl.substring(lastSlashIndex + 1);
-                    document.getElementById('edit-image-path').value = path;
-                    document.getElementById('edit-image-filename').value = filename;
-
+                    document.getElementById('edit-image-url').value = data.imagenUrl;
                     document.getElementById('edit-inventory').value = data.inventario;
                     document.getElementById('edit-price').value = data.precio;
                     editModal.style.display = 'flex';
@@ -549,9 +526,7 @@
         editProductForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             const id = document.getElementById('edit-product-id').value;
-            const imagePath = document.getElementById('edit-image-path').value;
-            const imageFilename = document.getElementById('edit-image-filename').value;
-            const imageUrl = imagePath + imageFilename;
+            const imageUrl = document.getElementById('edit-image-url').value;
 
             const updatedProduct = {
                 nombre: document.getElementById('edit-name').value,
