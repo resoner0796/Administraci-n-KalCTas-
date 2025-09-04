@@ -178,7 +178,7 @@
         .order-item:hover, .sale-item:hover {
             background-color: rgba(255, 255, 255, 0.2);
         }
-        .order-summary {
+        .order-summary, .sale-summary {
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -196,7 +196,7 @@
         }
         .order-details strong, .sale-details strong {
             display: inline-block;
-            width: 100px;
+            min-width: 100px;
         }
         .order-status {
             font-size: 0.9em;
@@ -206,8 +206,9 @@
             padding: 5px 10px;
             border-radius: 5px;
         }
-        .status-confirmed { background-color: #3498db; }
-        .status-delivered { background-color: #2ecc71; }
+        .status-Confirmado { background-color: #3498db; }
+        .status-Entregado { background-color: #2ecc71; }
+        .status-Pendiente { background-color: #f1c40f; }
         .order-actions {
             margin-top: 15px;
             display: flex;
@@ -671,7 +672,7 @@
         async function loadOrders() {
             ordersList.innerHTML = '<p>Cargando pedidos...</p>';
             try {
-                const snapshot = await db.collection('pedidos').where('estado', 'in', ['Pendiente', 'Confirmado']).orderBy('fechaCreacion', 'asc').get();
+                const snapshot = await db.collection('pedidos').where('estado', 'in', ['Pendiente', 'Confirmado']).orderBy('fechaCreacion', 'desc').get();
                 ordersList.innerHTML = '';
                 if (snapshot.empty) {
                     ordersList.innerHTML = '<p>No hay pedidos pendientes.</p>';
@@ -683,8 +684,7 @@
                     const pedidoId = doc.id;
                     const clienteDoc = await db.collection('usuarios').doc(pedido.usuarioId).get();
                     const cliente = clienteDoc.data();
-                    let total = 0;
-                    pedido.productos.forEach(p => total += p.precio);
+                    let total = pedido.productos.reduce((sum, p) => sum + p.precio, 0);
                     
                     const item = document.createElement('li');
                     item.className = 'order-item';
@@ -693,10 +693,7 @@
                         details.style.display = details.style.display === 'block' ? 'none' : 'block';
                     };
                     
-                    let estadoClass = '';
-                    if (pedido.estado === 'Confirmado') {
-                        estadoClass = 'status-confirmed';
-                    }
+                    const estadoClass = `status-${pedido.estado.replace(/\s/g, '')}`;
 
                     item.innerHTML = `
                         <div class="order-summary">
@@ -713,7 +710,7 @@
                             <p><strong>Lugar de entrega:</strong> ${pedido.lugarEntrega}</p>
                             <p><strong>Productos:</strong></p>
                             <ul>
-                                ${pedido.productos.map(p => `<li>${p.nombre} ($${p.precio})</li>`).join('')}
+                                ${pedido.productos.map(p => `<li>${p.nombre} ($${p.precio.toFixed(2)})</li>`).join('')}
                             </ul>
                             <div class="order-actions">
                                 <button class="btn btn-confirm" onclick="updateOrderStatus('${pedidoId}', 'Confirmado', event)">Confirmar</button>
@@ -756,14 +753,16 @@
                     return;
                 }
 
-                snapshot.forEach(doc => {
+                snapshot.forEach(async doc => {
                     const pedido = doc.data();
                     const pedidoId = doc.id;
-                    let total = 0;
+                    let total = pedido.productos.reduce((sum, p) => sum + p.precio, 0);
+                    
                     const productosHtml = pedido.productos.map(p => {
-                        total += p.precio;
-                        return `${p.nombre} (x1)`; // Asumimos 1 pieza por modelo
+                        return `${p.nombre} ($${p.precio.toFixed(2)})`;
                     }).join(', ');
+
+                    const fechaVenta = pedido.fechaActualizacion ? new Date(pedido.fechaActualizacion.seconds * 1000).toLocaleDateString() : 'N/A';
                     
                     const item = document.createElement('li');
                     item.className = 'sale-item';
@@ -774,7 +773,7 @@
                         </div>
                         <div class="sale-details">
                             <p><strong>Productos:</strong> ${productosHtml}</p>
-                            <p><strong>Fecha de Venta:</strong> ${new Date(pedido.fechaActualizacion.seconds * 1000).toLocaleDateString()}</p>
+                            <p><strong>Fecha de Venta:</strong> ${fechaVenta}</p>
                         </div>
                     `;
                     item.onclick = () => {
