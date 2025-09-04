@@ -268,14 +268,13 @@
                             <th>Imagen</th>
                             <th>Nombre</th>
                             <th>Categoría</th>
-                            <th>Inventario</th>
+                            <th>Stock</th>
                             <th>Precio</th>
                             <th>Acciones</th>
                         </tr>
                     </thead>
                     <tbody id="inventory-table-body">
-                        <!-- Los productos se cargarán aquí -->
-                    </tbody>
+                        </tbody>
                 </table>
             </div>
             <button class="btn close-button" onclick="showScreen('main-menu')">Volver al Menú</button>
@@ -290,16 +289,16 @@
                     <option value="KalCTas2-4">KalCTas 2/4</option>
                     <option value="KalCTas3-4">KalCTas 3/4</option>
                     <option value="KalCTasDeportivas">KalCTas Deportivas</option>
+                    <option value="KalCTasLargas">KalCTas Largas</option>
                 </select>
                 <input type="text" id="product-image-url" placeholder="assets/nombre-de-carpeta/nombre-del-archivo.png" required>
-                <input type="number" id="product-inventory" placeholder="Inventario" required>
+                <input type="number" id="product-stock" placeholder="Inventario" required>
                 <input type="number" id="product-price" placeholder="Precio" step="0.01" required>
                 <button type="submit">Guardar Producto</button>
             </form>
             <button class="btn close-button" onclick="showScreen('inventory-screen')">Volver al Inventario</button>
         </section>
 
-        <!-- Modal para editar producto -->
         <div id="edit-modal" class="edit-modal">
             <div class="modal-content">
                 <h2>Editar Producto</h2>
@@ -312,11 +311,12 @@
                         <option value="KalCTas2-4">KalCTas 2/4</option>
                         <option value="KalCTas3-4">KalCTas 3/4</option>
                         <option value="KalCTasDeportivas">KalCTas Deportivas</option>
+                        <option value="KalCTasLargas">KalCTas Largas</option>
                     </select>
                     <label for="edit-image-url">URL de la imagen:</label>
                     <input type="text" id="edit-image-url" required>
-                    <label for="edit-inventory">Inventario:</label>
-                    <input type="number" id="edit-inventory" required>
+                    <label for="edit-stock">Stock:</label>
+                    <input type="number" id="edit-stock" required>
                     <label for="edit-price">Precio:</label>
                     <input type="number" id="edit-price" step="0.01" required>
                     <button type="submit">Guardar Cambios</button>
@@ -325,7 +325,6 @@
             </div>
         </div>
 
-        <!-- Mensaje de caja personalizada -->
         <div id="message-box" class="message-box">
             <div class="message-content">
                 <p id="message-text" class="message-text"></p>
@@ -333,7 +332,6 @@
             </div>
         </div>
 
-        <!-- Modal de confirmación para eliminar -->
         <div id="confirm-modal" class="confirm-modal">
             <div class="modal-content">
                 <p id="confirm-text" class="message-text">¿Estás seguro de que quieres eliminar este producto?</p>
@@ -445,7 +443,7 @@
                 nombre: addProductForm['product-name'].value,
                 categoria: addProductForm['product-category'].value,
                 imagenUrl: imageUrl,
-                inventario: parseInt(addProductForm['product-inventory'].value),
+                stock: parseInt(addProductForm['product-stock'].value),
                 precio: parseFloat(addProductForm['product-price'].value),
             };
 
@@ -479,7 +477,7 @@
                             <td><img src="${data.imagenUrl}" alt="Producto" onerror="this.onerror=null;this.src='https://placehold.co/50x50/333/FFF?text=No+Img'"></td>
                             <td>${data.nombre}</td>
                             <td>${data.categoria}</td>
-                            <td>${data.inventario}</td>
+                            <td>${data.stock}</td>
                             <td>$${data.precio.toFixed(2)}</td>
                             <td class="actions-cell">
                                 <button class="btn btn-edit" onclick="editProduct('${doc.id}')">Editar</button>
@@ -507,7 +505,7 @@
                     document.getElementById('edit-name').value = data.nombre;
                     document.getElementById('edit-category').value = data.categoria;
                     document.getElementById('edit-image-url').value = data.imagenUrl;
-                    document.getElementById('edit-inventory').value = data.inventario;
+                    document.getElementById('edit-stock').value = data.stock;
                     document.getElementById('edit-price').value = data.precio;
                     editModal.style.display = 'flex';
                 } else {
@@ -532,7 +530,7 @@
                 nombre: document.getElementById('edit-name').value,
                 categoria: document.getElementById('edit-category').value,
                 imagenUrl: imageUrl,
-                inventario: parseInt(document.getElementById('edit-inventory').value),
+                stock: parseInt(document.getElementById('edit-stock').value),
                 precio: parseFloat(document.getElementById('edit-price').value),
             };
 
