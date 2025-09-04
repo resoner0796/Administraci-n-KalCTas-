@@ -82,6 +82,15 @@
             width: 100%;
             box-sizing: border-box; /* Asegura que el padding no afecte el ancho */
         }
+        
+        .image-path-group {
+            display: flex;
+            gap: 10px;
+        }
+        .image-path-group select, .image-path-group input {
+            width: 50%;
+        }
+
 
         button {
             padding: 15px;
@@ -125,9 +134,11 @@
         }
         .btn-edit { background-color: #f39c12; }
         .btn-delete { background-color: #e74c3c; }
+        .btn-yes { background-color: #2ecc71; }
+        .btn-no { background-color: #e74c3c; }
 
         /* --- Estilos para los mensajes y modales --- */
-        .message-box, .edit-modal {
+        .message-box, .edit-modal, .confirm-modal {
             display: none;
             position: fixed;
             z-index: 1000;
@@ -176,6 +187,12 @@
             width: 100%;
             box-sizing: border-box;
             margin-top: 5px;
+        }
+        .confirm-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 20px;
         }
         
     </style>
@@ -235,7 +252,14 @@
                     <option value="KalCTas3-4">KalCTas 3/4</option>
                     <option value="KalCTasDeportivas">KalCTas Deportivas</option>
                 </select>
-                <input type="text" id="product-image" placeholder="URL de la imagen" required>
+                <div class="image-path-group">
+                    <select id="product-image-path" required>
+                        <option value="assets/KalCTas-2-4/">assets/KalCTas-2-4/</option>
+                        <option value="assets/KalCTas-3-4/">assets/KalCTas-3-4/</option>
+                        <option value="assets/KalCTas-Deportivas/">assets/KalCTas-Deportivas/</option>
+                    </select>
+                    <input type="text" id="product-image-filename" placeholder="nombre-del-archivo.png" required>
+                </div>
                 <input type="number" id="product-inventory" placeholder="Inventario" required>
                 <input type="number" id="product-price" placeholder="Precio" step="0.01" required>
                 <button type="submit">Guardar Producto</button>
@@ -258,7 +282,14 @@
                         <option value="KalCTasDeportivas">KalCTas Deportivas</option>
                     </select>
                     <label for="edit-image">URL de la imagen:</label>
-                    <input type="text" id="edit-image" required>
+                    <div class="image-path-group">
+                        <select id="edit-image-path" required>
+                            <option value="assets/KalCTas-2-4/">assets/KalCTas-2-4/</option>
+                            <option value="assets/KalCTas-3-4/">assets/KalCTas-3-4/</option>
+                            <option value="assets/KalCTas-Deportivas/">assets/KalCTas-Deportivas/</option>
+                        </select>
+                        <input type="text" id="edit-image-filename" required>
+                    </div>
                     <label for="edit-inventory">Inventario:</label>
                     <input type="number" id="edit-inventory" required>
                     <label for="edit-price">Precio:</label>
@@ -274,6 +305,17 @@
             <div class="message-content">
                 <p id="message-text" class="message-text"></p>
                 <button class="close-button" onclick="closeMessage()">Aceptar</button>
+            </div>
+        </div>
+
+        <!-- Modal de confirmación para eliminar -->
+        <div id="confirm-modal" class="confirm-modal">
+            <div class="modal-content">
+                <p id="confirm-text" class="message-text">¿Estás seguro de que quieres eliminar este producto?</p>
+                <div class="confirm-buttons">
+                    <button class="btn btn-yes" onclick="confirmAction()">Sí, eliminar</button>
+                    <button class="btn btn-no" onclick="cancelAction()">Cancelar</button>
+                </div>
             </div>
         </div>
     </div>
@@ -310,7 +352,9 @@
         const messageBox = document.getElementById('message-box');
         const messageText = document.getElementById('message-text');
         const editModal = document.getElementById('edit-modal');
+        const confirmModal = document.getElementById('confirm-modal');
         let currentUserId = null;
+        let productToDeleteId = null;
 
         // Función para mostrar mensajes
         function showMessage(text) {
@@ -370,10 +414,14 @@
         // Lógica para agregar productos
         addProductForm.addEventListener('submit', async (e) => {
             e.preventDefault();
+            const imagePath = document.getElementById('product-image-path').value;
+            const imageFilename = document.getElementById('product-image-filename').value;
+            const imageUrl = imagePath + imageFilename;
+
             const producto = {
                 nombre: addProductForm['product-name'].value,
                 categoria: addProductForm['product-category'].value,
-                imagenUrl: addProductForm['product-image'].value,
+                imagenUrl: imageUrl,
                 inventario: parseInt(addProductForm['product-inventory'].value),
                 precio: parseFloat(addProductForm['product-price'].value),
             };
@@ -412,7 +460,7 @@
                             <td>$${data.precio.toFixed(2)}</td>
                             <td class="actions-cell">
                                 <button class="btn btn-edit" onclick="editProduct('${doc.id}')">Editar</button>
-                                <button class="btn btn-delete" onclick="deleteProduct('${doc.id}')">Eliminar</button>
+                                <button class="btn btn-delete" onclick="showConfirmModal('${doc.id}')">Eliminar</button>
                             </td>
                         </tr>
                     `;
@@ -435,7 +483,20 @@
                     document.getElementById('edit-product-id').value = id;
                     document.getElementById('edit-name').value = data.nombre;
                     document.getElementById('edit-category').value = data.categoria;
-                    document.getElementById('edit-image').value = data.imagenUrl;
+                    
+                    // Separar la URL para rellenar los campos de edición
+                    const lastSlashIndex = data.imagenUrl.lastIndexOf('/');
+                    if (lastSlashIndex !== -1) {
+                        const path = data.imagenUrl.substring(0, lastSlashIndex + 1);
+                        const filename = data.imagenUrl.substring(lastSlashIndex + 1);
+                        document.getElementById('edit-image-path').value = path;
+                        document.getElementById('edit-image-filename').value = filename;
+                    } else {
+                        // En caso de que no se pueda separar, se pone la URL completa en el campo de filename
+                        document.getElementById('edit-image-path').value = '';
+                        document.getElementById('edit-image-filename').value = data.imagenUrl;
+                    }
+
                     document.getElementById('edit-inventory').value = data.inventario;
                     document.getElementById('edit-price').value = data.precio;
                     editModal.style.display = 'flex';
@@ -455,10 +516,14 @@
         editProductForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             const id = document.getElementById('edit-product-id').value;
+            const imagePath = document.getElementById('edit-image-path').value;
+            const imageFilename = document.getElementById('edit-image-filename').value;
+            const imageUrl = imagePath + imageFilename;
+
             const updatedProduct = {
                 nombre: document.getElementById('edit-name').value,
                 categoria: document.getElementById('edit-category').value,
-                imagenUrl: document.getElementById('edit-image').value,
+                imagenUrl: imageUrl,
                 inventario: parseInt(document.getElementById('edit-inventory').value),
                 precio: parseFloat(document.getElementById('edit-price').value),
             };
@@ -474,18 +539,29 @@
             }
         });
 
-        // Lógica para eliminar producto
-        async function deleteProduct(id) {
-            const confirmDelete = window.confirm('¿Estás seguro de que quieres eliminar este producto?');
-            if (confirmDelete) {
+        // Lógica para el modal de confirmación
+        function showConfirmModal(id) {
+            productToDeleteId = id;
+            confirmModal.style.display = 'flex';
+        }
+
+        function cancelAction() {
+            confirmModal.style.display = 'none';
+            productToDeleteId = null;
+        }
+
+        async function confirmAction() {
+            if (productToDeleteId) {
                 try {
-                    await db.collection('productos').doc(id).delete();
+                    await db.collection('productos').doc(productToDeleteId).delete();
                     showMessage('Producto eliminado con éxito.');
+                    confirmModal.style.display = 'none';
                     loadInventory(); // Recargar la tabla
                 } catch (error) {
                     console.error("Error al eliminar el producto:", error);
                     showMessage('Hubo un error al eliminar el producto.');
                 }
+                productToDeleteId = null;
             }
         }
     </script>
