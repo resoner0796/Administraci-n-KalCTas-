@@ -16,24 +16,54 @@
             min-height: 100vh;
             text-align: center;
         }
-        
+
         .container {
             background-color: #e67e22;
             padding: 40px;
             border-radius: 15px;
             box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
-            max-width: 450px;
+            max-width: 900px;
             width: 90%;
             display: flex;
             flex-direction: column;
             align-items: center;
             color: #ffffff;
+            position: relative;
+        }
+
+        /* --- Menú de Navegación --- */
+        .admin-nav {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            gap: 10px;
+        }
+        .admin-nav .btn {
+            background-color: rgba(255, 255, 255, 0.2);
+            color: #ffffff;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        .admin-nav .btn:hover {
+            background-color: rgba(255, 255, 255, 0.4);
         }
 
         h1 {
             color: #ffffff;
             font-size: 1.8em;
             margin-bottom: 20px;
+        }
+
+        h2 {
+            border-bottom: 2px solid rgba(255, 255, 255, 0.3);
+            padding-bottom: 10px;
+            margin-top: 20px;
+            margin-bottom: 20px;
+            text-align: center;
         }
 
         form {
@@ -43,7 +73,7 @@
             gap: 15px;
         }
 
-        input, select {
+        input, select, textarea {
             padding: 12px;
             border-radius: 8px;
             border: none;
@@ -69,7 +99,35 @@
             background-color: #2e86de;
         }
 
-        .message-box {
+        /* --- Estilos para la tabla de inventario --- */
+        #inventory-table {
+            width: 100%;
+            margin-top: 20px;
+            border-collapse: collapse;
+        }
+        #inventory-table th, #inventory-table td {
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            padding: 10px;
+            text-align: left;
+            font-size: 0.9em;
+        }
+        #inventory-table th {
+            background-color: rgba(255, 255, 255, 0.2);
+        }
+        #inventory-table img {
+            max-width: 50px;
+            border-radius: 5px;
+        }
+        .actions-cell button {
+            padding: 5px 10px;
+            font-size: 0.8em;
+            margin-right: 5px;
+        }
+        .btn-edit { background-color: #f39c12; }
+        .btn-delete { background-color: #e74c3c; }
+
+        /* --- Estilos para los mensajes y modales --- */
+        .message-box, .edit-modal {
             display: none;
             position: fixed;
             z-index: 1000;
@@ -82,12 +140,15 @@
             align-items: center;
         }
 
-        .message-content {
+        .message-content, .modal-content {
             background-color: #fff;
             padding: 20px;
             border-radius: 10px;
             box-shadow: 0 5px 15px rgba(0,0,0,0.3);
             text-align: center;
+            color: #333;
+            max-width: 500px;
+            width: 90%;
         }
 
         .close-button {
@@ -102,14 +163,32 @@
         .message-text {
             color: #333;
         }
+
+        .edit-modal-form {
+            text-align: left;
+        }
+        .edit-modal-form label {
+            display: block;
+            margin-top: 10px;
+            color: #333;
+        }
+        .edit-modal-form input, .edit-modal-form select {
+            width: 100%;
+            box-sizing: border-box;
+            margin-top: 5px;
+        }
+        
     </style>
 </head>
 <body>
 
     <div class="container">
-        <h1>Administración de KalCTas</h1>
+        <div class="admin-nav">
+            <button class="btn" onclick="logout()">Cerrar Sesión</button>
+        </div>
 
-        <section id="login-screen">
+        <section id="login-screen" style="display: block;">
+            <h1>Administración de KalCTas</h1>
             <h2>Iniciar Sesión</h2>
             <form id="login-form">
                 <input type="email" id="login-email" placeholder="Correo electrónico" required>
@@ -118,8 +197,36 @@
             </form>
         </section>
 
-        <section id="admin-screen" style="display: none;">
-            <h2>Agregar Nuevo Producto</h2>
+        <section id="main-menu" style="display: none;">
+            <h1>Administración de KalCTas</h1>
+            <h2>Menú Principal</h2>
+            <button class="btn" onclick="showScreen('inventory-screen')">Inventario</button>
+            <button class="btn" onclick="showMessage('¡Aquí irá la pantalla de ventas!')">Ventas</button>
+        </section>
+
+        <section id="inventory-screen" style="display: none;">
+            <h1>Inventario de Productos</h1>
+            <button class="btn" onclick="showScreen('add-product-screen')">Agregar Nuevo Producto</button>
+            <table id="inventory-table">
+                <thead>
+                    <tr>
+                        <th>Imagen</th>
+                        <th>Nombre</th>
+                        <th>Categoría</th>
+                        <th>Inventario</th>
+                        <th>Precio</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody id="inventory-table-body">
+                    <!-- Los productos se cargarán aquí -->
+                </tbody>
+            </table>
+            <button class="btn close-button" onclick="showScreen('main-menu')">Volver al Menú</button>
+        </section>
+
+        <section id="add-product-screen" style="display: none;">
+            <h1>Agregar Nuevo Producto</h1>
             <form id="add-product-form">
                 <input type="text" id="product-name" placeholder="Nombre del producto" required>
                 <select id="product-category" required>
@@ -128,21 +235,46 @@
                     <option value="KalCTas3-4">KalCTas 3/4</option>
                     <option value="KalCTasDeportivas">KalCTas Deportivas</option>
                 </select>
-                <input type="text" id="product-image" placeholder="URL de la imagen (ej: assets/...)" required>
+                <input type="text" id="product-image" placeholder="URL de la imagen" required>
                 <input type="number" id="product-inventory" placeholder="Inventario" required>
                 <input type="number" id="product-price" placeholder="Precio" step="0.01" required>
-                <button type="submit">Agregar Producto</button>
+                <button type="submit">Guardar Producto</button>
             </form>
-            <button onclick="logout()">Cerrar Sesión</button>
+            <button class="btn close-button" onclick="showScreen('inventory-screen')">Volver al Inventario</button>
         </section>
 
-    </div>
+        <!-- Modal para editar producto -->
+        <div id="edit-modal" class="edit-modal">
+            <div class="modal-content">
+                <h2>Editar Producto</h2>
+                <form id="edit-product-form" class="edit-modal-form">
+                    <input type="hidden" id="edit-product-id">
+                    <label for="edit-name">Nombre:</label>
+                    <input type="text" id="edit-name" required>
+                    <label for="edit-category">Categoría:</label>
+                    <select id="edit-category" required>
+                        <option value="KalCTas2-4">KalCTas 2/4</option>
+                        <option value="KalCTas3-4">KalCTas 3/4</option>
+                        <option value="KalCTasDeportivas">KalCTas Deportivas</option>
+                    </select>
+                    <label for="edit-image">URL de la imagen:</label>
+                    <input type="text" id="edit-image" required>
+                    <label for="edit-inventory">Inventario:</label>
+                    <input type="number" id="edit-inventory" required>
+                    <label for="edit-price">Precio:</label>
+                    <input type="number" id="edit-price" step="0.01" required>
+                    <button type="submit">Guardar Cambios</button>
+                </form>
+                <button class="close-button" onclick="closeEditModal()">Cancelar</button>
+            </div>
+        </div>
 
-    <!-- Mensaje de caja personalizada -->
-    <div id="message-box" class="message-box">
-        <div class="message-content">
-            <p id="message-text" class="message-text"></p>
-            <button class="close-button" onclick="closeMessage()">Aceptar</button>
+        <!-- Mensaje de caja personalizada -->
+        <div id="message-box" class="message-box">
+            <div class="message-content">
+                <p id="message-text" class="message-text"></p>
+                <button class="close-button" onclick="closeMessage()">Aceptar</button>
+            </div>
         </div>
     </div>
 
@@ -169,10 +301,16 @@
         // Referencias a los elementos del DOM
         const loginForm = document.getElementById('login-form');
         const addProductForm = document.getElementById('add-product-form');
+        const editProductForm = document.getElementById('edit-product-form');
         const loginScreen = document.getElementById('login-screen');
-        const adminScreen = document.getElementById('admin-screen');
+        const mainMenuScreen = document.getElementById('main-menu');
+        const inventoryScreen = document.getElementById('inventory-screen');
+        const addProductScreen = document.getElementById('add-product-screen');
+        const inventoryTableBody = document.getElementById('inventory-table-body');
         const messageBox = document.getElementById('message-box');
         const messageText = document.getElementById('message-text');
+        const editModal = document.getElementById('edit-modal');
+        let currentUserId = null;
 
         // Función para mostrar mensajes
         function showMessage(text) {
@@ -185,16 +323,28 @@
             messageBox.style.display = 'none';
         }
 
+        // Función para mostrar la pantalla
+        function showScreen(screenId) {
+            document.querySelectorAll('section').forEach(screen => {
+                screen.style.display = 'none';
+            });
+            document.getElementById(screenId).style.display = 'block';
+
+            if (screenId === 'inventory-screen') {
+                loadInventory();
+            }
+        }
+
         // Lógica de autenticación
         auth.onAuthStateChanged(user => {
             if (user) {
+                currentUserId = user.uid;
                 console.log('Usuario autenticado:', user.email);
-                loginScreen.style.display = 'none';
-                adminScreen.style.display = 'block';
+                showScreen('main-menu');
             } else {
+                currentUserId = null;
                 console.log('Usuario no autenticado.');
-                loginScreen.style.display = 'block';
-                adminScreen.style.display = 'none';
+                showScreen('login-screen');
             }
         });
 
@@ -229,14 +379,115 @@
             };
 
             try {
+                // Guarda en la colección 'productos'
                 await db.collection('productos').add(producto);
                 showMessage('¡Producto agregado con éxito!');
                 addProductForm.reset();
+                showScreen('inventory-screen'); // Vuelve a la pantalla de inventario
             } catch (error) {
                 console.error("Error al agregar el producto:", error);
                 showMessage('Hubo un error al agregar el producto. Intenta de nuevo.');
             }
         });
+
+        // Lógica para cargar el inventario
+        async function loadInventory() {
+            inventoryTableBody.innerHTML = '<tr><td colspan="6">Cargando inventario...</td></tr>';
+            try {
+                const snapshot = await db.collection('productos').get();
+                inventoryTableBody.innerHTML = ''; // Limpia la tabla
+                if (snapshot.empty) {
+                    inventoryTableBody.innerHTML = '<tr><td colspan="6">No hay productos en el inventario.</td></tr>';
+                    return;
+                }
+                
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    const row = `
+                        <tr>
+                            <td><img src="${data.imagenUrl}" alt="Producto" onerror="this.onerror=null;this.src='https://placehold.co/50x50/333/FFF?text=No+Img'"></td>
+                            <td>${data.nombre}</td>
+                            <td>${data.categoria}</td>
+                            <td>${data.inventario}</td>
+                            <td>$${data.precio.toFixed(2)}</td>
+                            <td class="actions-cell">
+                                <button class="btn btn-edit" onclick="editProduct('${doc.id}')">Editar</button>
+                                <button class="btn btn-delete" onclick="deleteProduct('${doc.id}')">Eliminar</button>
+                            </td>
+                        </tr>
+                    `;
+                    inventoryTableBody.innerHTML += row;
+                });
+            } catch (error) {
+                console.error("Error al cargar el inventario:", error);
+                inventoryTableBody.innerHTML = '<tr><td colspan="6">Error al cargar el inventario.</td></tr>';
+            }
+        }
+
+        // Lógica para editar producto
+        async function editProduct(id) {
+            try {
+                const docRef = db.collection('productos').doc(id);
+                const docSnap = await docRef.get();
+                
+                if (docSnap.exists) {
+                    const data = docSnap.data();
+                    document.getElementById('edit-product-id').value = id;
+                    document.getElementById('edit-name').value = data.nombre;
+                    document.getElementById('edit-category').value = data.categoria;
+                    document.getElementById('edit-image').value = data.imagenUrl;
+                    document.getElementById('edit-inventory').value = data.inventario;
+                    document.getElementById('edit-price').value = data.precio;
+                    editModal.style.display = 'flex';
+                } else {
+                    showMessage("El producto no se encontró.");
+                }
+            } catch (error) {
+                console.error("Error al obtener el producto:", error);
+                showMessage("Hubo un error al intentar editar el producto.");
+            }
+        }
+
+        function closeEditModal() {
+            editModal.style.display = 'none';
+        }
+
+        editProductForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const id = document.getElementById('edit-product-id').value;
+            const updatedProduct = {
+                nombre: document.getElementById('edit-name').value,
+                categoria: document.getElementById('edit-category').value,
+                imagenUrl: document.getElementById('edit-image').value,
+                inventario: parseInt(document.getElementById('edit-inventory').value),
+                precio: parseFloat(document.getElementById('edit-price').value),
+            };
+
+            try {
+                await db.collection('productos').doc(id).update(updatedProduct);
+                showMessage('Producto actualizado con éxito.');
+                closeEditModal();
+                loadInventory();
+            } catch (error) {
+                console.error("Error al actualizar el producto:", error);
+                showMessage('Hubo un error al actualizar el producto.');
+            }
+        });
+
+        // Lógica para eliminar producto
+        async function deleteProduct(id) {
+            const confirmDelete = window.confirm('¿Estás seguro de que quieres eliminar este producto?');
+            if (confirmDelete) {
+                try {
+                    await db.collection('productos').doc(id).delete();
+                    showMessage('Producto eliminado con éxito.');
+                    loadInventory(); // Recargar la tabla
+                } catch (error) {
+                    console.error("Error al eliminar el producto:", error);
+                    showMessage('Hubo un error al eliminar el producto.');
+                }
+            }
+        }
     </script>
 </body>
 </html>
