@@ -92,6 +92,21 @@
             flex-grow: 1;
         }
 
+        .main-menu-buttons button {
+            background-color: #48dbfb;
+            color: #ffffff;
+            font-weight: bold;
+            padding: 20px;
+            font-size: 1.2em;
+            border-radius: 10px;
+            margin-bottom: 15px;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .main-menu-buttons button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+        }
+
         button {
             padding: 15px;
             border: none;
@@ -141,7 +156,67 @@
         .btn-delete { background-color: #e74c3c; }
         .btn-yes { background-color: #2ecc71; }
         .btn-no { background-color: #e74c3c; }
+        .btn-confirm { background-color: #2ecc71; }
+        .btn-delivered { background-color: #f39c12; }
 
+        /* --- Estilos para la lista de pedidos --- */
+        #orders-list, #sales-list {
+            list-style: none;
+            padding: 0;
+            width: 100%;
+            margin-top: 20px;
+        }
+        .order-item, .sale-item {
+            background-color: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            margin-bottom: 10px;
+            padding: 15px;
+            text-align: left;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+        .order-item:hover, .sale-item:hover {
+            background-color: rgba(255, 255, 255, 0.2);
+        }
+        .order-summary {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: bold;
+            font-size: 1.1em;
+        }
+        .order-details, .sale-details {
+            display: none;
+            border-top: 1px solid rgba(255, 255, 255, 0.3);
+            padding-top: 10px;
+            margin-top: 10px;
+        }
+        .order-details p, .sale-details p {
+            margin: 5px 0;
+        }
+        .order-details strong, .sale-details strong {
+            display: inline-block;
+            width: 100px;
+        }
+        .order-status {
+            font-size: 0.9em;
+            color: #ffffff;
+            font-weight: normal;
+            background-color: #576574;
+            padding: 5px 10px;
+            border-radius: 5px;
+        }
+        .status-confirmed { background-color: #3498db; }
+        .status-delivered { background-color: #2ecc71; }
+        .order-actions {
+            margin-top: 15px;
+            display: flex;
+            gap: 10px;
+        }
+        .order-actions button {
+            padding: 8px 15px;
+        }
+        
         /* --- Estilos para los mensajes y modales --- */
         .message-box, .edit-modal, .confirm-modal {
             display: none;
@@ -254,8 +329,11 @@
         <section id="main-menu" style="display: none;">
             <h1>Administración de KalCTas</h1>
             <h2>Menú Principal</h2>
-            <button class="btn" onclick="showScreen('inventory-screen')">Inventario</button>
-            <button class="btn" onclick="showMessage('¡Aquí irá la pantalla de ventas!')">Ventas</button>
+            <div class="main-menu-buttons">
+                <button onclick="showScreen('inventory-screen')">Inventario</button>
+                <button onclick="showScreen('orders-screen')">Pedidos 📦</button>
+                <button onclick="showScreen('sales-screen')">Ventas 💰</button>
+            </div>
         </section>
 
         <section id="inventory-screen" style="display: none;">
@@ -288,7 +366,6 @@
                     <option value="" disabled selected>Selecciona una categoría</option>
                     <option value="KalCTas2-4">KalCTas 2/4</option>
                     <option value="KalCTas3-4">KalCTas 3/4</option>
-                    <option value="KalCTasDeportivas">KalCTas Deportivas</option>
                     <option value="KalCTasLargas">KalCTas Largas</option>
                 </select>
                 <input type="text" id="product-image-url" placeholder="assets/nombre-de-carpeta/nombre-del-archivo.png" required>
@@ -297,6 +374,18 @@
                 <button type="submit">Guardar Producto</button>
             </form>
             <button class="btn close-button" onclick="showScreen('inventory-screen')">Volver al Inventario</button>
+        </section>
+
+        <section id="orders-screen" style="display: none;">
+            <h1>Pedidos Pendientes</h1>
+            <ul id="orders-list"></ul>
+            <button class="btn close-button" onclick="showScreen('main-menu')">Volver al Menú</button>
+        </section>
+
+        <section id="sales-screen" style="display: none;">
+            <h1>Historial de Ventas</h1>
+            <ul id="sales-list"></ul>
+            <button class="btn close-button" onclick="showScreen('main-menu')">Volver al Menú</button>
         </section>
 
         <div id="edit-modal" class="edit-modal">
@@ -310,7 +399,6 @@
                     <select id="edit-category" required>
                         <option value="KalCTas2-4">KalCTas 2/4</option>
                         <option value="KalCTas3-4">KalCTas 3/4</option>
-                        <option value="KalCTasDeportivas">KalCTas Deportivas</option>
                         <option value="KalCTasLargas">KalCTas Largas</option>
                     </select>
                     <label for="edit-image-url">URL de la imagen:</label>
@@ -371,7 +459,11 @@
         const mainMenuScreen = document.getElementById('main-menu');
         const inventoryScreen = document.getElementById('inventory-screen');
         const addProductScreen = document.getElementById('add-product-screen');
+        const ordersScreen = document.getElementById('orders-screen');
+        const salesScreen = document.getElementById('sales-screen');
         const inventoryTableBody = document.getElementById('inventory-table-body');
+        const ordersList = document.getElementById('orders-list');
+        const salesList = document.getElementById('sales-list');
         const messageBox = document.getElementById('message-box');
         const messageText = document.getElementById('message-text');
         const editModal = document.getElementById('edit-modal');
@@ -399,6 +491,10 @@
 
             if (screenId === 'inventory-screen') {
                 loadInventory();
+            } else if (screenId === 'orders-screen') {
+                loadOrders();
+            } else if (screenId === 'sales-screen') {
+                loadSales();
             }
         }
 
@@ -568,6 +664,128 @@
                     showMessage('Hubo un error al eliminar el producto.');
                 }
                 productToDeleteId = null;
+            }
+        }
+
+        // Lógica para cargar los pedidos
+        async function loadOrders() {
+            ordersList.innerHTML = '<p>Cargando pedidos...</p>';
+            try {
+                const snapshot = await db.collection('pedidos').where('estado', 'in', ['Pendiente', 'Confirmado']).orderBy('fechaCreacion', 'asc').get();
+                ordersList.innerHTML = '';
+                if (snapshot.empty) {
+                    ordersList.innerHTML = '<p>No hay pedidos pendientes.</p>';
+                    return;
+                }
+
+                snapshot.forEach(async doc => {
+                    const pedido = doc.data();
+                    const pedidoId = doc.id;
+                    const clienteDoc = await db.collection('usuarios').doc(pedido.usuarioId).get();
+                    const cliente = clienteDoc.data();
+                    let total = 0;
+                    pedido.productos.forEach(p => total += p.precio);
+                    
+                    const item = document.createElement('li');
+                    item.className = 'order-item';
+                    item.onclick = () => {
+                        const details = item.querySelector('.order-details');
+                        details.style.display = details.style.display === 'block' ? 'none' : 'block';
+                    };
+                    
+                    let estadoClass = '';
+                    if (pedido.estado === 'Confirmado') {
+                        estadoClass = 'status-confirmed';
+                    }
+
+                    item.innerHTML = `
+                        <div class="order-summary">
+                            <span>Pedido #${pedidoId.substring(0, 6)}</span>
+                            <span class="order-status ${estadoClass}">${pedido.estado}</span>
+                            <span>$${total.toFixed(2)}</span>
+                        </div>
+                        <div class="order-details">
+                            <p><strong>Cliente:</strong> ${cliente.nombre} ${cliente.apellido}</p>
+                            <p><strong>Correo:</strong> ${cliente.email}</p>
+                            <p><strong>Teléfono:</strong> ${cliente.telefono || 'No registrado'}</p>
+                            <p><strong>Método de pago:</strong> ${pedido.metodoPago}</p>
+                            <p><strong>Fecha de entrega:</strong> ${pedido.fechaEntrega}</p>
+                            <p><strong>Lugar de entrega:</strong> ${pedido.lugarEntrega}</p>
+                            <p><strong>Productos:</strong></p>
+                            <ul>
+                                ${pedido.productos.map(p => `<li>${p.nombre} ($${p.precio})</li>`).join('')}
+                            </ul>
+                            <div class="order-actions">
+                                <button class="btn btn-confirm" onclick="updateOrderStatus('${pedidoId}', 'Confirmado', event)">Confirmar</button>
+                                <button class="btn btn-delivered" onclick="updateOrderStatus('${pedidoId}', 'Entregado', event)">Entregado</button>
+                            </div>
+                        </div>
+                    `;
+                    ordersList.appendChild(item);
+                });
+            } catch (error) {
+                console.error("Error al cargar los pedidos:", error);
+                ordersList.innerHTML = '<p>Error al cargar los pedidos.</p>';
+            }
+        }
+
+        // Lógica para actualizar el estado de un pedido
+        async function updateOrderStatus(pedidoId, newStatus, event) {
+            event.stopPropagation(); // Evita que se colapse el detalle del pedido
+            try {
+                await db.collection('pedidos').doc(pedidoId).update({
+                    estado: newStatus,
+                    fechaActualizacion: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                showMessage(`Estado del pedido #${pedidoId.substring(0, 6)} actualizado a '${newStatus}'.`);
+                loadOrders(); // Recarga la lista de pedidos pendientes
+            } catch (error) {
+                console.error("Error al actualizar el estado del pedido:", error);
+                showMessage('Hubo un error al actualizar el estado del pedido.');
+            }
+        }
+
+        // Lógica para cargar las ventas (pedidos entregados)
+        async function loadSales() {
+            salesList.innerHTML = '<p>Cargando ventas...</p>';
+            try {
+                const snapshot = await db.collection('pedidos').where('estado', '==', 'Entregado').orderBy('fechaActualizacion', 'desc').get();
+                salesList.innerHTML = '';
+                if (snapshot.empty) {
+                    salesList.innerHTML = '<p>No hay ventas registradas.</p>';
+                    return;
+                }
+
+                snapshot.forEach(doc => {
+                    const pedido = doc.data();
+                    const pedidoId = doc.id;
+                    let total = 0;
+                    const productosHtml = pedido.productos.map(p => {
+                        total += p.precio;
+                        return `${p.nombre} (x1)`; // Asumimos 1 pieza por modelo
+                    }).join(', ');
+                    
+                    const item = document.createElement('li');
+                    item.className = 'sale-item';
+                    item.innerHTML = `
+                        <div class="sale-summary">
+                            <span>Venta #${pedidoId.substring(0, 6)}</span>
+                            <span>$${total.toFixed(2)}</span>
+                        </div>
+                        <div class="sale-details">
+                            <p><strong>Productos:</strong> ${productosHtml}</p>
+                            <p><strong>Fecha de Venta:</strong> ${new Date(pedido.fechaActualizacion.seconds * 1000).toLocaleDateString()}</p>
+                        </div>
+                    `;
+                    item.onclick = () => {
+                        const details = item.querySelector('.sale-details');
+                        details.style.display = details.style.display === 'block' ? 'none' : 'block';
+                    };
+                    salesList.appendChild(item);
+                });
+            } catch (error) {
+                console.error("Error al cargar las ventas:", error);
+                salesList.innerHTML = '<p>Error al cargar las ventas.</p>';
             }
         }
     </script>
