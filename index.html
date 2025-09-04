@@ -81,7 +81,7 @@
             font-size: 1em;
             background-color: rgba(255, 255, 255, 0.9);
             width: 100%;
-            box-sizing: border-box; /* Asegura que el padding no afecte el ancho */
+            box-sizing: border-box;
         }
         
         .image-path-group {
@@ -91,7 +91,6 @@
         .image-path-group select, .image-path-group input {
             flex-grow: 1;
         }
-
 
         button {
             padding: 15px;
@@ -117,7 +116,7 @@
         }
         #inventory-table {
             width: 100%;
-            min-width: 600px; /* Ancho mínimo para la tabla en móviles */
+            min-width: 600px;
             border-collapse: collapse;
         }
         #inventory-table th, #inventory-table td {
@@ -297,8 +296,6 @@
                         <option value="assets/KalCTas-2-4/">assets/KalCTas-2-4/</option>
                         <option value="assets/KalCTas-3-4/">assets/KalCTas-3-4/</option>
                         <option value="assets/KalCTas-Deportivas/">assets/KalCTas-Deportivas/</option>
-                        <!-- Opción agregada para corregir la ruta -->
-                        <option value="assets/KalCTas-4/">assets/KalCTas-4/</option>
                     </select>
                     <input type="text" id="product-image-filename" placeholder="nombre-del-archivo.png" required>
                 </div>
@@ -329,8 +326,6 @@
                             <option value="assets/KalCTas-2-4/">assets/KalCTas-2-4/</option>
                             <option value="assets/KalCTas-3-4/">assets/KalCTas-3-4/</option>
                             <option value="assets/KalCTas-Deportivas/">assets/KalCTas-Deportivas/</option>
-                            <!-- Opción agregada para corregir la ruta -->
-                            <option value="assets/KalCTas-4/">assets/KalCTas-4/</option>
                         </select>
                         <input type="text" id="edit-image-filename" required>
                     </div>
