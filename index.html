@@ -821,12 +821,21 @@
         function loadOrders() {
             const ordersList = getEl('orders-list');
             ordersList.innerHTML = '<p>Cargando pedidos...</p>';
-            const q = db.collection('pedidos').where('estado', 'in', ['Pendiente', 'Confirmado']).orderBy('fechaCreacion', 'desc');
+            // Consulta para pedidos pendientes y confirmados, ordenados por fecha de creación
+            const q = db.collection('pedidos')
+                .where('estado', 'in', ['Pendiente', 'Confirmado'])
+                .orderBy('fechaCreacion', 'desc');
+
             const unsubscribe = q.onSnapshot(async (snapshot) => {
-                ordersList.innerHTML = snapshot.empty ? '<p>No hay pedidos pendientes.</p>' : '';
-                for (const doc of snapshot.docs) {
+                ordersList.innerHTML = '';
+                if (snapshot.empty) {
+                    ordersList.innerHTML = '<p>No hay pedidos pendientes.</p>';
+                    return;
+                }
+                
+                snapshot.forEach(doc => {
                     const pedido = doc.data();
-                    const total = pedido.productos.reduce((sum, p) => sum + p.precio, 0);
+                    const total = pedido.productos.reduce((sum, p) => sum + (p.precio || 0), 0);
                     const item = document.createElement('li');
                     item.className = 'order-item';
                     item.innerHTML = `
@@ -850,7 +859,7 @@
                         </div>`;
                     item.onclick = () => item.querySelector('.order-details').style.display = item.querySelector('.order-details').style.display === 'block' ? 'none' : 'block';
                     ordersList.appendChild(item);
-                }
+                });
             }, (error) => {
                 console.error("Error al escuchar pedidos:", error);
                 ordersList.innerHTML = '<p>Error al cargar pedidos.</p>';
@@ -868,7 +877,7 @@
                     if (!pedidoDoc.exists) throw new Error("Pedido no encontrado");
 
                     const pedidoData = pedidoDoc.data();
-                    const totalVenta = pedidoData.productos.reduce((sum, p) => sum + p.precio, 0);
+                    const totalVenta = pedidoData.productos.reduce((sum, p) => sum + (p.precio || 0), 0);
                     const finanzasDoc = await t.get(finanzasRef);
                     const data = finanzasDoc.data() || { ventas: 0, gastos: 0, utilidad: 0, capital: 0 };
 
@@ -914,12 +923,24 @@
         function loadSalesHistory() {
             const list = getEl('sales-history-list');
             list.innerHTML = '<p>Cargando historial...</p>';
-            const q = db.collection('pedidos').where('estado', 'in', ['Entregado', 'Cancelado']).orderBy('fechaActualizacion', 'desc');
+            // La consulta original combinaba 'in' y 'orderBy', que requiere un índice.
+            // Para evitar ese error, separamos la carga y ordenamos en el cliente.
+            const q = db.collection('pedidos').where('estado', 'in', ['Entregado', 'Cancelado']);
+
             const unsubscribe = q.onSnapshot((snapshot) => {
-                list.innerHTML = snapshot.empty ? '<p>No hay pedidos en el historial.</p>' : '';
+                const pedidos = [];
                 snapshot.forEach(doc => {
                     const pedido = doc.data();
-                    const total = pedido.productos.reduce((sum, p) => sum + p.precio, 0);
+                    if (pedido.fechaActualizacion) {
+                        pedidos.push({ id: doc.id, ...pedido });
+                    }
+                });
+
+                pedidos.sort((a, b) => b.fechaActualizacion.toDate() - a.fechaActualizacion.toDate());
+
+                list.innerHTML = pedidos.length === 0 ? '<p>No hay pedidos en el historial.</p>' : '';
+                pedidos.forEach(pedido => {
+                    const total = pedido.productos.reduce((sum, p) => sum + (p.precio || 0), 0);
                     const item = document.createElement('li');
                     item.className = 'sale-item';
                     item.innerHTML = `
@@ -932,7 +953,7 @@
                     list.appendChild(item);
                 });
             }, (error) => {
-                console.error("Error al cargar historial de ventas. Probablemente necesitas crear un índice en Firestore.", error);
+                console.error("Error al cargar historial de ventas:", error);
                 list.innerHTML = '<p>Error al cargar el historial. Revisa la consola (F12) para crear el índice de Firestore necesario.</p>';
             });
             unsubscribes.push(unsubscribe);
@@ -952,13 +973,13 @@
 
                 salesSnapshot.forEach(doc => {
                     const data = doc.data();
-                    const total = data.productos.reduce((sum, p) => sum + p.precio, 0);
+                    const total = data.productos.reduce((sum, p) => sum + (p.precio || 0), 0);
                     movements.push({
                         date: data.fechaActualizacion.toDate(),
                         description: `Venta #${data.folio} (${data.clienteInfo.nombre})`,
                         type: 'Venta',
                         amount: total,
-                        category: 'N/A'
+                        category: 'Ventas'
                     });
                 });
 
@@ -1189,7 +1210,7 @@
                 
                 snapshot.forEach(doc => {
                     const pedido = doc.data();
-                    const total = pedido.productos.reduce((sum, p) => sum + p.precio, 0);
+                    const total = pedido.productos.reduce((sum, p) => sum + (p.precio || 0), 0);
                     const fecha = pedido.fechaActualizacion.toDate().toISOString().split('T')[0];
                     
                     if (!salesByDate[fecha]) salesByDate[fecha] = 0;
@@ -1236,7 +1257,7 @@
                 list.innerHTML = snapshot.empty ? '<p>No hay ventas registradas.</p>' : '';
                 snapshot.forEach(doc => {
                     const pedido = doc.data();
-                    const total = pedido.productos.reduce((sum, p) => sum + p.precio, 0);
+                    const total = pedido.productos.reduce((sum, p) => sum + (p.precio || 0), 0);
                     const date = pedido.fechaActualizacion.toDate().toLocaleDateString();
                     const item = document.createElement('li');
                     item.className = 'sales-history-item';
