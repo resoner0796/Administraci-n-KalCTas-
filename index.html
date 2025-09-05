@@ -20,7 +20,7 @@
 
         .container {
             background-color: #e67e22;
-            padding: 20px 40px 40px 40px; /* Ajuste para dar espacio al logo */
+            padding: 40px;
             border-radius: 15px;
             box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
             max-width: 900px;
@@ -30,17 +30,6 @@
             align-items: center;
             color: #ffffff;
             position: relative;
-        }
-
-        /* --- Logo persistente --- */
-        .global-logo-container {
-            width: 100%;
-            text-align: center;
-            margin-bottom: 15px;
-        }
-        .global-logo {
-            max-width: 120px; /* Tamaño reducido del logo */
-            height: auto;
         }
 
         /* --- Menú de Navegación --- */
@@ -71,7 +60,7 @@
             margin-bottom: 20px;
         }
         
-        .logo-container { /* Estilo para el logo de la pantalla de login */
+        .logo-container {
             margin-bottom: 20px;
         }
 
@@ -151,10 +140,6 @@
         
         button:hover {
             background-color: #2e86de;
-        }
-        .btn-export {
-            background-color: #218c74; /* Color verde para el botón de exportar */
-            margin-bottom: 15px;
         }
 
         /* --- Estilos para la tabla de inventario, insumos, y movimientos --- */
@@ -334,7 +319,7 @@
         /* --- Estilos para móviles (responsive) --- */
         @media (max-width: 768px) {
             body { padding: 10px; }
-            .container { padding: 10px 20px 20px 20px; }
+            .container { padding: 20px; }
             h1 { font-size: 1.5em; }
             .table-container { overflow-x: scroll; }
             .finance-panel { grid-template-columns: 1fr; }
@@ -345,15 +330,12 @@
 <body>
 
     <div class="container">
-        <div class="global-logo-container">
-            <img src="LOGO.png" alt="KalCTas Logo" class="global-logo">
-        </div>
         <div class="admin-nav">
             <button class="btn" onclick="logout()">Cerrar Sesión</button>
         </div>
 
         <section id="login-screen" style="display: block;">
-             <div class="logo-container">
+            <div class="logo-container">
                 <img src="LOGO.png" alt="KalCTas Logo" class="logo">
             </div>
             <h2>Iniciar Sesión</h2>
@@ -365,6 +347,9 @@
         </section>
 
         <section id="main-menu" style="display: none;">
+            <div class="logo-container">
+                <img src="LOGO.png" alt="KalCTas Logo" class="logo">
+            </div>
             <h2>Menú Principal</h2>
             <div class="main-menu-buttons">
                 <button onclick="showScreen('inventory-screen')">Inventario</button>
@@ -428,7 +413,6 @@
         
         <section id="movements-history-screen" style="display: none;">
             <h1>Historial de Movimientos</h1>
-            <button class="btn-export" onclick="exportMovementsToExcel()">Exportar a Excel (.csv)</button>
             <div class="table-container">
                 <table id="movements-table">
                     <thead>
@@ -657,7 +641,6 @@
         let productModels = [];
         let expenseConcepts = [];
         let unsubscribes = [];
-        let currentMovementsData = []; // Para guardar datos de movimientos y exportarlos
 
         const getEl = (id) => document.getElementById(id);
         
@@ -688,10 +671,6 @@
         }
 
         async function showScreen(screenId) {
-            // Ocultar el logo grande de login si no estamos en esa pantalla
-            getEl('login-screen').querySelector('.logo-container').style.display = (screenId === 'login-screen') ? 'block' : 'none';
-            getEl('global-logo-container').style.display = (screenId === 'login-screen') ? 'none' : 'block';
-
             document.querySelectorAll('section').forEach(screen => screen.style.display = 'none');
             getEl(screenId).style.display = 'block';
 
@@ -847,34 +826,14 @@
                 .orderBy('fechaCreacion', 'desc');
 
             const unsubscribe = q.onSnapshot(async (snapshot) => {
+                ordersList.innerHTML = '';
                 if (snapshot.empty) {
                     ordersList.innerHTML = '<p>No hay pedidos pendientes.</p>';
                     return;
                 }
                 
-                // MEJORA: Obtener datos de los usuarios para cada pedido
-                const userPromises = snapshot.docs.map(doc => {
-                    const pedido = doc.data();
-                    // ASUNCIÓN: El pedido debe tener un campo 'userId' guardado desde la app del cliente
-                    if (pedido.userId) {
-                        return db.collection('usuarios').doc(pedido.userId).get();
-                    }
-                    return Promise.resolve(null); // Si no hay userId, resolvemos con null
-                });
-
-                const userSnapshots = await Promise.all(userPromises);
-                const usersData = userSnapshots.reduce((acc, userSnap) => {
-                    if (userSnap && userSnap.exists) {
-                        acc[userSnap.id] = userSnap.data();
-                    }
-                    return acc;
-                }, {});
-
-                ordersList.innerHTML = '';
                 snapshot.forEach(doc => {
                     const pedido = doc.data();
-                    const cliente = usersData[pedido.userId] || pedido.clienteInfo; // Usar datos frescos o los guardados
-                    
                     const total = (pedido.productos || []).reduce((sum, p) => sum + (p.precio || 0), 0);
                     const item = document.createElement('li');
                     item.className = 'order-item';
@@ -885,8 +844,8 @@
                             <span>$${total.toFixed(2)}</span>
                         </div>
                         <div class="order-details">
-                            <p><strong>Cliente:</strong> ${cliente?.nombre || 'N/A'}</p>
-                            <p><strong>Teléfono:</strong> ${cliente?.telefono || 'N/A'}</p>
+                            <p><strong>Cliente:</strong> ${pedido.clienteInfo?.nombre || 'N/A'}</p>
+                            <p><strong>Teléfono:</strong> ${pedido.clienteInfo?.telefono || 'N/A'}</p>
                             <p><strong>Fecha Entrega:</strong> ${pedido.fechaEntrega}</p>
                             <p><strong>Lugar:</strong> ${pedido.lugarEntrega}</p>
                             <p><strong>Productos:</strong></p>
@@ -1000,7 +959,6 @@
         async function loadMovementsHistory() {
             const tbody = getEl('movements-table-body');
             tbody.innerHTML = '<tr><td colspan="5">Cargando...</td></tr>';
-            currentMovementsData = []; // Limpiar datos antes de cargar
 
             try {
                 const salesSnapshot = await db.collection('pedidos').where('estado', '==', 'Entregado').get();
@@ -1010,18 +968,13 @@
 
                 let movements = [];
 
-                const userIds = [...new Set(salesSnapshot.docs.map(doc => doc.data().userId).filter(id => id))];
-                const userDocs = userIds.length > 0 ? await db.collection('usuarios').where(firebase.firestore.FieldPath.documentId(), 'in', userIds).get() : { docs: [] };
-                const usersData = userDocs.docs.reduce((acc, doc) => ({ ...acc, [doc.id]: doc.data() }), {});
-
                 salesSnapshot.forEach(doc => {
                     const data = doc.data();
-                    const cliente = usersData[data.userId] || data.clienteInfo;
                     const total = (data.productos || []).reduce((sum, p) => sum + (p.precio || 0), 0);
                     if (data.fechaActualizacion) {
                         movements.push({
                             date: data.fechaActualizacion.toDate(),
-                            description: `Venta #${data.folio} (${cliente?.nombre || 'Cliente Desconocido'})`,
+                            description: `Venta #${data.folio} (${data.clienteInfo?.nombre || 'Cliente Desconocido'})`,
                             type: 'Venta',
                             amount: total,
                             category: 'Ventas'
@@ -1070,7 +1023,6 @@
                 });
 
                 movements.sort((a, b) => b.date - a.date);
-                currentMovementsData = movements; // Guardar para exportar
 
                 tbody.innerHTML = '';
                 if (movements.length === 0) {
@@ -1082,7 +1034,7 @@
                     const amountColor = m.amount >= 0 ? 'color: #2ecc71;' : 'color: #e74c3c;';
                     tbody.innerHTML += `
                         <tr>
-                            <td>${m.date.toLocaleString()}</td>
+                            <td>${m.date.toLocaleDateString()} ${m.date.toLocaleTimeString()}</td>
                             <td>${m.description}</td>
                             <td>${m.type}</td>
                             <td style="${amountColor}">${m.amount.toFixed(2)}</td>
@@ -1097,39 +1049,6 @@
             }
         }
         
-        function exportMovementsToExcel() {
-            if (currentMovementsData.length === 0) {
-                showMessage("No hay movimientos para exportar.");
-                return;
-            }
-
-            const headers = ["Fecha", "Descripcion", "Tipo", "Monto", "Categoria"];
-            const csvRows = [headers.join(",")];
-
-            currentMovementsData.forEach(m => {
-                const date = m.date.toLocaleString();
-                const description = `"${m.description.replace(/"/g, '""')}"`; // Escapar comillas dobles
-                const type = m.type;
-                const amount = m.amount.toFixed(2);
-                const category = m.category;
-                csvRows.push([date, description, type, amount, category].join(","));
-            });
-
-            const csvString = csvRows.join("\n");
-            const blob = new Blob([`\uFEFF${csvString}`], { type: 'text/csv;charset=utf-8;' });
-
-            const link = document.createElement("a");
-            if (link.download !== undefined) {
-                const url = URL.createObjectURL(blob);
-                link.setAttribute("href", url);
-                link.setAttribute("download", "historial_movimientos.csv");
-                link.style.visibility = 'hidden';
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-            }
-        }
-
         function loadFinancialSummary() {
             const unsub = db.collection('finanzas').doc('resumen').onSnapshot(doc => {
                 const data = doc.data() || { ventas: 0, gastos: 0, utilidad: 0, capital: 0 };
@@ -1341,15 +1260,17 @@
             const list = getEl('modal-sales-list');
             list.innerHTML = '<p>Cargando ventas...</p>';
             
+            // CORRECCIÓN: Se elimina el .orderBy() para evitar el error de índice y se ordena en el cliente.
             const unsubscribe = db.collection('pedidos').where('estado', '==', 'Entregado').onSnapshot((snapshot) => {
                 const sales = [];
                 snapshot.forEach(doc => {
                     const pedido = doc.data();
-                    if(pedido.fechaActualizacion) {
+                    if(pedido.fechaActualizacion) { // Solo incluir pedidos que tengan fecha
                         sales.push({id: doc.id, ...pedido});
                     }
                 });
 
+                // Ordenar por fecha, de más reciente a más antiguo
                 sales.sort((a, b) => b.fechaActualizacion.toDate() - a.fechaActualizacion.toDate());
 
                 list.innerHTML = sales.length === 0 ? '<p>No hay ventas registradas.</p>' : '';
@@ -1382,6 +1303,7 @@
             unsubscribes.push(unsubscribe);
             salesHistoryModal.style.display = 'flex';
         }
+
 
         function closeSalesHistoryModal() {
             salesHistoryModal.style.display = 'none';
