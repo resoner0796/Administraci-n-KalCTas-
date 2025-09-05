@@ -35,8 +35,8 @@
         /* --- Menú de Navegación --- */
         .admin-nav {
             position: absolute;
-            top: 20px;
-            right: 20px;
+            top: 10px;
+            right: 10px;
             display: flex;
             gap: 10px;
         }
@@ -44,7 +44,8 @@
             background-color: rgba(255, 255, 255, 0.2);
             color: #ffffff;
             border: none;
-            padding: 8px 15px;
+            padding: 5px 10px;
+            font-size: 0.9em;
             border-radius: 5px;
             cursor: pointer;
             transition: background-color 0.3s ease;
@@ -123,7 +124,7 @@
             background-color: #2e86de;
         }
 
-        /* --- Estilos para la tabla de inventario --- */
+        /* --- Estilos para la tabla de inventario y insumos --- */
         .table-container {
             width: 100%;
             overflow-x: auto;
@@ -131,7 +132,6 @@
         }
         #inventory-table, #supplies-table {
             width: 100%;
-            min-width: 600px;
             border-collapse: collapse;
         }
         #inventory-table th, #inventory-table td, #supplies-table th, #supplies-table td {
@@ -159,14 +159,14 @@
         .btn-confirm { background-color: #2ecc71; }
         .btn-delivered { background-color: #3498db; }
 
-        /* --- Estilos para la lista de pedidos --- */
-        #orders-list, #sales-list {
+        /* --- Estilos para la lista de pedidos y ventas --- */
+        #orders-list, #sales-list, #sales-history-list {
             list-style: none;
             padding: 0;
             width: 100%;
             margin-top: 20px;
         }
-        .order-item, .sale-item {
+        .order-item, .sale-item, .sales-history-item {
             background-color: rgba(255, 255, 255, 0.1);
             border-radius: 10px;
             margin-bottom: 10px;
@@ -175,26 +175,26 @@
             cursor: pointer;
             transition: background-color 0.2s ease;
         }
-        .order-item:hover, .sale-item:hover {
+        .order-item:hover, .sale-item:hover, .sales-history-item:hover {
             background-color: rgba(255, 255, 255, 0.2);
         }
-        .order-summary, .sale-summary {
+        .order-summary, .sale-summary, .sales-summary {
             display: flex;
             justify-content: space-between;
             align-items: center;
             font-weight: bold;
             font-size: 1.1em;
         }
-        .order-details, .sale-details {
+        .order-details, .sale-details, .sales-details {
             display: none;
             border-top: 1px solid rgba(255, 255, 255, 0.3);
             padding-top: 10px;
             margin-top: 10px;
         }
-        .order-details p, .sale-details p {
+        .order-details p, .sale-details p, .sales-details p {
             margin: 5px 0;
         }
-        .order-details strong, .sale-details strong {
+        .order-details strong, .sale-details strong, .sales-details strong {
             display: inline-block;
             min-width: 100px;
         }
@@ -304,7 +304,22 @@
             font-size: 1.8em;
             font-weight: bold;
         }
-
+        
+        /* Estilos para la nueva pantalla de Ventas */
+        .chart-container {
+            width: 100%;
+            max-width: 700px;
+            height: 300px;
+            background-color: #fff;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+        #sales-chart {
+            width: 100% !important;
+            height: 100% !important;
+        }
+        
         /* --- Estilos para móviles (responsive) --- */
         @media (max-width: 768px) {
             body { padding: 10px; }
@@ -314,6 +329,11 @@
             h2 { font-size: 1.2em; }
             .image-path-group { flex-direction: column; gap: 5px; }
             .image-path-group select, .image-path-group input { width: 100%; }
+            .table-container { overflow-x: scroll; }
+            #inventory-table, #supplies-table { min-width: 500px; }
+            .finance-panel { flex-direction: column; align-items: stretch; }
+            .finance-card { flex-basis: auto; }
+            .sales-details strong { min-width: 80px; }
         }
     </style>
 </head>
@@ -340,8 +360,9 @@
             <div class="main-menu-buttons">
                 <button onclick="showScreen('inventory-screen')">Inventario</button>
                 <button onclick="showScreen('orders-screen')">Pedidos 📦</button>
-                <button onclick="showScreen('sales-screen')">Historial de Pedidos 💰</button>
+                <button onclick="showScreen('sales-history-screen')">Historial de Pedidos 💰</button>
                 <button onclick="showScreen('finance-screen')">Administración 📈</button>
+                <button onclick="showScreen('sales-screen')">Ventas 📊</button>
             </div>
         </section>
 
@@ -391,9 +412,9 @@
             <button class="btn close-button" onclick="showScreen('main-menu')">Volver al Menú</button>
         </section>
 
-        <section id="sales-screen" style="display: none;">
+        <section id="sales-history-screen" style="display: none;">
             <h1>Historial de Pedidos</h1>
-            <ul id="sales-list"></ul>
+            <ul id="sales-history-list"></ul>
             <button class="btn close-button" onclick="showScreen('main-menu')">Volver al Menú</button>
         </section>
 
@@ -441,6 +462,16 @@
                 </table>
             </div>
             
+            <button class="btn close-button" onclick="showScreen('main-menu')">Volver al Menú</button>
+        </section>
+
+        <section id="sales-screen" style="display: none;">
+            <h1>Reporte de Ventas</h1>
+            <div class="chart-container">
+                <canvas id="sales-chart"></canvas>
+            </div>
+            <h2>Detalle de Ventas</h2>
+            <ul id="sales-list"></ul>
             <button class="btn close-button" onclick="showScreen('main-menu')">Volver al Menú</button>
         </section>
 
@@ -518,6 +549,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <script>
         const firebaseConfig = {
@@ -537,9 +569,11 @@
         let productToDeleteId = null;
         let supplyToDeleteId = null;
         let unsubscribeOrders = null;
-        let unsubscribeSales = null;
+        let unsubscribeSalesHistory = null;
         let unsubscribeFinances = null;
         let unsubscribeSupplies = null;
+        let unsubscribeSales = null;
+        let salesChart;
         
         const loginForm = document.getElementById('login-form');
         const addProductForm = document.getElementById('add-product-form');
@@ -550,12 +584,13 @@
         const confirmModal = document.getElementById('confirm-modal');
         const inventoryTableBody = document.getElementById('inventory-table-body');
         const ordersList = document.getElementById('orders-list');
-        const salesList = document.getElementById('sales-list');
+        const salesHistoryList = document.getElementById('sales-history-list');
         const addSupplyForm = document.getElementById('add-supply-form');
         const editSupplyModal = document.getElementById('edit-supply-modal');
         const editSupplyForm = document.getElementById('edit-supply-form');
         const suppliesTableBody = document.getElementById('supplies-table-body');
         const confirmSupplyModal = document.getElementById('confirm-supply-modal');
+        const salesList = document.getElementById('sales-list');
 
         function showMessage(text) {
             messageText.textContent = text;
@@ -572,8 +607,9 @@
 
             if (screenId === 'inventory-screen') loadInventory();
             if (screenId === 'orders-screen') loadOrders();
-            if (screenId === 'sales-screen') loadSales();
+            if (screenId === 'sales-history-screen') loadSalesHistory();
             if (screenId === 'finance-screen') loadFinances();
+            if (screenId === 'sales-screen') loadSalesData();
         }
 
         auth.onAuthStateChanged(user => {
@@ -584,9 +620,10 @@
                 currentUserId = null;
                 showScreen('login-screen');
                 if (unsubscribeOrders) unsubscribeOrders();
-                if (unsubscribeSales) unsubscribeSales();
+                if (unsubscribeSalesHistory) unsubscribeSalesHistory();
                 if (unsubscribeFinances) unsubscribeFinances();
                 if (unsubscribeSupplies) unsubscribeSupplies();
+                if (unsubscribeSales) unsubscribeSales();
             }
         });
 
@@ -830,16 +867,17 @@
             }
         }
         
-        function loadSales() {
-            if (unsubscribeSales) unsubscribeSales();
-            salesList.innerHTML = '<p>Cargando historial...</p>';
+        function loadSalesHistory() {
+            if (unsubscribeSalesHistory) unsubscribeSalesHistory();
+            salesHistoryList.innerHTML = '<p>Cargando historial...</p>';
             
+            // CORRECCIÓN: La consulta ahora utiliza `fechaActualizacion`
             const q = db.collection('pedidos').where('estado', 'in', ['Entregado', 'Cancelado']).orderBy('fechaActualizacion', 'desc');
 
-            unsubscribeSales = q.onSnapshot((snapshot) => {
-                salesList.innerHTML = '';
+            unsubscribeSalesHistory = q.onSnapshot((snapshot) => {
+                salesHistoryList.innerHTML = '';
                 if (snapshot.empty) {
-                    salesList.innerHTML = '<p>No hay pedidos en el historial.</p>';
+                    salesHistoryList.innerHTML = '<p>No hay pedidos en el historial.</p>';
                     return;
                 }
                 snapshot.forEach(doc => {
@@ -856,15 +894,15 @@
                             <span>$${total.toFixed(2)}</span>
                         </div>
                     `;
-                    salesList.appendChild(item);
+                    salesHistoryList.appendChild(item);
                 });
             }, (error) => {
                 console.error("Error al escuchar historial:", error);
-                salesList.innerHTML = '<p>Error al cargar el historial.</p>';
+                salesHistoryList.innerHTML = '<p>Error al cargar el historial.</p>';
             });
         }
         
-        // --- Nuevas funciones de Administración Financiera ---
+        // --- Funciones de Administración Financiera ---
 
         function loadFinances() {
             loadFinancialSummary();
@@ -907,7 +945,7 @@
                     const finanzasDoc = await transaction.get(financesRef);
                     const finanzasData = finanzasDoc.data() || { ventas: 0, gastos: 0, utilidad: 0, capital: 0 };
                     
-                    transaction.set(financesRef, {
+                    transaction.set(finanzasRef, {
                         gastos: finanzasData.gastos + totalCost,
                         utilidad: finanzasData.utilidad - totalCost,
                         capital: finanzasData.capital - totalCost
@@ -1050,6 +1088,97 @@
                     showMessage('Error al eliminar.');
                 }
             }
+        }
+
+        // --- Nuevas funciones para la pantalla de Ventas ---
+
+        async function loadSalesData() {
+            if (unsubscribeSales) unsubscribeSales();
+            salesList.innerHTML = '<p>Cargando datos de ventas...</p>';
+
+            const q = db.collection('pedidos').where('estado', '==', 'Entregado').orderBy('fechaActualizacion', 'asc');
+
+            unsubscribeSales = q.onSnapshot(async (snapshot) => {
+                const salesData = {};
+                salesList.innerHTML = '';
+                
+                if (snapshot.empty) {
+                    salesList.innerHTML = '<p>No hay ventas registradas.</p>';
+                    updateChart(salesData);
+                    return;
+                }
+
+                for (const doc of snapshot.docs) {
+                    const pedido = doc.data();
+                    const total = pedido.productos.reduce((sum, p) => sum + p.precio, 0);
+                    const fecha = pedido.fechaActualizacion.toDate().toISOString().split('T')[0];
+                    const clienteDoc = await db.collection('usuarios').doc(pedido.usuarioId).get();
+                    const cliente = clienteDoc.exists ? clienteDoc.data() : { nombre: 'N/A', apellido: '', email: 'N/A', telefono: 'N/A' };
+                    
+                    if (!salesData[fecha]) {
+                        salesData[fecha] = 0;
+                    }
+                    salesData[fecha] += total;
+
+                    const item = document.createElement('li');
+                    item.className = 'sales-history-item';
+                    item.onclick = () => {
+                        const details = item.querySelector('.sales-details');
+                        details.style.display = details.style.display === 'block' ? 'none' : 'block';
+                    };
+                    
+                    item.innerHTML = `
+                        <div class="sales-summary">
+                            <span>#${pedido.folio}</span>
+                            <span>$${total.toFixed(2)}</span>
+                        </div>
+                        <div class="sales-details">
+                            <p><strong>Productos:</strong> ${pedido.productos.map(p => p.nombre).join(', ')}</p>
+                            <p><strong>Cliente:</strong> ${cliente.nombre} ${cliente.apellido}</p>
+                            <p><strong>Lugar de Entrega:</strong> ${pedido.lugarEntrega}</p>
+                            <p><strong>Fecha:</strong> ${pedido.fechaEntrega}</p>
+                        </div>
+                    `;
+                    salesList.appendChild(item);
+                }
+                updateChart(salesData);
+            }, (error) => {
+                console.error("Error al cargar ventas:", error);
+                salesList.innerHTML = '<p>Error al cargar las ventas.</p>';
+            });
+        }
+        
+        function updateChart(salesData) {
+            const labels = Object.keys(salesData).sort();
+            const data = labels.map(label => salesData[label]);
+
+            const ctx = document.getElementById('sales-chart').getContext('2d');
+            if (salesChart) {
+                salesChart.destroy();
+            }
+            salesChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Ventas Diarias',
+                        data: data,
+                        borderColor: '#48dbfb',
+                        backgroundColor: 'rgba(72, 219, 251, 0.2)',
+                        borderWidth: 2,
+                        tension: 0.3
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
         }
     </script>
 </body>
