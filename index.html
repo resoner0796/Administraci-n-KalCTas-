@@ -944,7 +944,7 @@
 
             try {
                 await db.runTransaction(async t => {
-                    const financesRef = db.collection('finanzas').doc('resumen');
+                    const finanzasRef = db.collection('finanzas').doc('resumen');
                     const expenseRef = db.collection('gastosGenerales').doc();
                     const finanzasDoc = await t.get(finanzasRef);
                     const currentData = finanzasDoc.data() || {};
@@ -981,7 +981,7 @@
             try {
                 await db.runTransaction(async (t) => {
                     const supplyRef = db.collection('insumos').doc();
-                    const financesRef = db.collection('finanzas').doc('resumen');
+                    const finanzasRef = db.collection('finanzas').doc('resumen');
                     const finanzasDoc = await t.get(finanzasRef);
                     const currentData = finanzasDoc.data() || {};
                     
@@ -1041,7 +1041,7 @@
             try {
                 await db.runTransaction(async (t) => {
                     const supplyRef = db.collection('insumos').doc(id);
-                    const financesRef = db.collection('finanzas').doc('resumen');
+                    const finanzasRef = db.collection('finanzas').doc('resumen');
                     const finanzasDoc = await t.get(finanzasRef);
                     const currentData = finanzasDoc.data() || {};
 
@@ -1174,11 +1174,11 @@
             totalCost += shippingCost;
             try {
                 await db.runTransaction(async (t) => {
-                    const financesRef = db.collection('finanzas').doc('resumen');
+                    const finanzasRef = db.collection('finanzas').doc('resumen');
                     const folioRef = db.collection('contadores').doc('restocks');
-                    const financesDoc = await t.get(finanzasRef);
+                    const finanzasDoc = await t.get(finanzasRef);
                     const folioDoc = await t.get(folioRef);
-                    const currentFinances = financesDoc.data() || {};
+                    const currentFinances = finanzasDoc.data() || {};
                     const currentFolio = (folioDoc.data()?.lastFolio || 0) + 1;
                     
                     for (const item of itemsToSave) {
@@ -1248,14 +1248,14 @@
             try {
                 await db.runTransaction(async (t) => {
                     const restockRef = db.collection('restocks').doc(restockToDeleteId);
-                    const financesRef = db.collection('finanzas').doc('resumen');
+                    const finanzasRef = db.collection('finanzas').doc('resumen');
                     
                     const restockDoc = await t.get(restockRef);
                     if (!restockDoc.exists) throw new Error("Pedido no encontrado");
                     const restockData = restockDoc.data();
                     
-                    const financesDoc = await t.get(finanzasRef);
-                    const currentFinances = financesDoc.data() || {};
+                    const finanzasDoc = await t.get(finanzasRef);
+                    const currentFinances = finanzasDoc.data() || {};
 
                     for (const item of restockData.items) {
                         t.update(db.collection('productos').doc(item.productId), { stock: firebase.firestore.FieldValue.increment(-item.cantidad) });
