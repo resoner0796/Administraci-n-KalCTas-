@@ -224,7 +224,7 @@
         .status-Cancelado { background-color: #e74c3c; }
         
         /* --- Estilos para los mensajes y modales --- */
-        .message-box, .edit-modal, .confirm-modal {
+        .message-box, .edit-modal, .confirm-modal, .sales-history-modal {
             display: none;
             position: fixed;
             z-index: 1000;
@@ -274,6 +274,12 @@
             background-color: rgba(255, 255, 255, 0.15);
             padding: 20px;
             border-radius: 10px;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+        }
+        .finance-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
         }
         .finance-card h3 {
             margin-top: 0;
@@ -350,8 +356,7 @@
                 <button onclick="showScreen('orders-screen')">Pedidos 📦</button>
                 <button onclick="showScreen('sales-history-screen')">Historial de Pedidos 💰</button>
                 <button onclick="showScreen('finance-screen')">Administración 📈</button>
-                <button onclick="showScreen('sales-screen')">Ventas 📊</button>
-                <button onclick="showScreen('movements-history-screen')">Historial de Movimientos 🧾</button>
+                <button onclick="showScreen('sales-screen')">Reporte de Ventas 📊</button>
             </div>
         </section>
 
@@ -416,19 +421,20 @@
                             <th>Descripción</th>
                             <th>Tipo</th>
                             <th>Monto</th>
+                            <th>Categoría</th>
                         </tr>
                     </thead>
                     <tbody id="movements-table-body"></tbody>
                 </table>
             </div>
-            <button class="close-button" onclick="showScreen('main-menu')">Volver al Menú</button>
+            <button class="close-button" onclick="showScreen('finance-screen')">Volver a Administración</button>
         </section>
 
 
         <section id="finance-screen" style="display: none;">
             <h1>Administración Financiera</h1>
             <div class="finance-panel">
-                <div class="finance-card"><h3>Ventas Totales</h3><p id="total-sales">$0.00</p></div>
+                <div class="finance-card" onclick="showSalesHistoryModal()"><h3>Ventas Totales</h3><p id="total-sales">$0.00</p></div>
                 <div class="finance-card"><h3>Gastos</h3><p id="total-expenses">$0.00</p></div>
                 <div class="finance-card"><h3>Utilidad</h3><p id="total-profit">$0.00</p></div>
                 <div class="finance-card"><h3>Capital</h3><p id="total-capital">$0.00</p></div>
@@ -451,6 +457,7 @@
             <div class="main-menu-buttons">
                 <button onclick="showScreen('supplies-screen')">Insumos</button>
                 <button onclick="showScreen('restock-screen')">Re-Stock de Inventario</button>
+                <button onclick="showScreen('movements-history-screen')">Historial de Movimientos 🧾</button>
             </div>
             
             <button class="close-button" onclick="showScreen('main-menu')">Volver al Menú</button>
@@ -597,6 +604,14 @@
                 </div>
             </div>
         </div>
+
+        <div id="sales-history-modal" class="sales-history-modal">
+            <div class="modal-content">
+                <h2>Historial de Ventas</h2>
+                <ul id="modal-sales-list"></ul>
+                <button class="close-button" onclick="closeSalesHistoryModal()">Cerrar</button>
+            </div>
+        </div>
     </div>
 
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
@@ -643,6 +658,7 @@
         const confirmModal = getEl('confirm-modal');
         const confirmSupplyModal = getEl('confirm-supply-modal');
         const confirmRestockModal = getEl('confirm-restock-modal');
+        const salesHistoryModal = getEl('sales-history-modal');
         
 
         function showMessage(text) {
@@ -922,7 +938,7 @@
 
         async function loadMovementsHistory() {
             const tbody = getEl('movements-table-body');
-            tbody.innerHTML = '<tr><td colspan="4">Cargando...</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="5">Cargando...</td></tr>';
 
             try {
                 const [
@@ -935,7 +951,15 @@
                     db.collection('gastosGenerales').get(),
                     db.collection('insumos').get(),
                     db.collection('restocks').get()
-                ]);
+                ]).catch(err => {
+                    console.error("Error al obtener snapshots:", err);
+                    return [
+                        { forEach: () => {} }, // Simula un snapshot vacío
+                        { forEach: () => {} },
+                        { forEach: () => {} },
+                        { forEach: () => {} }
+                    ];
+                });
 
                 let movements = [];
 
@@ -946,7 +970,8 @@
                         date: data.fechaActualizacion.toDate(),
                         description: `Venta #${data.folio} (${data.clienteInfo.nombre})`,
                         type: 'Venta',
-                        amount: total
+                        amount: total,
+                        category: 'N/A'
                     });
                 });
 
@@ -954,9 +979,10 @@
                     const data = doc.data();
                     movements.push({
                         date: data.fecha.toDate(),
-                        description: `Gasto General: ${data.concepto} - ${data.nota}`,
+                        description: data.nota ? `Gasto: ${data.concepto} (${data.nota})` : `Gasto: ${data.concepto}`,
                         type: 'Gasto',
-                        amount: -data.monto
+                        amount: -data.monto,
+                        category: data.concepto
                     });
                 });
 
@@ -966,7 +992,8 @@
                         date: data.fecha.toDate(),
                         description: `Gasto Insumo: ${data.descripcion}`,
                         type: 'Gasto',
-                        amount: -data.costoTotal
+                        amount: -data.costoTotal,
+                        category: 'Insumos'
                     });
                 });
 
@@ -977,7 +1004,8 @@
                         date: data.fecha.toDate(),
                         description: `Re-Stock: ${itemsText}`,
                         type: 'Re-Stock',
-                        amount: -data.costoTotal
+                        amount: -data.costoTotal,
+                        category: 'Re-Stock'
                     });
                 });
 
@@ -985,7 +1013,7 @@
 
                 tbody.innerHTML = '';
                 if (movements.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="4">No hay movimientos registrados.</td></tr>';
+                    tbody.innerHTML = '<tr><td colspan="5">No hay movimientos registrados.</td></tr>';
                     return;
                 }
 
@@ -997,13 +1025,14 @@
                             <td>${m.description}</td>
                             <td>${m.type}</td>
                             <td style="${amountColor}">${m.amount.toFixed(2)}</td>
+                            <td>${m.category}</td>
                         </tr>
                     `;
                 });
 
             } catch (error) {
                 console.error("Error al cargar historial de movimientos:", error);
-                tbody.innerHTML = '<tr><td colspan="4">Error al cargar movimientos.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="5">Error al cargar movimientos.</td></tr>';
             }
         }
         
@@ -1211,6 +1240,41 @@
                 }]},
                 options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true } } }
             });
+        }
+
+        function showSalesHistoryModal() {
+            const list = getEl('modal-sales-list');
+            list.innerHTML = '<p>Cargando ventas...</p>';
+            const q = db.collection('pedidos').where('estado', '==', 'Entregado').orderBy('fechaActualizacion', 'desc');
+            const unsubscribe = q.onSnapshot((snapshot) => {
+                list.innerHTML = snapshot.empty ? '<p>No hay ventas registradas.</p>' : '';
+                snapshot.forEach(doc => {
+                    const pedido = doc.data();
+                    const total = pedido.productos.reduce((sum, p) => sum + p.precio, 0);
+                    const date = pedido.fechaActualizacion.toDate().toLocaleDateString();
+                    list.innerHTML += `
+                        <li class="sales-history-item">
+                            <div class="sales-summary">
+                                <span>#${pedido.folio} - ${date}</span>
+                                <span>$${total.toFixed(2)}</span>
+                            </div>
+                            <div class="sales-details">
+                                <p><strong>Cliente:</strong> ${pedido.clienteInfo.nombre}</p>
+                                <p><strong>Productos:</strong></p>
+                                <ul>${pedido.productos.map(p => `<li>${p.nombre}</li>`).join('')}</ul>
+                            </div>
+                        </li>`;
+                });
+            }, (error) => {
+                console.error("Error al cargar historial de ventas para el modal:", error);
+                list.innerHTML = '<p>Error al cargar el historial.</p>';
+            });
+            unsubscribes.push(unsubscribe);
+            salesHistoryModal.style.display = 'flex';
+        }
+
+        function closeSalesHistoryModal() {
+            salesHistoryModal.style.display = 'none';
         }
         
         async function loadProductModels() {
