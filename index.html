@@ -142,23 +142,23 @@
             background-color: #2e86de;
         }
 
-        /* --- Estilos para la tabla de inventario y insumos --- */
+        /* --- Estilos para la tabla de inventario, insumos, y movimientos --- */
         .table-container {
             width: 100%;
             overflow-x: auto;
             margin-top: 20px;
         }
-        #inventory-table, #supplies-table, #restock-table, #expenses-table {
+        #inventory-table, #supplies-table, #restock-table, #expenses-table, #movements-table {
             width: 100%;
             border-collapse: collapse;
         }
-        #inventory-table th, #inventory-table td, #supplies-table th, #supplies-table td, #restock-table th, #restock-table td, #expenses-table th, #expenses-table td {
+        #inventory-table th, #inventory-table td, #supplies-table th, #supplies-table td, #restock-table th, #restock-table td, #expenses-table th, #expenses-table td, #movements-table th, #movements-table td {
             border: 1px solid rgba(255, 255, 255, 0.3);
             padding: 10px;
             text-align: left;
             font-size: 0.9em;
         }
-        #inventory-table th, #supplies-table th, #restock-table th, #expenses-table th {
+        #inventory-table th, #supplies-table th, #restock-table th, #expenses-table th, #movements-table th {
             background-color: rgba(255, 255, 255, 0.2);
         }
         #inventory-table img {
@@ -351,6 +351,7 @@
                 <button onclick="showScreen('sales-history-screen')">Historial de Pedidos 💰</button>
                 <button onclick="showScreen('finance-screen')">Administración 📈</button>
                 <button onclick="showScreen('sales-screen')">Ventas 📊</button>
+                <button onclick="showScreen('movements-history-screen')">Historial de Movimientos 🧾</button>
             </div>
         </section>
 
@@ -404,6 +405,25 @@
             <ul id="sales-history-list"></ul>
             <button class="close-button" onclick="showScreen('main-menu')">Volver al Menú</button>
         </section>
+        
+        <section id="movements-history-screen" style="display: none;">
+            <h1>Historial de Movimientos</h1>
+            <div class="table-container">
+                <table id="movements-table">
+                    <thead>
+                        <tr>
+                            <th>Fecha</th>
+                            <th>Descripción</th>
+                            <th>Tipo</th>
+                            <th>Monto</th>
+                        </tr>
+                    </thead>
+                    <tbody id="movements-table-body"></tbody>
+                </table>
+            </div>
+            <button class="close-button" onclick="showScreen('main-menu')">Volver al Menú</button>
+        </section>
+
 
         <section id="finance-screen" style="display: none;">
             <h1>Administración Financiera</h1>
@@ -654,6 +674,7 @@
                     addRestockLine();
                     break;
                 case 'sales-screen': loadSalesData(); break;
+                case 'movements-history-screen': loadMovementsHistory(); break;
             }
         }
 
@@ -886,7 +907,7 @@
                     list.innerHTML += `
                         <li class="sale-item">
                             <div class="sale-summary">
-                                <span>${pedido.folio}</span>
+                                <span>#${pedido.folio}</span>
                                 <span class="order-status status-${pedido.estado}">${pedido.estado}</span>
                                 <span>$${total.toFixed(2)}</span>
                             </div>
@@ -897,6 +918,93 @@
                 list.innerHTML = '<p>Error al cargar el historial. Revisa la consola (F12) para crear el índice de Firestore necesario.</p>';
             });
             unsubscribes.push(unsubscribe);
+        }
+
+        async function loadMovementsHistory() {
+            const tbody = getEl('movements-table-body');
+            tbody.innerHTML = '<tr><td colspan="4">Cargando...</td></tr>';
+
+            try {
+                const [
+                    salesSnapshot,
+                    expensesSnapshot,
+                    suppliesSnapshot,
+                    restocksSnapshot
+                ] = await Promise.all([
+                    db.collection('pedidos').where('estado', '==', 'Entregado').get(),
+                    db.collection('gastosGenerales').get(),
+                    db.collection('insumos').get(),
+                    db.collection('restocks').get()
+                ]);
+
+                let movements = [];
+
+                salesSnapshot.forEach(doc => {
+                    const data = doc.data();
+                    const total = data.productos.reduce((sum, p) => sum + p.precio, 0);
+                    movements.push({
+                        date: data.fechaActualizacion.toDate(),
+                        description: `Venta #${data.folio} (${data.clienteInfo.nombre})`,
+                        type: 'Venta',
+                        amount: total
+                    });
+                });
+
+                expensesSnapshot.forEach(doc => {
+                    const data = doc.data();
+                    movements.push({
+                        date: data.fecha.toDate(),
+                        description: `Gasto General: ${data.concepto} - ${data.nota}`,
+                        type: 'Gasto',
+                        amount: -data.monto
+                    });
+                });
+
+                suppliesSnapshot.forEach(doc => {
+                    const data = doc.data();
+                    movements.push({
+                        date: data.fecha.toDate(),
+                        description: `Gasto Insumo: ${data.descripcion}`,
+                        type: 'Gasto',
+                        amount: -data.costoTotal
+                    });
+                });
+
+                restocksSnapshot.forEach(doc => {
+                    const data = doc.data();
+                    const itemsText = data.items.map(item => `${item.nombre} (${item.cantidad})`).join(', ');
+                    movements.push({
+                        date: data.fecha.toDate(),
+                        description: `Re-Stock: ${itemsText}`,
+                        type: 'Re-Stock',
+                        amount: -data.costoTotal
+                    });
+                });
+
+                movements.sort((a, b) => b.date - a.date);
+
+                tbody.innerHTML = '';
+                if (movements.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="4">No hay movimientos registrados.</td></tr>';
+                    return;
+                }
+
+                movements.forEach(m => {
+                    const amountColor = m.amount >= 0 ? 'color: #2ecc71;' : 'color: #e74c3c;';
+                    tbody.innerHTML += `
+                        <tr>
+                            <td>${m.date.toLocaleDateString()} ${m.date.toLocaleTimeString()}</td>
+                            <td>${m.description}</td>
+                            <td>${m.type}</td>
+                            <td style="${amountColor}">${m.amount.toFixed(2)}</td>
+                        </tr>
+                    `;
+                });
+
+            } catch (error) {
+                console.error("Error al cargar historial de movimientos:", error);
+                tbody.innerHTML = '<tr><td colspan="4">Error al cargar movimientos.</td></tr>';
+            }
         }
         
         function loadFinancialSummary() {
@@ -1192,9 +1300,7 @@
                     });
                     t.set(folioRef, { lastFolio: currentFolio }, { merge: true });
                     t.set(finanzasRef, {
-                        gastos: (currentFinances.gastos || 0) + totalCost,
-                        capital: (currentFinances.capital || 0) - totalCost,
-                        utilidad: (currentFinances.utilidad || 0) - totalCost
+                        capital: (currentFinances.capital || 0) - totalCost
                     }, { merge: true });
                 });
                 showMessage('Pedido de Re-Stock registrado con éxito.');
@@ -1262,8 +1368,6 @@
                     }
 
                     t.set(finanzasRef, {
-                        gastos: (currentFinances.gastos || 0) - restockData.costoTotal,
-                        utilidad: (currentFinances.utilidad || 0) + restockData.costoTotal,
                         capital: (currentFinances.capital || 0) + restockData.costoTotal
                     }, { merge: true });
 
