@@ -835,7 +835,7 @@
                 
                 snapshot.forEach(doc => {
                     const pedido = doc.data();
-                    const total = pedido.productos.reduce((sum, p) => sum + (p.precio || 0), 0);
+                    const total = (pedido.productos || []).reduce((sum, p) => sum + (p.precio || 0), 0);
                     const item = document.createElement('li');
                     item.className = 'order-item';
                     item.innerHTML = `
@@ -850,7 +850,7 @@
                             <p><strong>Fecha Entrega:</strong> ${pedido.fechaEntrega}</p>
                             <p><strong>Lugar:</strong> ${pedido.lugarEntrega}</p>
                             <p><strong>Productos:</strong></p>
-                            <ul>${pedido.productos.map(p => `<li>${p.nombre}</li>`).join('')}</ul>
+                            <ul>${(pedido.productos || []).map(p => `<li>${p.nombre}</li>`).join('')}</ul>
                             <div class="order-actions">
                                 ${pedido.estado === 'Pendiente' ? `<button class="btn" onclick="updateOrderStatus('${doc.id}', 'Confirmado', event)">Confirmar</button>` : ''}
                                 <button class="btn" onclick="updateOrderStatus('${doc.id}', 'Entregado', event)">Marcar Entregado</button>
@@ -877,7 +877,7 @@
                     if (!pedidoDoc.exists) throw new Error("Pedido no encontrado");
 
                     const pedidoData = pedidoDoc.data();
-                    const totalVenta = pedidoData.productos.reduce((sum, p) => sum + (p.precio || 0), 0);
+                    const totalVenta = (pedidoData.productos || []).reduce((sum, p) => sum + (p.precio || 0), 0);
                     const finanzasDoc = await t.get(finanzasRef);
                     const data = finanzasDoc.data() || { ventas: 0, gastos: 0, utilidad: 0, capital: 0 };
 
@@ -890,7 +890,7 @@
                     }
                     
                     if (newStatus === 'Cancelado' && pedidoData.estado !== 'Cancelado') {
-                        for (const producto of pedidoData.productos) {
+                        for (const producto of (pedidoData.productos || [])) {
                             t.update(db.collection('productos').doc(producto.id), { stock: firebase.firestore.FieldValue.increment(1) });
                         }
                         if (pedidoData.estado === 'Entregado') {
@@ -940,7 +940,7 @@
 
                 list.innerHTML = pedidos.length === 0 ? '<p>No hay pedidos en el historial.</p>' : '';
                 pedidos.forEach(pedido => {
-                    const total = pedido.productos.reduce((sum, p) => sum + (p.precio || 0), 0);
+                    const total = (pedido.productos || []).reduce((sum, p) => sum + (p.precio || 0), 0);
                     const item = document.createElement('li');
                     item.className = 'sale-item';
                     item.innerHTML = `
@@ -973,48 +973,56 @@
 
                 salesSnapshot.forEach(doc => {
                     const data = doc.data();
-                    const total = data.productos.reduce((sum, p) => sum + (p.precio || 0), 0);
-                    movements.push({
-                        date: data.fechaActualizacion.toDate(),
-                        description: `Venta #${data.folio} (${data.clienteInfo.nombre})`,
-                        type: 'Venta',
-                        amount: total,
-                        category: 'Ventas'
-                    });
+                    const total = (data.productos || []).reduce((sum, p) => sum + (p.precio || 0), 0);
+                    if (data.fechaActualizacion) {
+                        movements.push({
+                            date: data.fechaActualizacion.toDate(),
+                            description: `Venta #${data.folio} (${data.clienteInfo.nombre})`,
+                            type: 'Venta',
+                            amount: total,
+                            category: 'Ventas'
+                        });
+                    }
                 });
 
                 expensesSnapshot.forEach(doc => {
                     const data = doc.data();
-                    movements.push({
-                        date: data.fecha.toDate(),
-                        description: data.nota ? `Gasto: ${data.concepto} (${data.nota})` : `Gasto: ${data.concepto}`,
-                        type: 'Gasto',
-                        amount: -data.monto,
-                        category: data.concepto
-                    });
+                    if (data.fecha) {
+                        movements.push({
+                            date: data.fecha.toDate(),
+                            description: data.nota ? `Gasto: ${data.concepto} (${data.nota})` : `Gasto: ${data.concepto}`,
+                            type: 'Gasto',
+                            amount: -data.monto,
+                            category: data.concepto
+                        });
+                    }
                 });
 
                 suppliesSnapshot.forEach(doc => {
                     const data = doc.data();
-                    movements.push({
-                        date: data.fecha.toDate(),
-                        description: `Gasto Insumo: ${data.descripcion}`,
-                        type: 'Gasto',
-                        amount: -data.costoTotal,
-                        category: 'Insumos'
-                    });
+                    if (data.fecha) {
+                        movements.push({
+                            date: data.fecha.toDate(),
+                            description: `Gasto Insumo: ${data.descripcion}`,
+                            type: 'Gasto',
+                            amount: -data.costoTotal,
+                            category: 'Insumos'
+                        });
+                    }
                 });
 
                 restocksSnapshot.forEach(doc => {
                     const data = doc.data();
-                    const itemsText = data.items.map(item => `${item.nombre} (${item.cantidad})`).join(', ');
-                    movements.push({
-                        date: data.fecha.toDate(),
-                        description: `Re-Stock: ${itemsText}`,
-                        type: 'Re-Stock',
-                        amount: -data.costoTotal,
-                        category: 'Re-Stock'
-                    });
+                    if (data.fecha) {
+                        const itemsText = (data.items || []).map(item => `${item.nombre} (${item.cantidad})`).join(', ');
+                        movements.push({
+                            date: data.fecha.toDate(),
+                            description: `Re-Stock: ${itemsText}`,
+                            type: 'Re-Stock',
+                            amount: -data.costoTotal,
+                            category: 'Re-Stock'
+                        });
+                    }
                 });
 
                 movements.sort((a, b) => b.date - a.date);
@@ -1210,11 +1218,13 @@
                 
                 snapshot.forEach(doc => {
                     const pedido = doc.data();
-                    const total = pedido.productos.reduce((sum, p) => sum + (p.precio || 0), 0);
-                    const fecha = pedido.fechaActualizacion.toDate().toISOString().split('T')[0];
+                    const total = (pedido.productos || []).reduce((sum, p) => sum + (p.precio || 0), 0);
+                    const fecha = pedido.fechaActualizacion && pedido.fechaActualizacion.toDate().toISOString().split('T')[0];
                     
-                    if (!salesByDate[fecha]) salesByDate[fecha] = 0;
-                    salesByDate[fecha] += total;
+                    if (fecha) {
+                        if (!salesByDate[fecha]) salesByDate[fecha] = 0;
+                        salesByDate[fecha] += total;
+                    }
 
                     const item = document.createElement('li');
                     item.className = 'sales-history-item';
@@ -1257,8 +1267,8 @@
                 list.innerHTML = snapshot.empty ? '<p>No hay ventas registradas.</p>' : '';
                 snapshot.forEach(doc => {
                     const pedido = doc.data();
-                    const total = pedido.productos.reduce((sum, p) => sum + (p.precio || 0), 0);
-                    const date = pedido.fechaActualizacion.toDate().toLocaleDateString();
+                    const total = (pedido.productos || []).reduce((sum, p) => sum + (p.precio || 0), 0);
+                    const date = pedido.fechaActualizacion ? pedido.fechaActualizacion.toDate().toLocaleDateString() : 'N/A';
                     const item = document.createElement('li');
                     item.className = 'sales-history-item';
                     item.innerHTML = `
@@ -1269,7 +1279,7 @@
                         <div class="sales-details">
                             <p><strong>Cliente:</strong> ${pedido.clienteInfo.nombre}</p>
                             <p><strong>Productos:</strong></p>
-                            <ul>${pedido.productos.map(p => `<li>${p.nombre}</li>`).join('')}</ul>
+                            <ul>${(pedido.productos || []).map(p => `<li>${p.nombre}</li>`).join('')}</ul>
                         </div>
                     `;
                     item.onclick = () => {
@@ -1398,7 +1408,7 @@
                 tbody.innerHTML = snapshot.empty ? '<tr><td colspan="5">No hay re-stocks registrados.</td></tr>' : '';
                 snapshot.forEach(doc => {
                     const data = doc.data();
-                    const itemsText = data.items.map(item => `${item.nombre} (${item.cantidad})`).join(', ');
+                    const itemsText = (data.items || []).map(item => `${item.nombre} (${item.cantidad})`).join(', ');
                     tbody.innerHTML += `
                         <tr>
                             <td>${data.folio}</td>
@@ -1441,7 +1451,7 @@
                     const finanzasDoc = await t.get(finanzasRef);
                     const currentFinances = finanzasDoc.data() || {};
 
-                    for (const item of restockData.items) {
+                    for (const item of (restockData.items || [])) {
                         t.update(db.collection('productos').doc(item.productId), { stock: firebase.firestore.FieldValue.increment(-item.cantidad) });
                     }
 
