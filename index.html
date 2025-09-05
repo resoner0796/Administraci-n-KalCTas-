@@ -613,9 +613,7 @@
         const addProductForm = getEl('add-product-form');
         const editProductForm = getEl('edit-product-form');
         const addSupplyForm = getEl('add-supply-form');
-        const editSupplyForm = getEl('edit-supply-form');
         const addRestockForm = getEl('add-restock-form');
-        const editRestockForm = getEl('edit-restock-form');
         const addExpenseForm = getEl('add-expense-form');
         
         const messageBox = getEl('message-box');
@@ -839,9 +837,9 @@
 
                     if (newStatus === 'Entregado' && pedidoData.estado !== 'Entregado') {
                         t.set(finanzasRef, {
-                            ventas: data.ventas + totalVenta,
-                            utilidad: data.utilidad + totalVenta,
-                            capital: data.capital + totalVenta
+                            ventas: (data.ventas || 0) + totalVenta,
+                            utilidad: (data.utilidad || 0) + totalVenta,
+                            capital: (data.capital || 0) + totalVenta
                         }, { merge: true });
                     }
                     
@@ -851,9 +849,9 @@
                         }
                         if (pedidoData.estado === 'Entregado') {
                             t.set(finanzasRef, {
-                                ventas: data.ventas - totalVenta,
-                                utilidad: data.utilidad - totalVenta,
-                                capital: data.capital - totalVenta
+                                ventas: (data.ventas || 0) - totalVenta,
+                                utilidad: (data.utilidad || 0) - totalVenta,
+                                capital: (data.capital || 0) - totalVenta
                             }, { merge: true });
                         }
                     }
@@ -904,10 +902,10 @@
         function loadFinancialSummary() {
             const unsub = db.collection('finanzas').doc('resumen').onSnapshot(doc => {
                 const data = doc.data() || { ventas: 0, gastos: 0, utilidad: 0, capital: 0 };
-                getEl('total-sales').textContent = `$${data.ventas.toFixed(2)}`;
-                getEl('total-expenses').textContent = `$${data.gastos.toFixed(2)}`;
-                getEl('total-profit').textContent = `$${data.utilidad.toFixed(2)}`;
-                getEl('total-capital').textContent = `$${data.capital.toFixed(2)}`;
+                getEl('total-sales').textContent = `$${(data.ventas || 0).toFixed(2)}`;
+                getEl('total-expenses').textContent = `$${(data.gastos || 0).toFixed(2)}`;
+                getEl('total-profit').textContent = `$${(data.utilidad || 0).toFixed(2)}`;
+                getEl('total-capital').textContent = `$${(data.capital || 0).toFixed(2)}`;
             });
             unsubscribes.push(unsub);
         }
@@ -949,23 +947,23 @@
                     const financesRef = db.collection('finanzas').doc('resumen');
                     const expenseRef = db.collection('gastosGenerales').doc();
                     const finanzasDoc = await t.get(finanzasRef);
-                    const data = finanzasDoc.data() || { gastos: 0, utilidad: 0, capital: 0 };
+                    const currentData = finanzasDoc.data() || {};
 
                     t.set(expenseRef, {
                         monto: amount, concepto: concept, nota: note,
                         fecha: firebase.firestore.FieldValue.serverTimestamp()
                     });
                     t.set(finanzasRef, {
-                        gastos: data.gastos + amount,
-                        utilidad: data.utilidad - amount,
-                        capital: data.capital - amount
+                        gastos: (currentData.gastos || 0) + amount,
+                        utilidad: (currentData.utilidad || 0) - amount,
+                        capital: (currentData.capital || 0) - amount
                     }, { merge: true });
                 });
                 showMessage("Gasto registrado con éxito.");
                 addExpenseForm.reset();
             } catch (error) {
                 console.error("Error registrando gasto:", error);
-                showMessage("No se pudo registrar el gasto. Revisa las Reglas de Seguridad en Firebase.");
+                showMessage("No se pudo registrar el gasto. Ocurrió un error.");
             }
         });
         
@@ -985,23 +983,23 @@
                     const supplyRef = db.collection('insumos').doc();
                     const financesRef = db.collection('finanzas').doc('resumen');
                     const finanzasDoc = await t.get(finanzasRef);
-                    const data = finanzasDoc.data() || { gastos: 0, utilidad: 0, capital: 0 };
+                    const currentData = finanzasDoc.data() || {};
                     
                     t.set(supplyRef, {
                         descripcion: description, cantidad: quantity, costoTotal: totalCost,
                         fecha: firebase.firestore.FieldValue.serverTimestamp()
                     });
                     t.set(finanzasRef, {
-                        gastos: data.gastos + totalCost,
-                        utilidad: data.utilidad - totalCost,
-                        capital: data.capital - totalCost
+                        gastos: (currentData.gastos || 0) + totalCost,
+                        utilidad: (currentData.utilidad || 0) - totalCost,
+                        capital: (currentData.capital || 0) - totalCost
                     }, { merge: true });
                 });
                 showMessage('Insumo registrado con éxito.');
                 addSupplyForm.reset();
             } catch (error) {
                 console.error("Error al registrar insumo:", error);
-                showMessage('Error al registrar insumo. Revisa las Reglas de Seguridad en Firebase.');
+                showMessage('Error al registrar insumo. Ocurrió un error.');
             }
         });
 
@@ -1045,18 +1043,18 @@
                     const supplyRef = db.collection('insumos').doc(id);
                     const financesRef = db.collection('finanzas').doc('resumen');
                     const finanzasDoc = await t.get(finanzasRef);
-                    const data = finanzasDoc.data();
+                    const currentData = finanzasDoc.data() || {};
 
                     t.delete(supplyRef);
                     t.set(finanzasRef, {
-                        gastos: data.gastos - cost,
-                        utilidad: data.utilidad + cost,
-                        capital: data.capital + cost
+                        gastos: (currentData.gastos || 0) - cost,
+                        utilidad: (currentData.utilidad || 0) + cost,
+                        capital: (currentData.capital || 0) + cost
                     }, { merge: true });
                 });
                 showMessage('Insumo eliminado.');
                 cancelSupplyAction();
-            } catch (error) { showMessage('Error al eliminar.'); }
+            } catch (error) { showMessage('Error al eliminar el insumo.'); }
         }
 
         async function loadSalesData() {
@@ -1180,7 +1178,7 @@
                     const folioRef = db.collection('contadores').doc('restocks');
                     const financesDoc = await t.get(finanzasRef);
                     const folioDoc = await t.get(folioRef);
-                    const financesData = financesDoc.data() || { gastos: 0, capital: 0, utilidad: 0 };
+                    const currentFinances = financesDoc.data() || {};
                     const currentFolio = (folioDoc.data()?.lastFolio || 0) + 1;
                     
                     for (const item of itemsToSave) {
@@ -1194,9 +1192,9 @@
                     });
                     t.set(folioRef, { lastFolio: currentFolio }, { merge: true });
                     t.set(finanzasRef, {
-                        gastos: financesData.gastos + totalCost,
-                        capital: financesData.capital - totalCost,
-                        utilidad: financesData.utilidad - totalCost
+                        gastos: (currentFinances.gastos || 0) + totalCost,
+                        capital: (currentFinances.capital || 0) - totalCost,
+                        utilidad: (currentFinances.utilidad || 0) - totalCost
                     }, { merge: true });
                 });
                 showMessage('Pedido de Re-Stock registrado con éxito.');
@@ -1205,7 +1203,7 @@
                 addRestockLine();
             } catch (error) {
                 console.error("Error al registrar re-stock:", error);
-                showMessage('Error al registrar pedido. Revisa las Reglas de Seguridad en Firebase.');
+                showMessage('Error al registrar pedido. Ocurrió un error.');
             }
         });
 
@@ -1257,16 +1255,16 @@
                     const restockData = restockDoc.data();
                     
                     const financesDoc = await t.get(finanzasRef);
-                    const financesData = financesDoc.data();
+                    const currentFinances = financesDoc.data() || {};
 
                     for (const item of restockData.items) {
                         t.update(db.collection('productos').doc(item.productId), { stock: firebase.firestore.FieldValue.increment(-item.cantidad) });
                     }
 
                     t.set(finanzasRef, {
-                        gastos: financesData.gastos - restockData.costoTotal,
-                        utilidad: financesData.utilidad + restockData.costoTotal,
-                        capital: financesData.capital + restockData.costoTotal
+                        gastos: (currentFinances.gastos || 0) - restockData.costoTotal,
+                        utilidad: (currentFinances.utilidad || 0) + restockData.costoTotal,
+                        capital: (currentFinances.capital || 0) + restockData.costoTotal
                     }, { merge: true });
 
                     t.delete(restockRef);
