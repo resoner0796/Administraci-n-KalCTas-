@@ -941,25 +941,10 @@
             tbody.innerHTML = '<tr><td colspan="5">Cargando...</td></tr>';
 
             try {
-                const [
-                    salesSnapshot,
-                    expensesSnapshot,
-                    suppliesSnapshot,
-                    restocksSnapshot
-                ] = await Promise.all([
-                    db.collection('pedidos').where('estado', '==', 'Entregado').get(),
-                    db.collection('gastosGenerales').get(),
-                    db.collection('insumos').get(),
-                    db.collection('restocks').get()
-                ]).catch(err => {
-                    console.error("Error al obtener snapshots:", err);
-                    return [
-                        { forEach: () => {} }, // Simula un snapshot vacío
-                        { forEach: () => {} },
-                        { forEach: () => {} },
-                        { forEach: () => {} }
-                    ];
-                });
+                const salesSnapshot = await db.collection('pedidos').where('estado', '==', 'Entregado').get();
+                const expensesSnapshot = await db.collection('gastosGenerales').get();
+                const suppliesSnapshot = await db.collection('insumos').get();
+                const restocksSnapshot = await db.collection('restocks').get();
 
                 let movements = [];
 
@@ -1093,7 +1078,6 @@
                     t.set(finanzasRef, {
                         gastos: (currentData.gastos || 0) + amount,
                         utilidad: (currentData.utilidad || 0) - amount,
-                        capital: (currentData.capital || 0) - amount
                     }, { merge: true });
                 });
                 showMessage("Gasto registrado con éxito.");
@@ -1129,7 +1113,6 @@
                     t.set(finanzasRef, {
                         gastos: (currentData.gastos || 0) + totalCost,
                         utilidad: (currentData.utilidad || 0) - totalCost,
-                        capital: (currentData.capital || 0) - totalCost
                     }, { merge: true });
                 });
                 showMessage('Insumo registrado con éxito.');
@@ -1186,7 +1169,6 @@
                     t.set(finanzasRef, {
                         gastos: (currentData.gastos || 0) - cost,
                         utilidad: (currentData.utilidad || 0) + cost,
-                        capital: (currentData.capital || 0) + cost
                     }, { merge: true });
                 });
                 showMessage('Insumo eliminado.');
@@ -1245,25 +1227,31 @@
         function showSalesHistoryModal() {
             const list = getEl('modal-sales-list');
             list.innerHTML = '<p>Cargando ventas...</p>';
-            const q = db.collection('pedidos').where('estado', '==', 'Entregado').orderBy('fechaActualizacion', 'desc');
-            const unsubscribe = q.onSnapshot((snapshot) => {
+            
+            const unsubscribe = db.collection('pedidos').where('estado', '==', 'Entregado').orderBy('fechaActualizacion', 'desc').onSnapshot((snapshot) => {
                 list.innerHTML = snapshot.empty ? '<p>No hay ventas registradas.</p>' : '';
                 snapshot.forEach(doc => {
                     const pedido = doc.data();
                     const total = pedido.productos.reduce((sum, p) => sum + p.precio, 0);
                     const date = pedido.fechaActualizacion.toDate().toLocaleDateString();
-                    list.innerHTML += `
-                        <li class="sales-history-item">
-                            <div class="sales-summary">
-                                <span>#${pedido.folio} - ${date}</span>
-                                <span>$${total.toFixed(2)}</span>
-                            </div>
-                            <div class="sales-details">
-                                <p><strong>Cliente:</strong> ${pedido.clienteInfo.nombre}</p>
-                                <p><strong>Productos:</strong></p>
-                                <ul>${pedido.productos.map(p => `<li>${p.nombre}</li>`).join('')}</ul>
-                            </div>
-                        </li>`;
+                    const item = document.createElement('li');
+                    item.className = 'sales-history-item';
+                    item.innerHTML = `
+                        <div class="sales-summary">
+                            <span>#${pedido.folio} - ${date}</span>
+                            <span>$${total.toFixed(2)}</span>
+                        </div>
+                        <div class="sales-details">
+                            <p><strong>Cliente:</strong> ${pedido.clienteInfo.nombre}</p>
+                            <p><strong>Productos:</strong></p>
+                            <ul>${pedido.productos.map(p => `<li>${p.nombre}</li>`).join('')}</ul>
+                        </div>
+                    `;
+                    item.onclick = () => {
+                        const details = item.querySelector('.sales-details');
+                        details.style.display = details.style.display === 'block' ? 'none' : 'block';
+                    };
+                    list.appendChild(item);
                 });
             }, (error) => {
                 console.error("Error al cargar historial de ventas para el modal:", error);
@@ -1272,6 +1260,7 @@
             unsubscribes.push(unsubscribe);
             salesHistoryModal.style.display = 'flex';
         }
+
 
         function closeSalesHistoryModal() {
             salesHistoryModal.style.display = 'none';
