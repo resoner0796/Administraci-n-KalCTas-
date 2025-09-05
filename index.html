@@ -345,6 +345,7 @@
             gap: 10px;
             align-items: center;
             flex-wrap: wrap;
+            margin-bottom: 10px;
         }
         .restock-item-group input, .restock-item-group select {
             flex-grow: 1;
@@ -362,6 +363,13 @@
             gap: 15px;
             width: 100%;
         }
+        .restock-total-display {
+            text-align: right;
+            font-size: 1.5em;
+            font-weight: bold;
+            margin-top: 15px;
+            margin-bottom: 15px;
+        }
 
         /* --- Estilos para móviles (responsive) --- */
         @media (max-width: 768px) {
@@ -377,6 +385,7 @@
             .finance-panel { grid-template-columns: 1fr; }
             .finance-card { flex-basis: auto; }
             .sales-details strong { min-width: 80px; }
+            .restock-item-group {flex-direction: column; align-items: stretch;}
         }
     </style>
 </head>
@@ -504,10 +513,12 @@
                     </div>
                 <button type="button" class="btn btn-add-line" onclick="addRestockLine()">Agregar otro modelo</button>
                 <br>
-                <input type="number" id="shipping-cost" placeholder="Costo de Envío" step="0.01" value="0.00">
+                <input type="number" id="shipping-cost" placeholder="Costo de Envío" step="0.01" value="0">
+                <div class="restock-total-display">
+                    Total: <span id="restock-total">$0.00</span>
+                </div>
                 <button type="submit" id="restock-submit-btn">Registrar Pedido de Re Stock</button>
             </form>
-
 
             <div class="table-container">
                 <h2>Insumos Registrados</h2>
@@ -705,6 +716,8 @@
         const editRestockForm = document.getElementById('edit-restock-form');
         const confirmRestockModal = document.getElementById('confirm-restock-modal');
 
+        document.getElementById('shipping-cost').addEventListener('input', updateRestockTotal);
+
         function showMessage(text) {
             messageText.textContent = text;
             messageBox.style.display = 'flex';
@@ -714,14 +727,17 @@
             messageBox.style.display = 'none';
         }
 
-        function showScreen(screenId) {
+        async function showScreen(screenId) {
             document.querySelectorAll('section').forEach(screen => screen.style.display = 'none');
             document.getElementById(screenId).style.display = 'block';
 
             if (screenId === 'inventory-screen') loadInventory();
             if (screenId === 'orders-screen') loadOrders();
             if (screenId === 'sales-history-screen') loadSalesHistory();
-            if (screenId === 'finance-screen') loadFinances();
+            if (screenId === 'finance-screen') {
+                await loadProductModels(); // Cargar modelos antes de mostrar la pantalla
+                loadFinances();
+            }
             if (screenId === 'sales-screen') loadSalesData();
         }
 
@@ -1022,8 +1038,9 @@
             loadFinancialSummary();
             loadSupplies();
             loadRestockHistory();
-            loadRestockModels();
-            addRestockLine(); // Añadir la primera línea del formulario de Re Stock
+            // Limpiar y añadir la primera línea del formulario de Re Stock
+            restockItemsContainer.innerHTML = '';
+            addRestockLine();
         }
 
         function loadFinancialSummary() {
@@ -1048,18 +1065,18 @@
 
             try {
                 await db.runTransaction(async (transaction) => {
-                    const suppliesRef = db.collection('insumos');
+                    const suppliesRef = db.collection('insumos').doc();
                     const financesRef = db.collection('finanzas').doc('resumen');
 
                     // Añadir insumo
-                    transaction.set(suppliesRef.doc(), {
+                    transaction.set(suppliesRef, {
                         descripcion: description,
                         cantidad: quantity,
                         costoTotal: totalCost
                     });
 
                     // Actualizar finanzas
-                    const finanzasDoc = await transaction.get(financesRef);
+                    const finanzasDoc = await transaction.get(finanzasRef);
                     const finanzasData = finanzasDoc.data() || { ventas: 0, gastos: 0, utilidad: 0, capital: 0 };
                     
                     transaction.set(finanzasRef, {
@@ -1140,7 +1157,7 @@
                     const financesRef = db.collection('finanzas').doc('resumen');
 
                     const supplyDoc = await transaction.get(supplyRef);
-                    const financesDoc = await transaction.get(financesRef);
+                    const financesDoc = await transaction.get(finanzasRef);
                     const oldTotalCost = supplyDoc.data().costoTotal;
 
                     const finanzasData = financesDoc.data();
@@ -1185,7 +1202,7 @@
                     await db.runTransaction(async (transaction) => {
                         const supplyRef = db.collection('insumos').doc(id);
                         const financesRef = db.collection('finanzas').doc('resumen');
-                        const financesDoc = await transaction.get(financesRef);
+                        const financesDoc = await transaction.get(finanzasRef);
                         const finanzasData = financesDoc.data();
 
                         // Eliminar insumo
@@ -1302,7 +1319,7 @@
         
         async function loadProductModels() {
             try {
-                const snapshot = await db.collection('productos').get();
+                const snapshot = await db.collection('productos').orderBy('nombre').get();
                 productModels = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             } catch (error) {
                 console.error("Error al cargar modelos de productos:", error);
@@ -1317,6 +1334,23 @@
             return options;
         }
 
+        function updateRestockTotal() {
+            let total = 0;
+            const shippingCost = parseFloat(document.getElementById('shipping-cost').value) || 0;
+
+            const quantityInputs = document.querySelectorAll('#restock-items input[name="restock-quantity"]');
+            const costInputs = document.querySelectorAll('#restock-items input[name="restock-cost"]');
+
+            for (let i = 0; i < quantityInputs.length; i++) {
+                const quantity = parseInt(quantityInputs[i].value) || 0;
+                const cost = parseFloat(costInputs[i].value) || 0;
+                total += quantity * cost;
+            }
+
+            total += shippingCost;
+            document.getElementById('restock-total').textContent = `$${total.toFixed(2)}`;
+        }
+
         function addRestockLine() {
             const newLine = document.createElement('div');
             newLine.className = 'restock-item-group';
@@ -1329,43 +1363,56 @@
                 <button type="button" class="btn btn-delete" onclick="removeRestockLine(this)">X</button>
             `;
             restockItemsContainer.appendChild(newLine);
+            
+            newLine.querySelectorAll('input, select').forEach(input => {
+                input.addEventListener('input', updateRestockTotal);
+            });
+            updateRestockTotal();
         }
 
         function removeRestockLine(button) {
             button.closest('.restock-item-group').remove();
+            updateRestockTotal();
         }
 
         addRestockForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            const restockItems = [];
+            const itemsToSave = [];
             let totalCost = 0;
             const shippingCost = parseFloat(document.getElementById('shipping-cost').value) || 0;
 
-            const modelSelects = document.querySelectorAll('#restock-items select[name="restock-model"]');
-            const quantityInputs = document.querySelectorAll('#restock-items input[name="restock-quantity"]');
-            const costInputs = document.querySelectorAll('#restock-items input[name="restock-cost"]');
+            const itemGroups = document.querySelectorAll('#restock-items .restock-item-group');
 
-            for (let i = 0; i < modelSelects.length; i++) {
-                const modelId = modelSelects[i].value;
-                const quantity = parseInt(quantityInputs[i].value);
-                const cost = parseFloat(costInputs[i].value);
+            for (const group of itemGroups) {
+                const modelId = group.querySelector('select[name="restock-model"]').value;
+                const quantity = parseInt(group.querySelector('input[name="restock-quantity"]').value);
+                const cost = parseFloat(group.querySelector('input[name="restock-cost"]').value);
 
                 if (!modelId || isNaN(quantity) || isNaN(cost) || quantity <= 0 || cost < 0) {
                     showMessage("Por favor, completa todos los campos de modelos correctamente.");
                     return;
                 }
 
-                restockItems.push({
+                const productData = productModels.find(p => p.id === modelId);
+                if (!productData) {
+                     showMessage("Un modelo seleccionado ya no existe. Recarga la página.");
+                     return;
+                }
+
+                itemsToSave.push({
                     productId: modelId,
-                    quantity: quantity,
-                    cost: cost,
+                    nombre: productData.nombre,
+                    categoria: productData.categoria,
+                    cantidad: quantity,
+                    costo: cost,
+                    costoTotal: quantity * cost
                 });
                 totalCost += quantity * cost;
             }
 
             totalCost += shippingCost;
             
-            if (restockItems.length === 0) {
+            if (itemsToSave.length === 0) {
                 showMessage("Debes agregar al menos un modelo para el Re Stock.");
                 return;
             }
@@ -1376,38 +1423,25 @@
                     const folioRef = db.collection('contadores').doc('restocks');
                     const restockRef = db.collection('restocks').doc();
 
-                    const financesDoc = await transaction.get(financesRef);
+                    const financesDoc = await transaction.get(finanzasRef);
                     const folioDoc = await transaction.get(folioRef);
 
                     const financesData = financesDoc.data() || { ventas: 0, gastos: 0, utilidad: 0, capital: 0 };
                     const currentFolio = (folioDoc.data()?.lastFolio || 0) + 1;
-                    const folio = String(currentFolio).padStart(2, '0');
+                    const folio = `RS-${String(currentFolio).padStart(4, '0')}`;
 
-                    // Actualizar el stock de cada producto y generar la lista para el historial
-                    const updatedItems = [];
-                    for (const item of restockItems) {
+                    // Actualizar el stock de cada producto
+                    for (const item of itemsToSave) {
                         const productRef = db.collection('productos').doc(item.productId);
-                        const productDoc = await transaction.get(productRef);
-                        if (!productDoc.exists) throw new Error("Producto no encontrado");
-                        
                         transaction.update(productRef, {
-                            stock: firebase.firestore.FieldValue.increment(item.quantity)
-                        });
-
-                        const productData = productDoc.data();
-                        updatedItems.push({
-                            nombre: productData.nombre,
-                            categoria: productData.categoria,
-                            cantidad: item.quantity,
-                            costo: item.cost,
-                            costoTotal: item.quantity * item.cost
+                            stock: firebase.firestore.FieldValue.increment(item.cantidad)
                         });
                     }
 
                     // Registrar el pedido de Re Stock
                     transaction.set(restockRef, {
                         folio: folio,
-                        items: updatedItems,
+                        items: itemsToSave,
                         costoEnvio: shippingCost,
                         costoTotal: totalCost,
                         fecha: firebase.firestore.FieldValue.serverTimestamp()
@@ -1417,7 +1451,7 @@
                     transaction.set(folioRef, { lastFolio: currentFolio }, { merge: true });
 
                     // Actualizar finanzas
-                    transaction.set(financesRef, {
+                    transaction.set(finanzasRef, {
                         gastos: financesData.gastos + totalCost,
                         capital: financesData.capital - totalCost,
                         utilidad: financesData.utilidad - totalCost
@@ -1437,7 +1471,7 @@
             if (unsubscribeRestock) unsubscribeRestock();
             restockTableBody.innerHTML = '<tr><td colspan="5">Cargando historial...</td></tr>';
             
-            const q = db.collection('restocks').orderBy('folio', 'desc');
+            const q = db.collection('restocks').orderBy('fecha', 'desc');
             
             unsubscribeRestock = q.onSnapshot(snapshot => {
                 restockTableBody.innerHTML = '';
@@ -1479,30 +1513,32 @@
                     const itemsContainer = document.getElementById('edit-restock-items');
                     itemsContainer.innerHTML = '';
                     
+                    const modelOptions = getModelSelectOptions();
+
                     data.items.forEach(item => {
                         const itemDiv = document.createElement('div');
                         itemDiv.className = 'restock-item-group';
-                        const modelOptions = getModelSelectOptions();
                         itemDiv.innerHTML = `
                             <label>Modelo:</label>
-                            <select class="edit-restock-model" data-original-id="${item.id}" required>
-                                ${modelOptions}
-                            </select>
-                            <input type="number" class="edit-restock-quantity" placeholder="Cantidad" value="${item.cantidad}" min="1" required>
-                            <input type="number" class="edit-restock-cost" placeholder="Costo por unidad" step="0.01" value="${item.costo}" min="0" required>
+                            <select class="edit-restock-model" required>${modelOptions}</select>
+                            <label>Cant:</label>
+                            <input type="number" class="edit-restock-quantity" value="${item.cantidad}" min="1" required>
+                            <label>Costo c/u:</label>
+                            <input type="number" step="0.01" class="edit-restock-cost" value="${item.costo}" min="0" required>
                         `;
                         const selectElement = itemDiv.querySelector('select');
-                        const matchingModel = productModels.find(model => model.nombre === item.nombre && model.categoria === item.categoria);
-                        if (matchingModel) {
-                            selectElement.value = matchingModel.id;
-                        } else {
-                            // En caso de que el modelo haya sido eliminado, dejarlo como opción seleccionada
-                            const newOption = document.createElement('option');
-                            newOption.value = item.id || 'N/A';
-                            newOption.textContent = `${item.nombre} (${item.categoria})`;
-                            newOption.selected = true;
-                            selectElement.appendChild(newOption);
+                        selectElement.value = item.productId;
+                        
+                        // Si el producto fue eliminado, se añade como una opción deshabilitada para no perder la referencia
+                        if (!selectElement.value) {
+                             const option = document.createElement('option');
+                             option.value = item.productId;
+                             option.textContent = `${item.nombre} (Eliminado)`;
+                             option.selected = true;
+                             option.disabled = true;
+                             selectElement.appendChild(option);
                         }
+
                         itemsContainer.appendChild(itemDiv);
                     });
                     
@@ -1522,34 +1558,36 @@
             e.preventDefault();
             const id = document.getElementById('edit-restock-id').value;
             const newShippingCost = parseFloat(document.getElementById('edit-shipping-cost').value);
-            const newRestockItems = [];
+            const newItems = [];
             let newTotalCost = newShippingCost;
 
-            const modelSelects = document.querySelectorAll('#edit-restock-items .edit-restock-model');
-            const quantityInputs = document.querySelectorAll('#edit-restock-items .edit-restock-quantity');
-            const costInputs = document.querySelectorAll('#edit-restock-items .edit-restock-cost');
+            const itemGroups = document.querySelectorAll('#edit-restock-items .restock-item-group');
 
-            for (let i = 0; i < modelSelects.length; i++) {
-                const modelId = modelSelects[i].value;
-                const quantity = parseInt(quantityInputs[i].value);
-                const cost = parseFloat(costInputs[i].value);
-                const totalLineCost = quantity * cost;
+            for (const group of itemGroups) {
+                const modelId = group.querySelector('.edit-restock-model').value;
+                const quantity = parseInt(group.querySelector('.edit-restock-quantity').value);
+                const cost = parseFloat(group.querySelector('.edit-restock-cost').value);
 
                 if (!modelId || isNaN(quantity) || isNaN(cost) || quantity <= 0 || cost < 0) {
-                    showMessage("Por favor, revisa todos los campos. Deben estar completos y ser números válidos.");
+                    showMessage("Por favor, revisa todos los campos. Deben estar completos y ser válidos.");
                     return;
                 }
                 
                 const productData = productModels.find(p => p.id === modelId);
-                newRestockItems.push({
+                if (!productData) {
+                    showMessage(`El producto '${modelId}' ya no existe. No se puede guardar.`);
+                    return;
+                }
+
+                newItems.push({
+                    productId: productData.id,
                     nombre: productData.nombre,
                     categoria: productData.categoria,
-                    id: productData.id,
                     cantidad: quantity,
                     costo: cost,
-                    costoTotal: totalLineCost
+                    costoTotal: quantity * cost
                 });
-                newTotalCost += totalLineCost;
+                newTotalCost += quantity * cost;
             }
 
             try {
@@ -1558,39 +1596,34 @@
                     const financesRef = db.collection('finanzas').doc('resumen');
                     
                     const restockDoc = await transaction.get(restockRef);
-                    const financesDoc = await transaction.get(financesRef);
-                    
                     if (!restockDoc.exists) throw new Error("Pedido de Re Stock no encontrado");
-
                     const oldData = restockDoc.data();
-                    const oldTotalCost = oldData.costoTotal;
+                    
+                    const financesDoc = await transaction.get(finanzasRef);
+                    const financesData = financesDoc.data();
 
-                    // Revertir cambios de stock y finanzas anteriores
+                    // 1. Revertir stock del pedido anterior
                     for (const oldItem of oldData.items) {
-                        const productRef = db.collection('productos').doc(oldItem.id);
-                        if (productRef) {
-                            transaction.update(productRef, { stock: firebase.firestore.FieldValue.increment(-oldItem.cantidad) });
-                        }
+                        const productRef = db.collection('productos').doc(oldItem.productId);
+                        transaction.update(productRef, { stock: firebase.firestore.FieldValue.increment(-oldItem.cantidad) });
                     }
                     
-                    // Aplicar nuevos cambios de stock
-                    for (const newItem of newRestockItems) {
-                        const productRef = db.collection('productos').doc(newItem.id);
+                    // 2. Aplicar nuevo stock
+                    for (const newItem of newItems) {
+                        const productRef = db.collection('productos').doc(newItem.productId);
                         transaction.update(productRef, { stock: firebase.firestore.FieldValue.increment(newItem.cantidad) });
                     }
 
-                    // Actualizar el documento de Re Stock
+                    // 3. Actualizar el documento de Re Stock
                     transaction.update(restockRef, {
-                        items: newRestockItems,
+                        items: newItems,
                         costoEnvio: newShippingCost,
                         costoTotal: newTotalCost
                     });
 
-                    // Ajustar finanzas
-                    const financesData = financesDoc.data() || { gastos: 0, utilidad: 0, capital: 0 };
-                    const costDifference = newTotalCost - oldTotalCost;
-                    
-                    transaction.set(financesRef, {
+                    // 4. Ajustar finanzas
+                    const costDifference = newTotalCost - oldData.costoTotal;
+                    transaction.set(finanzasRef, {
                         gastos: financesData.gastos + costDifference,
                         utilidad: financesData.utilidad - costDifference,
                         capital: financesData.capital - costDifference
@@ -1598,7 +1631,6 @@
                 });
                 showMessage('Pedido de Re Stock actualizado.');
                 closeEditRestockModal();
-                loadRestockHistory();
             } catch (error) {
                 console.error("Error al actualizar Re Stock:", error);
                 showMessage('Error al actualizar Re Stock.');
@@ -1624,22 +1656,20 @@
                     const financesRef = db.collection('finanzas').doc('resumen');
                     
                     const restockDoc = await transaction.get(restockRef);
-                    if (!restockDoc.exists) throw new Error("Pedido de Re Stock no encontrado");
+                    if (!restockDoc.exists) throw new Error("Pedido no encontrado");
                     const restockData = restockDoc.data();
                     
-                    const financesDoc = await transaction.get(financesRef);
-                    const financesData = financesDoc.data() || { gastos: 0, utilidad: 0, capital: 0 };
+                    const financesDoc = await transaction.get(finanzasRef);
+                    const financesData = financesDoc.data();
 
                     // Revertir el stock de productos
                     for (const item of restockData.items) {
-                        const productRef = db.collection('productos').doc(item.id);
-                        if (productRef) {
-                            transaction.update(productRef, { stock: firebase.firestore.FieldValue.increment(-item.cantidad) });
-                        }
+                        const productRef = db.collection('productos').doc(item.productId);
+                        transaction.update(productRef, { stock: firebase.firestore.FieldValue.increment(-item.cantidad) });
                     }
 
                     // Revertir el gasto en finanzas
-                    transaction.set(financesRef, {
+                    transaction.set(finanzasRef, {
                         gastos: financesData.gastos - restockData.costoTotal,
                         utilidad: financesData.utilidad + restockData.costoTotal,
                         capital: financesData.capital + restockData.costoTotal
@@ -1651,7 +1681,6 @@
                 
                 showMessage('Pedido de Re Stock eliminado.');
                 cancelRestockAction();
-                loadRestockHistory();
             } catch (error) {
                 console.error("Error al eliminar Re Stock:", error);
                 showMessage('Error al eliminar el pedido de Re Stock.');
