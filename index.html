@@ -59,6 +59,15 @@
             font-size: 1.8em;
             margin-bottom: 20px;
         }
+        
+        .logo-container {
+            margin-bottom: 20px;
+        }
+
+        .logo {
+            max-width: 250px;
+            height: auto;
+        }
 
         h2 {
             border-bottom: 2px solid rgba(255, 255, 255, 0.3);
@@ -130,17 +139,17 @@
             overflow-x: auto;
             margin-top: 20px;
         }
-        #inventory-table, #supplies-table {
+        #inventory-table, #supplies-table, #restock-table {
             width: 100%;
             border-collapse: collapse;
         }
-        #inventory-table th, #inventory-table td, #supplies-table th, #supplies-table td {
+        #inventory-table th, #inventory-table td, #supplies-table th, #supplies-table td, #restock-table th, #restock-table td {
             border: 1px solid rgba(255, 255, 255, 0.3);
             padding: 10px;
             text-align: left;
             font-size: 0.9em;
         }
-        #inventory-table th, #supplies-table th {
+        #inventory-table th, #supplies-table th, #restock-table th {
             background-color: rgba(255, 255, 255, 0.2);
         }
         #inventory-table img {
@@ -280,19 +289,17 @@
 
         /* --- Estilos para la nueva sección de Administración --- */
         .finance-panel {
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: space-around;
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
             width: 100%;
             margin-bottom: 20px;
-            gap: 15px;
         }
         .finance-card {
             background-color: rgba(255, 255, 255, 0.15);
             padding: 20px;
             border-radius: 10px;
-            flex: 1 1 200px;
-            min-width: 150px;
+            text-align: center;
         }
         .finance-card h3 {
             margin-top: 0;
@@ -319,6 +326,13 @@
             width: 100% !important;
             height: 100% !important;
         }
+
+        /* Estilos para reducir campos de texto */
+        #supply-description, #restock-model {
+            width: 100%;
+            max-width: 400px; /* Reducir el ancho máximo */
+            margin: 0 auto;
+        }
         
         /* --- Estilos para móviles (responsive) --- */
         @media (max-width: 768px) {
@@ -331,7 +345,7 @@
             .image-path-group select, .image-path-group input { width: 100%; }
             .table-container { overflow-x: scroll; }
             #inventory-table, #supplies-table { min-width: 500px; }
-            .finance-panel { flex-direction: column; align-items: stretch; }
+            .finance-panel { grid-template-columns: 1fr; }
             .finance-card { flex-basis: auto; }
             .sales-details strong { min-width: 80px; }
         }
@@ -345,7 +359,9 @@
         </div>
 
         <section id="login-screen" style="display: block;">
-            <h1>Administración de KalCTas</h1>
+            <div class="logo-container">
+                <img src="LOGO.png" alt="KalCTas Logo" class="logo">
+            </div>
             <h2>Iniciar Sesión</h2>
             <form id="login-form">
                 <input type="email" id="login-email" placeholder="Correo electrónico" required>
@@ -355,7 +371,9 @@
         </section>
 
         <section id="main-menu" style="display: none;">
-            <h1>Administración de KalCTas</h1>
+            <div class="logo-container">
+                <img src="LOGO.png" alt="KalCTas Logo" class="logo">
+            </div>
             <h2>Menú Principal</h2>
             <div class="main-menu-buttons">
                 <button onclick="showScreen('inventory-screen')">Inventario</button>
@@ -443,11 +461,27 @@
             <form id="add-supply-form">
                 <input type="text" id="supply-description" placeholder="Descripción del insumo" required>
                 <input type="number" id="supply-quantity" placeholder="Cantidad" required>
-                <input type="number" id="supply-cost" placeholder="Costo" step="0.01" required>
+                <input type="number" id="supply-cost" placeholder="Costo por unidad" step="0.01" required>
                 <button type="submit">Registrar Insumo</button>
             </form>
+            
+            <br>
+            <hr style="width: 100%; border-color: rgba(255, 255, 255, 0.3);">
+            <br>
+
+            <h2>Re Stock de Inventario</h2>
+            <form id="add-restock-form">
+                <select id="restock-model" required>
+                    <option value="" disabled selected>Selecciona el modelo a reabastecer</option>
+                    </select>
+                <input type="number" id="restock-quantity" placeholder="Cantidad a reabastecer" required>
+                <input type="number" id="restock-total-amount" placeholder="Monto total del reabastecimiento" step="0.01" required>
+                <button type="submit">Registrar Re Stock</button>
+            </form>
+
 
             <div class="table-container">
+                <h2>Insumos Registrados</h2>
                 <table id="supplies-table">
                     <thead>
                         <tr>
@@ -458,6 +492,22 @@
                         </tr>
                     </thead>
                     <tbody id="supplies-table-body">
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="table-container">
+                <h2>Re Stocks Registrados</h2>
+                <table id="restock-table">
+                    <thead>
+                        <tr>
+                            <th>Modelo</th>
+                            <th>Cantidad</th>
+                            <th>Monto Total</th>
+                            <th>Fecha</th>
+                        </tr>
+                    </thead>
+                    <tbody id="restock-table-body">
                     </tbody>
                 </table>
             </div>
@@ -510,7 +560,7 @@
                     <input type="text" id="edit-supply-description" required>
                     <label for="edit-supply-quantity">Cantidad:</label>
                     <input type="number" id="edit-supply-quantity" required>
-                    <label for="edit-supply-cost">Costo:</label>
+                    <label for="edit-supply-cost">Costo por unidad:</label>
                     <input type="number" id="edit-supply-cost" step="0.01" required>
                     <button type="submit">Guardar Cambios</button>
                 </form>
@@ -573,6 +623,7 @@
         let unsubscribeFinances = null;
         let unsubscribeSupplies = null;
         let unsubscribeSales = null;
+        let unsubscribeRestock = null;
         let salesChart;
         
         const loginForm = document.getElementById('login-form');
@@ -591,6 +642,8 @@
         const suppliesTableBody = document.getElementById('supplies-table-body');
         const confirmSupplyModal = document.getElementById('confirm-supply-modal');
         const salesList = document.getElementById('sales-list');
+        const addRestockForm = document.getElementById('add-restock-form');
+        const restockTableBody = document.getElementById('restock-table-body');
 
         function showMessage(text) {
             messageText.textContent = text;
@@ -624,6 +677,7 @@
                 if (unsubscribeFinances) unsubscribeFinances();
                 if (unsubscribeSupplies) unsubscribeSupplies();
                 if (unsubscribeSales) unsubscribeSales();
+                if (unsubscribeRestock) unsubscribeRestock();
             }
         });
 
@@ -871,7 +925,6 @@
             if (unsubscribeSalesHistory) unsubscribeSalesHistory();
             salesHistoryList.innerHTML = '<p>Cargando historial...</p>';
             
-            // CORRECCIÓN: La consulta ahora utiliza `fechaActualizacion`
             const q = db.collection('pedidos').where('estado', 'in', ['Entregado', 'Cancelado']).orderBy('fechaActualizacion', 'desc');
 
             unsubscribeSalesHistory = q.onSnapshot((snapshot) => {
@@ -907,6 +960,8 @@
         function loadFinances() {
             loadFinancialSummary();
             loadSupplies();
+            loadRestockHistory();
+            loadRestockModels();
         }
 
         function loadFinancialSummary() {
@@ -1036,7 +1091,7 @@
 
                     // Ajustar finanzas
                     const costDifference = newTotalCost - oldTotalCost;
-                    transaction.set(financesRef, {
+                    transaction.set(finanzasRef, {
                         gastos: finanzasData.gastos + costDifference,
                         utilidad: finanzasData.utilidad - costDifference,
                         capital: finanzasData.capital - costDifference
@@ -1180,6 +1235,104 @@
                 }
             });
         }
+        
+        // --- Nuevas funciones para Re Stock ---
+        async function loadRestockModels() {
+            const select = document.getElementById('restock-model');
+            select.innerHTML = '<option value="" disabled selected>Cargando modelos...</option>';
+            try {
+                const snapshot = await db.collection('productos').get();
+                select.innerHTML = '<option value="" disabled selected>Selecciona el modelo a reabastecer</option>';
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    const option = document.createElement('option');
+                    option.value = doc.id;
+                    option.textContent = `${data.nombre} (${data.categoria})`;
+                    select.appendChild(option);
+                });
+            } catch (error) {
+                select.innerHTML = '<option value="" disabled selected>Error al cargar modelos</option>';
+                console.error("Error al cargar modelos:", error);
+            }
+        }
+
+        addRestockForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const productId = addRestockForm['restock-model'].value;
+            const quantity = parseInt(addRestockForm['restock-quantity'].value);
+            const totalAmount = parseFloat(addRestockForm['restock-total-amount'].value);
+
+            try {
+                await db.runTransaction(async (transaction) => {
+                    const productRef = db.collection('productos').doc(productId);
+                    const financesRef = db.collection('finanzas').doc('resumen');
+                    const restockRef = db.collection('restocks').doc();
+
+                    const productDoc = await transaction.get(productRef);
+                    const financesDoc = await transaction.get(financesRef);
+                    const productData = productDoc.data();
+                    const financesData = financesDoc.data() || { ventas: 0, gastos: 0, utilidad: 0, capital: 0 };
+                    
+                    if (!productDoc.exists) throw new Error("Producto no encontrado");
+
+                    // Actualizar stock del producto
+                    transaction.update(productRef, {
+                        stock: productData.stock + quantity
+                    });
+
+                    // Registrar el re stock
+                    transaction.set(restockRef, {
+                        modelo: productData.nombre,
+                        cantidad: quantity,
+                        montoTotal: totalAmount,
+                        fecha: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+
+                    // Actualizar finanzas (suma a gastos, resta de capital)
+                    transaction.set(financesRef, {
+                        gastos: financesData.gastos + totalAmount,
+                        capital: financesData.capital - totalAmount,
+                        utilidad: financesData.utilidad - totalAmount
+                    }, { merge: true });
+                });
+                showMessage('Re Stock registrado con éxito.');
+                addRestockForm.reset();
+            } catch (error) {
+                console.error("Error al registrar re stock:", error);
+                showMessage('Error al registrar re stock.');
+            }
+        });
+
+        function loadRestockHistory() {
+            if (unsubscribeRestock) unsubscribeRestock();
+            restockTableBody.innerHTML = '<tr><td colspan="4">Cargando historial...</td></tr>';
+            
+            const q = db.collection('restocks').orderBy('fecha', 'desc');
+            
+            unsubscribeRestock = q.onSnapshot(snapshot => {
+                restockTableBody.innerHTML = '';
+                if (snapshot.empty) {
+                    restockTableBody.innerHTML = '<tr><td colspan="4">No hay re stocks registrados.</td></tr>';
+                    return;
+                }
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    const fecha = data.fecha ? data.fecha.toDate().toLocaleDateString() : 'N/A';
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${data.modelo}</td>
+                        <td>${data.cantidad}</td>
+                        <td>$${data.montoTotal.toFixed(2)}</td>
+                        <td>${fecha}</td>
+                    `;
+                    restockTableBody.appendChild(row);
+                });
+            }, (error) => {
+                console.error("Error al cargar re stocks:", error);
+                restockTableBody.innerHTML = '<tr><td colspan="4">Error al cargar historial.</td></tr>';
+            });
+        }
+
     </script>
 </body>
 </html>
