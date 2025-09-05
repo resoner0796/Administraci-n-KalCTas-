@@ -129,18 +129,18 @@
             overflow-x: auto;
             margin-top: 20px;
         }
-        #inventory-table {
+        #inventory-table, #supplies-table {
             width: 100%;
             min-width: 600px;
             border-collapse: collapse;
         }
-        #inventory-table th, #inventory-table td {
+        #inventory-table th, #inventory-table td, #supplies-table th, #supplies-table td {
             border: 1px solid rgba(255, 255, 255, 0.3);
             padding: 10px;
             text-align: left;
             font-size: 0.9em;
         }
-        #inventory-table th {
+        #inventory-table th, #supplies-table th {
             background-color: rgba(255, 255, 255, 0.2);
         }
         #inventory-table img {
@@ -278,6 +278,33 @@
             margin-top: 20px;
         }
 
+        /* --- Estilos para la nueva sección de Administración --- */
+        .finance-panel {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-around;
+            width: 100%;
+            margin-bottom: 20px;
+            gap: 15px;
+        }
+        .finance-card {
+            background-color: rgba(255, 255, 255, 0.15);
+            padding: 20px;
+            border-radius: 10px;
+            flex: 1 1 200px;
+            min-width: 150px;
+        }
+        .finance-card h3 {
+            margin-top: 0;
+            font-size: 1.1em;
+            color: #ffffff;
+        }
+        .finance-card p {
+            margin: 0;
+            font-size: 1.8em;
+            font-weight: bold;
+        }
+
         /* --- Estilos para móviles (responsive) --- */
         @media (max-width: 768px) {
             body { padding: 10px; }
@@ -314,6 +341,7 @@
                 <button onclick="showScreen('inventory-screen')">Inventario</button>
                 <button onclick="showScreen('orders-screen')">Pedidos 📦</button>
                 <button onclick="showScreen('sales-screen')">Historial de Pedidos 💰</button>
+                <button onclick="showScreen('finance-screen')">Administración 📈</button>
             </div>
         </section>
 
@@ -369,6 +397,54 @@
             <button class="btn close-button" onclick="showScreen('main-menu')">Volver al Menú</button>
         </section>
 
+        <section id="finance-screen" style="display: none;">
+            <h1>Administración Financiera</h1>
+            <div class="finance-panel">
+                <div class="finance-card">
+                    <h3>Ventas Totales</h3>
+                    <p id="total-sales">$0.00</p>
+                </div>
+                <div class="finance-card">
+                    <h3>Gastos</h3>
+                    <p id="total-expenses">$0.00</p>
+                </div>
+                <div class="finance-card">
+                    <h3>Utilidad</h3>
+                    <p id="total-profit">$0.00</p>
+                </div>
+                <div class="finance-card">
+                    <h3>Capital</h3>
+                    <p id="total-capital">$0.00</p>
+                </div>
+            </div>
+
+            <h2>Registrar Insumo</h2>
+            <form id="add-supply-form">
+                <input type="text" id="supply-description" placeholder="Descripción del insumo" required>
+                <input type="number" id="supply-quantity" placeholder="Cantidad" required>
+                <input type="number" id="supply-cost" placeholder="Costo" step="0.01" required>
+                <button type="submit">Registrar Insumo</button>
+            </form>
+
+            <div class="table-container">
+                <table id="supplies-table">
+                    <thead>
+                        <tr>
+                            <th>Descripción</th>
+                            <th>Cantidad</th>
+                            <th>Costo Total</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="supplies-table-body">
+                    </tbody>
+                </table>
+            </div>
+            
+            <button class="btn close-button" onclick="showScreen('main-menu')">Volver al Menú</button>
+        </section>
+
+
         <div id="edit-modal" class="edit-modal">
             <div class="modal-content">
                 <h2>Editar Producto</h2>
@@ -394,6 +470,23 @@
             </div>
         </div>
 
+        <div id="edit-supply-modal" class="edit-modal">
+            <div class="modal-content">
+                <h2>Editar Insumo</h2>
+                <form id="edit-supply-form" class="edit-modal-form">
+                    <input type="hidden" id="edit-supply-id">
+                    <label for="edit-supply-description">Descripción:</label>
+                    <input type="text" id="edit-supply-description" required>
+                    <label for="edit-supply-quantity">Cantidad:</label>
+                    <input type="number" id="edit-supply-quantity" required>
+                    <label for="edit-supply-cost">Costo:</label>
+                    <input type="number" id="edit-supply-cost" step="0.01" required>
+                    <button type="submit">Guardar Cambios</button>
+                </form>
+                <button class="close-button" onclick="closeEditSupplyModal()">Cancelar</button>
+            </div>
+        </div>
+
         <div id="message-box" class="message-box">
             <div class="message-content">
                 <p id="message-text" class="message-text"></p>
@@ -407,6 +500,16 @@
                 <div class="confirm-buttons">
                     <button class="btn btn-yes" onclick="confirmAction()">Sí, eliminar</button>
                     <button class="btn btn-no" onclick="cancelAction()">Cancelar</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="confirm-supply-modal" class="confirm-modal">
+            <div class="modal-content">
+                <p id="confirm-supply-text" class="message-text">¿Estás seguro de que quieres eliminar este insumo?</p>
+                <div class="confirm-buttons">
+                    <button class="btn btn-yes" onclick="confirmSupplyAction()">Sí, eliminar</button>
+                    <button class="btn btn-no" onclick="cancelSupplyAction()">Cancelar</button>
                 </div>
             </div>
         </div>
@@ -432,8 +535,11 @@
 
         let currentUserId = null;
         let productToDeleteId = null;
+        let supplyToDeleteId = null;
         let unsubscribeOrders = null;
         let unsubscribeSales = null;
+        let unsubscribeFinances = null;
+        let unsubscribeSupplies = null;
         
         const loginForm = document.getElementById('login-form');
         const addProductForm = document.getElementById('add-product-form');
@@ -445,6 +551,11 @@
         const inventoryTableBody = document.getElementById('inventory-table-body');
         const ordersList = document.getElementById('orders-list');
         const salesList = document.getElementById('sales-list');
+        const addSupplyForm = document.getElementById('add-supply-form');
+        const editSupplyModal = document.getElementById('edit-supply-modal');
+        const editSupplyForm = document.getElementById('edit-supply-form');
+        const suppliesTableBody = document.getElementById('supplies-table-body');
+        const confirmSupplyModal = document.getElementById('confirm-supply-modal');
 
         function showMessage(text) {
             messageText.textContent = text;
@@ -462,6 +573,7 @@
             if (screenId === 'inventory-screen') loadInventory();
             if (screenId === 'orders-screen') loadOrders();
             if (screenId === 'sales-screen') loadSales();
+            if (screenId === 'finance-screen') loadFinances();
         }
 
         auth.onAuthStateChanged(user => {
@@ -473,6 +585,8 @@
                 showScreen('login-screen');
                 if (unsubscribeOrders) unsubscribeOrders();
                 if (unsubscribeSales) unsubscribeSales();
+                if (unsubscribeFinances) unsubscribeFinances();
+                if (unsubscribeSupplies) unsubscribeSupplies();
             }
         });
 
@@ -611,7 +725,7 @@
                 for (const doc of snapshot.docs) {
                     const pedido = doc.data();
                     const clienteDoc = await db.collection('usuarios').doc(pedido.usuarioId).get();
-                    const cliente = clienteDoc.exists ? clienteDoc.data() : { nombre: 'N/A', apellido: '' };
+                    const cliente = clienteDoc.exists ? clienteDoc.data() : { nombre: 'N/A', apellido: '', email: 'N/A', telefono: 'N/A' };
                     const total = pedido.productos.reduce((sum, p) => sum + p.precio, 0);
 
                     const item = document.createElement('li');
@@ -653,12 +767,55 @@
         async function updateOrderStatus(pedidoId, newStatus, event) {
             event.stopPropagation();
             try {
-                await db.collection('pedidos').doc(pedidoId).update({
-                    estado: newStatus,
-                    fechaActualizacion: firebase.firestore.FieldValue.serverTimestamp()
+                await db.runTransaction(async (transaction) => {
+                    const pedidoRef = db.collection('pedidos').doc(pedidoId);
+                    const finanzasRef = db.collection('finanzas').doc('resumen');
+                    const pedidoDoc = await transaction.get(pedidoRef);
+                    const finanzasDoc = await transaction.get(finanzasRef);
+
+                    if (!pedidoDoc.exists) throw new Error("Pedido no encontrado");
+
+                    const productos = pedidoDoc.data().productos;
+                    const totalVenta = productos.reduce((sum, p) => sum + p.precio, 0);
+                    const finanzasData = finanzasDoc.data() || { ventas: 0, gastos: 0, utilidad: 0, capital: 0 };
+                    
+                    let newVentas = finanzasData.ventas;
+                    let newUtilidad = finanzasData.utilidad;
+                    let newCapital = finanzasData.capital;
+
+                    if (newStatus === 'Entregado' && pedidoDoc.data().estado !== 'Entregado') {
+                        newVentas += totalVenta;
+                        newUtilidad += totalVenta;
+                        newCapital += totalVenta;
+                    }
+                    if (newStatus === 'Cancelado' && pedidoDoc.data().estado === 'Entregado') {
+                        newVentas -= totalVenta;
+                        newUtilidad -= totalVenta;
+                        newCapital -= totalVenta;
+                    }
+                    
+                    if(newStatus === 'Cancelado' && pedidoDoc.data().estado !== 'Entregado'){
+                         for (const producto of productos) {
+                            const productoRef = db.collection('productos').doc(producto.id);
+                            transaction.update(productoRef, { stock: firebase.firestore.FieldValue.increment(1) });
+                        }
+                    }
+
+                    transaction.update(pedidoRef, {
+                        estado: newStatus,
+                        fechaActualizacion: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+
+                    transaction.set(finanzasRef, {
+                        ventas: newVentas,
+                        gastos: finanzasData.gastos,
+                        utilidad: newUtilidad,
+                        capital: newCapital
+                    }, { merge: true });
                 });
                 showMessage(`Pedido actualizado a '${newStatus}'.`);
             } catch (error) {
+                console.error("Error al actualizar estado: ", error);
                 showMessage('Error al actualizar el estado.');
             }
         }
@@ -667,46 +824,17 @@
             event.stopPropagation();
             const motivo = prompt("Introduce el motivo de la cancelación:");
             if (motivo && motivo.trim() !== "") {
-                cancelOrder(pedidoId, motivo.trim());
+                updateOrderStatus(pedidoId, 'Cancelado', event);
             } else if (motivo !== null) {
                 showMessage("Debes especificar un motivo para cancelar.");
             }
         }
-
-        async function cancelOrder(pedidoId, motivo) {
-            try {
-                await db.runTransaction(async (transaction) => {
-                    const pedidoRef = db.collection('pedidos').doc(pedidoId);
-                    const pedidoDoc = await transaction.get(pedidoRef);
-                    if (!pedidoDoc.exists) throw new Error("Pedido no encontrado");
-
-                    const productos = pedidoDoc.data().productos;
-
-                    // Devolver el stock de cada producto
-                    for (const producto of productos) {
-                        const productoRef = db.collection('productos').doc(producto.id);
-                        transaction.update(productoRef, { stock: firebase.firestore.FieldValue.increment(1) });
-                    }
-
-                    // Actualizar el estado del pedido
-                    transaction.update(pedidoRef, {
-                        estado: 'Cancelado',
-                        motivoCancelacion: motivo,
-                        fechaActualizacion: firebase.firestore.FieldValue.serverTimestamp()
-                    });
-                });
-                showMessage("Pedido cancelado y stock devuelto.");
-            } catch (error) {
-                console.error("Error al cancelar pedido: ", error);
-                showMessage("Error al cancelar el pedido.");
-            }
-        }
-
+        
         function loadSales() {
             if (unsubscribeSales) unsubscribeSales();
             salesList.innerHTML = '<p>Cargando historial...</p>';
             
-            const q = db.collection('pedidos').where('estado', 'in', ['Entregado', 'Cancelado']).orderBy('fechaCreacion', 'desc');
+            const q = db.collection('pedidos').where('estado', 'in', ['Entregado', 'Cancelado']).orderBy('fechaActualizacion', 'desc');
 
             unsubscribeSales = q.onSnapshot((snapshot) => {
                 salesList.innerHTML = '';
@@ -734,6 +862,194 @@
                 console.error("Error al escuchar historial:", error);
                 salesList.innerHTML = '<p>Error al cargar el historial.</p>';
             });
+        }
+        
+        // --- Nuevas funciones de Administración Financiera ---
+
+        function loadFinances() {
+            loadFinancialSummary();
+            loadSupplies();
+        }
+
+        function loadFinancialSummary() {
+            if (unsubscribeFinances) unsubscribeFinances();
+            const financesRef = db.collection('finanzas').doc('resumen');
+
+            unsubscribeFinances = financesRef.onSnapshot(doc => {
+                const data = doc.data() || { ventas: 0, gastos: 0, utilidad: 0, capital: 0 };
+                document.getElementById('total-sales').textContent = `$${data.ventas.toFixed(2)}`;
+                document.getElementById('total-expenses').textContent = `$${data.gastos.toFixed(2)}`;
+                document.getElementById('total-profit').textContent = `$${data.utilidad.toFixed(2)}`;
+                document.getElementById('total-capital').textContent = `$${data.capital.toFixed(2)}`;
+            });
+        }
+
+        addSupplyForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const description = addSupplyForm['supply-description'].value;
+            const quantity = parseInt(addSupplyForm['supply-quantity'].value);
+            const cost = parseFloat(addSupplyForm['supply-cost'].value);
+            const totalCost = quantity * cost;
+
+            try {
+                await db.runTransaction(async (transaction) => {
+                    const suppliesRef = db.collection('insumos');
+                    const financesRef = db.collection('finanzas').doc('resumen');
+
+                    // Añadir insumo
+                    transaction.set(suppliesRef.doc(), {
+                        descripcion: description,
+                        cantidad: quantity,
+                        costoTotal: totalCost
+                    });
+
+                    // Actualizar finanzas
+                    const finanzasDoc = await transaction.get(financesRef);
+                    const finanzasData = finanzasDoc.data() || { ventas: 0, gastos: 0, utilidad: 0, capital: 0 };
+                    
+                    transaction.set(financesRef, {
+                        gastos: finanzasData.gastos + totalCost,
+                        utilidad: finanzasData.utilidad - totalCost,
+                        capital: finanzasData.capital - totalCost
+                    }, { merge: true });
+                });
+                showMessage('Insumo registrado con éxito.');
+                addSupplyForm.reset();
+            } catch (error) {
+                console.error("Error al registrar insumo:", error);
+                showMessage('Error al registrar insumo.');
+            }
+        });
+
+        function loadSupplies() {
+            if (unsubscribeSupplies) unsubscribeSupplies();
+            suppliesTableBody.innerHTML = '<tr><td colspan="4">Cargando insumos...</td></tr>';
+            
+            const q = db.collection('insumos').orderBy('descripcion');
+            
+            unsubscribeSupplies = q.onSnapshot(snapshot => {
+                suppliesTableBody.innerHTML = '';
+                if (snapshot.empty) {
+                    suppliesTableBody.innerHTML = '<tr><td colspan="4">No hay insumos registrados.</td></tr>';
+                    return;
+                }
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${data.descripcion}</td>
+                        <td>${data.cantidad}</td>
+                        <td>$${data.costoTotal.toFixed(2)}</td>
+                        <td class="actions-cell">
+                            <button class="btn btn-edit" onclick="editSupply('${doc.id}')">Editar</button>
+                            <button class="btn btn-delete" onclick="showConfirmSupplyModal('${doc.id}', ${data.costoTotal})">Eliminar</button>
+                        </td>
+                    `;
+                    suppliesTableBody.appendChild(row);
+                });
+            }, (error) => {
+                console.error("Error al cargar insumos:", error);
+                suppliesTableBody.innerHTML = '<tr><td colspan="4">Error al cargar insumos.</td></tr>';
+            });
+        }
+
+        async function editSupply(id) {
+            try {
+                const docSnap = await db.collection('insumos').doc(id).get();
+                if (docSnap.exists) {
+                    const data = docSnap.data();
+                    document.getElementById('edit-supply-id').value = id;
+                    document.getElementById('edit-supply-description').value = data.descripcion;
+                    document.getElementById('edit-supply-quantity').value = data.cantidad;
+                    document.getElementById('edit-supply-cost').value = (data.costoTotal / data.cantidad).toFixed(2);
+                    editSupplyModal.style.display = 'flex';
+                }
+            } catch (error) { showMessage("Error al cargar el insumo."); }
+        }
+        
+        function closeEditSupplyModal() {
+            editSupplyModal.style.display = 'none';
+        }
+        
+        editSupplyForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const id = document.getElementById('edit-supply-id').value;
+            const newDescription = document.getElementById('edit-supply-description').value;
+            const newQuantity = parseInt(document.getElementById('edit-supply-quantity').value);
+            const newCost = parseFloat(document.getElementById('edit-supply-cost').value);
+            const newTotalCost = newQuantity * newCost;
+
+            try {
+                await db.runTransaction(async (transaction) => {
+                    const supplyRef = db.collection('insumos').doc(id);
+                    const financesRef = db.collection('finanzas').doc('resumen');
+
+                    const supplyDoc = await transaction.get(supplyRef);
+                    const financesDoc = await transaction.get(financesRef);
+                    const oldTotalCost = supplyDoc.data().costoTotal;
+
+                    const finanzasData = financesDoc.data();
+                    
+                    transaction.update(supplyRef, {
+                        descripcion: newDescription,
+                        cantidad: newQuantity,
+                        costoTotal: newTotalCost
+                    });
+
+                    // Ajustar finanzas
+                    const costDifference = newTotalCost - oldTotalCost;
+                    transaction.set(financesRef, {
+                        gastos: finanzasData.gastos + costDifference,
+                        utilidad: finanzasData.utilidad - costDifference,
+                        capital: finanzasData.capital - costDifference
+                    }, { merge: true });
+                });
+
+                showMessage('Insumo actualizado.');
+                closeEditSupplyModal();
+            } catch (error) {
+                console.error("Error al actualizar insumo:", error);
+                showMessage('Error al actualizar.');
+            }
+        });
+
+        function showConfirmSupplyModal(id, cost) {
+            supplyToDeleteId = { id, cost };
+            confirmSupplyModal.style.display = 'flex';
+        }
+
+        function cancelSupplyAction() {
+            confirmSupplyModal.style.display = 'none';
+            supplyToDeleteId = null;
+        }
+
+        async function confirmSupplyAction() {
+            if (supplyToDeleteId) {
+                const { id, cost } = supplyToDeleteId;
+                try {
+                    await db.runTransaction(async (transaction) => {
+                        const supplyRef = db.collection('insumos').doc(id);
+                        const financesRef = db.collection('finanzas').doc('resumen');
+                        const financesDoc = await transaction.get(financesRef);
+                        const finanzasData = financesDoc.data();
+
+                        // Eliminar insumo
+                        transaction.delete(supplyRef);
+
+                        // Ajustar finanzas
+                        transaction.set(financesRef, {
+                            gastos: finanzasData.gastos - cost,
+                            utilidad: finanzasData.utilidad + cost,
+                            capital: finanzasData.capital + cost
+                        }, { merge: true });
+                    });
+                    showMessage('Insumo eliminado.');
+                    cancelSupplyAction();
+                } catch (error) {
+                    console.error("Error al eliminar insumo:", error);
+                    showMessage('Error al eliminar.');
+                }
+            }
         }
     </script>
 </body>
