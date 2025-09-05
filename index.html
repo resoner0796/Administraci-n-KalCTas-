@@ -821,7 +821,6 @@
         function loadOrders() {
             const ordersList = getEl('orders-list');
             ordersList.innerHTML = '<p>Cargando pedidos...</p>';
-            // Consulta para pedidos pendientes y confirmados, ordenados por fecha de creación
             const q = db.collection('pedidos')
                 .where('estado', 'in', ['Pendiente', 'Confirmado'])
                 .orderBy('fechaCreacion', 'desc');
@@ -845,8 +844,8 @@
                             <span>$${total.toFixed(2)}</span>
                         </div>
                         <div class="order-details">
-                            <p><strong>Cliente:</strong> ${pedido.clienteInfo.nombre}</p>
-                            <p><strong>Teléfono:</strong> ${pedido.clienteInfo.telefono || 'N/A'}</p>
+                            <p><strong>Cliente:</strong> ${pedido.clienteInfo?.nombre || 'N/A'}</p>
+                            <p><strong>Teléfono:</strong> ${pedido.clienteInfo?.telefono || 'N/A'}</p>
                             <p><strong>Fecha Entrega:</strong> ${pedido.fechaEntrega}</p>
                             <p><strong>Lugar:</strong> ${pedido.lugarEntrega}</p>
                             <p><strong>Productos:</strong></p>
@@ -923,8 +922,6 @@
         function loadSalesHistory() {
             const list = getEl('sales-history-list');
             list.innerHTML = '<p>Cargando historial...</p>';
-            // La consulta original combinaba 'in' y 'orderBy', que requiere un índice.
-            // Para evitar ese error, separamos la carga y ordenamos en el cliente.
             const q = db.collection('pedidos').where('estado', 'in', ['Entregado', 'Cancelado']);
 
             const unsubscribe = q.onSnapshot((snapshot) => {
@@ -977,7 +974,7 @@
                     if (data.fechaActualizacion) {
                         movements.push({
                             date: data.fechaActualizacion.toDate(),
-                            description: `Venta #${data.folio} (${data.clienteInfo.nombre})`,
+                            description: `Venta #${data.folio} (${data.clienteInfo?.nombre || 'Cliente Desconocido'})`,
                             type: 'Venta',
                             amount: total,
                             category: 'Ventas'
@@ -1231,7 +1228,7 @@
                     item.innerHTML = `
                         <div class="sales-summary">
                             <span>#${pedido.folio}</span>
-                            <span>${pedido.clienteInfo.nombre}</span>
+                            <span>${pedido.clienteInfo?.nombre || 'N/A'}</span>
                             <span>$${total.toFixed(2)}</span>
                         </div>
                     `;
@@ -1263,12 +1260,23 @@
             const list = getEl('modal-sales-list');
             list.innerHTML = '<p>Cargando ventas...</p>';
             
-            const unsubscribe = db.collection('pedidos').where('estado', '==', 'Entregado').orderBy('fechaActualizacion', 'desc').onSnapshot((snapshot) => {
-                list.innerHTML = snapshot.empty ? '<p>No hay ventas registradas.</p>' : '';
+            // CORRECCIÓN: Se elimina el .orderBy() para evitar el error de índice y se ordena en el cliente.
+            const unsubscribe = db.collection('pedidos').where('estado', '==', 'Entregado').onSnapshot((snapshot) => {
+                const sales = [];
                 snapshot.forEach(doc => {
                     const pedido = doc.data();
+                    if(pedido.fechaActualizacion) { // Solo incluir pedidos que tengan fecha
+                        sales.push({id: doc.id, ...pedido});
+                    }
+                });
+
+                // Ordenar por fecha, de más reciente a más antiguo
+                sales.sort((a, b) => b.fechaActualizacion.toDate() - a.fechaActualizacion.toDate());
+
+                list.innerHTML = sales.length === 0 ? '<p>No hay ventas registradas.</p>' : '';
+                sales.forEach(pedido => {
                     const total = (pedido.productos || []).reduce((sum, p) => sum + (p.precio || 0), 0);
-                    const date = pedido.fechaActualizacion ? pedido.fechaActualizacion.toDate().toLocaleDateString() : 'N/A';
+                    const date = pedido.fechaActualizacion.toDate().toLocaleDateString();
                     const item = document.createElement('li');
                     item.className = 'sales-history-item';
                     item.innerHTML = `
@@ -1277,7 +1285,7 @@
                             <span>$${total.toFixed(2)}</span>
                         </div>
                         <div class="sales-details">
-                            <p><strong>Cliente:</strong> ${pedido.clienteInfo.nombre}</p>
+                            <p><strong>Cliente:</strong> ${pedido.clienteInfo?.nombre || 'N/A'}</p>
                             <p><strong>Productos:</strong></p>
                             <ul>${(pedido.productos || []).map(p => `<li>${p.nombre}</li>`).join('')}</ul>
                         </div>
