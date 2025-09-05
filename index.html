@@ -920,14 +920,16 @@
                 snapshot.forEach(doc => {
                     const pedido = doc.data();
                     const total = pedido.productos.reduce((sum, p) => sum + p.precio, 0);
-                    list.innerHTML += `
-                        <li class="sale-item">
-                            <div class="sale-summary">
-                                <span>#${pedido.folio}</span>
-                                <span class="order-status status-${pedido.estado}">${pedido.estado}</span>
-                                <span>$${total.toFixed(2)}</span>
-                            </div>
-                        </li>`;
+                    const item = document.createElement('li');
+                    item.className = 'sale-item';
+                    item.innerHTML = `
+                        <div class="sale-summary">
+                            <span>#${pedido.folio}</span>
+                            <span class="order-status status-${pedido.estado}">${pedido.estado}</span>
+                            <span>$${total.toFixed(2)}</span>
+                        </div>
+                    `;
+                    list.appendChild(item);
                 });
             }, (error) => {
                 console.error("Error al cargar historial de ventas. Probablemente necesitas crear un índice en Firestore.", error);
@@ -1185,7 +1187,7 @@
                 const salesByDate = {};
                 list.innerHTML = snapshot.empty ? '<p>No hay ventas registradas.</p>' : '';
                 
-                for (const doc of snapshot.docs) {
+                snapshot.forEach(doc => {
                     const pedido = doc.data();
                     const total = pedido.productos.reduce((sum, p) => sum + p.precio, 0);
                     const fecha = pedido.fechaActualizacion.toDate().toISOString().split('T')[0];
@@ -1193,15 +1195,17 @@
                     if (!salesByDate[fecha]) salesByDate[fecha] = 0;
                     salesByDate[fecha] += total;
 
-                    list.innerHTML += `
-                        <li class="sales-history-item">
-                            <div class="sales-summary">
-                                <span>#${pedido.folio}</span>
-                                <span>${pedido.clienteInfo.nombre}</span>
-                                <span>$${total.toFixed(2)}</span>
-                            </div>
-                        </li>`;
-                }
+                    const item = document.createElement('li');
+                    item.className = 'sales-history-item';
+                    item.innerHTML = `
+                        <div class="sales-summary">
+                            <span>#${pedido.folio}</span>
+                            <span>${pedido.clienteInfo.nombre}</span>
+                            <span>$${total.toFixed(2)}</span>
+                        </div>
+                    `;
+                    list.appendChild(item);
+                });
                 updateChart(salesByDate);
             }, (error) => {
                 console.error("Error al cargar datos de ventas. Probablemente necesitas crear un índice en Firestore.", error);
