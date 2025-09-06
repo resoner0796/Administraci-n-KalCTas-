@@ -172,7 +172,14 @@
 
         /* --- Estilos para la lista de pedidos y ventas --- */
         #orders-list, #sales-list, #sales-history-list { list-style: none; padding: 0; width: 100%; margin-top: 20px; }
-        .order-item, .sale-item, .sales-history-item { background-color: rgba(255, 255, 255, 0.1); border-radius: 10px; margin-bottom: 10px; padding: 15px; text-align: left; transition: background-color 0.2s ease; }
+        .order-item, .sale-item, .sales-history-item { 
+            background-color: rgba(255, 255, 255, 0.1); 
+            border-radius: 10px; 
+            margin-bottom: 10px; 
+            padding: 15px; 
+            text-align: left; 
+            transition: background-color 0.2s ease; 
+        }
         .order-item:hover, .sale-item:hover, .sales-history-item:hover { background-color: rgba(255, 255, 255, 0.2); }
         .order-summary, .sale-summary, .sales-summary { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; font-weight: bold; font-size: 1.1em; cursor: pointer; }
         .order-details, .sale-details, .sales-details { display: none; border-top: 1px solid rgba(255, 255, 255, 0.3); padding-top: 10px; margin-top: 10px; }
@@ -187,7 +194,19 @@
         #inventory-accordion { width: 100%; margin-top: 20px; }
         .category-group { background-color: rgba(0,0,0,0.1); border-radius: 10px; margin-bottom: 15px; padding: 10px; }
         .category-title { font-size: 1.4em; font-weight: bold; padding: 10px; border-bottom: 1px solid rgba(255,255,255,0.2); text-align: left; }
-        .product-item { background-color: rgba(255,255,255,0.1); margin: 10px; padding: 15px; border-radius: 8px; cursor: pointer; text-align: left; font-weight: bold; }
+        .product-item { 
+            background-color: rgba(255,255,255,0.1); 
+            margin: 10px; 
+            padding: 15px; 
+            border-radius: 8px; 
+            cursor: pointer; 
+            text-align: left; 
+            font-weight: bold; 
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .product-item.agotado { background-color: #e74c3c; } /* Estilo para stock 0 */
         .product-details { display: none; padding: 15px; margin: 0 10px 10px 10px; background-color: rgba(0,0,0,0.2); border-radius: 8px; text-align: left; grid-template-columns: 100px 1fr; gap: 15px; align-items: center; }
         .product-details.visible { display: grid; }
         .product-details img { max-width: 100%; height: auto; border-radius: 8px; }
@@ -559,12 +578,17 @@
                     productsByCategory[category].forEach(product => {
                         const itemDiv = document.createElement('div');
                         itemDiv.className = 'product-item';
-                        itemDiv.textContent = product.nombre;
+                        if (product.stock === 0) itemDiv.classList.add('agotado'); // Nuevo: Clase para stock 0
+                        itemDiv.innerHTML = `
+                            <span>${product.nombre}</span>
+                            <span style="font-size: 0.9em; font-weight: normal;">
+                                ${product.stock > 0 ? `Stock: ${product.stock}` : 'Agotado'}
+                            </span>`; // Nuevo: Mensaje "Agotado"
                         itemDiv.onclick = (e) => e.currentTarget.nextElementSibling.classList.toggle('visible');
                         const detailsDiv = document.createElement('div');
                         detailsDiv.className = 'product-details';
                         detailsDiv.innerHTML = `
-                            <div><img src="../${product.imagenUrl}" alt="${product.nombre}" onerror="this.style.display='none'"></div>
+                            <div><img src="${product.imagenUrl}" alt="${product.nombre}" onerror="this.style.display='none'"></div>
                             <div class="product-info">
                                 <p><strong>Stock:</strong> ${product.stock}</p>
                                 <p><strong>Vendidos:</strong> ${product.cantidadVendida || 0}</p>
@@ -665,6 +689,7 @@
                             <p><strong>Teléfono:</strong> ${pedido.datosCliente?.telefono || 'N/A'}</p>
                             <p><strong>Fecha Entrega:</strong> ${pedido.fechaEntrega}</p>
                             <p><strong>Lugar:</strong> ${pedido.lugarEntrega}</p>
+                            <p><strong>Forma de Pago:</strong> ${pedido.formaPago || 'N/A'}</p>
                             <p><strong>Productos:</strong></p>
                             <ul>${(pedido.productos || []).map(p => `<li>${p.nombre}</li>`).join('')}</ul>
                             <div class="order-actions">
@@ -778,9 +803,25 @@
                 list.innerHTML = pedidos.length ? '' : '<p>No hay pedidos en el historial.</p>';
                 pedidos.forEach(pedido => {
                     const total = pedido.montoTotal || 0;
+                    const clienteNombre = `${pedido.datosCliente?.nombre || ''} ${pedido.datosCliente?.apellido || ''}`.trim() || 'N/A';
                     const item = document.createElement('li');
                     item.className = 'sale-item';
-                    item.innerHTML = `<div class="sale-summary"><span>#${pedido.folio}</span><span class="order-status status-${pedido.estado}">${pedido.estado}</span><span>$${total.toFixed(2)}</span></div>`;
+                    item.innerHTML = `
+                        <div class="sale-summary">
+                            <span>#${pedido.folio}</span>
+                            <span class="order-status status-${pedido.estado}">${pedido.estado}</span>
+                            <span>$${total.toFixed(2)}</span>
+                        </div>
+                        <div class="sale-details">
+                            <p><strong>Cliente:</strong> ${clienteNombre}</p>
+                            <p><strong>Teléfono:</strong> ${pedido.datosCliente?.telefono || 'N/A'}</p>
+                            <p><strong>Fecha:</strong> ${pedido.fechaActualizacion?.toDate().toLocaleDateString() || 'N/A'}</p>
+                            <p><strong>Punto de Entrega:</strong> ${pedido.lugarEntrega}</p>
+                            <p><strong>Forma de Pago:</strong> ${pedido.formaPago || 'N/A'}</p>
+                            <p><strong>Productos:</strong></p>
+                            <ul>${(pedido.productos || []).map(p => `<li>${p.nombre}</li>`).join('')}</ul>
+                        </div>`;
+                    item.querySelector('.sale-summary').onclick = (e) => e.currentTarget.nextElementSibling.style.display = e.currentTarget.nextElementSibling.style.display === 'block' ? 'none' : 'block';
                     list.appendChild(item);
                 });
             });
