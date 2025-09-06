@@ -866,41 +866,118 @@
             unsubscribes.push(unsubscribe);
         }
 
+        // --- ✅ FUNCIÓN MODIFICADA ---
         async function updateOrderStatus(pedidoId, newStatus, event) {
             event.stopPropagation();
             try {
                 await db.runTransaction(async (t) => {
                     const pedidoRef = db.collection('pedidos').doc(pedidoId);
                     const finanzasRef = db.collection('finanzas').doc('resumen');
+                    
                     const pedidoDoc = await t.get(pedidoRef);
                     if (!pedidoDoc.exists) throw new Error("Pedido no encontrado");
 
                     const pedidoData = pedidoDoc.data();
-                    const totalVenta = (pedidoData.productos || []).reduce((sum, p) => sum + (p.precio || 0), 0);
-                    const finanzasDoc = await t.get(finanzasRef);
-                    const data = finanzasDoc.data() || { ventas: 0, gastos: 0, utilidad: 0, capital: 0 };
+                    const updatesForOrder = {
+                        estado: newStatus,
+                        fechaActualizacion: firebase.firestore.FieldValue.serverTimestamp()
+                    };
 
-                    if (newStatus === 'Entregado' && pedidoData.estado !== 'Entregado') {
-                        t.set(finanzasRef, {
-                            ventas: (data.ventas || 0) + totalVenta,
-                            utilidad: (data.utilidad || 0) + totalVenta,
-                            capital: (data.capital || 0) + totalVenta
-                        }, { merge: true });
+                    // Evitar procesar si el estado ya es el deseado
+                    if (pedidoData.estado === newStatus) return;
+
+                    // Lógica para cuando se CONCRETA una venta
+                    if (newStatus === 'Entregado') {
+                        const numProductos = (pedidoData.productos || []).length;
+                        const totalVenta = (pedidoData.productos || []).reduce((sum, p) => sum + (p.precio || 0), 0);
+                        
+                        let capitalToAdd = 0, expenseToAdd = 0, profitToAdd = 0, appliesToLogic = true;
+
+                        switch (numProductos) {
+                            case 1:
+                                capitalToAdd = 42;
+                                expenseToAdd = 40;
+                                profitToAdd = 98;
+                                break;
+                            case 2:
+                                capitalToAdd = 84;
+                                expenseToAdd = 50;
+                                profitToAdd = 226;
+                                break;
+                            case 3:
+                                capitalToAdd = 126;
+                                expenseToAdd = 65;
+                                profitToAdd = 349;
+                                break;
+                            default:
+                                appliesToLogic = false;
+                                console.warn(`Pedido #${pedidoData.folio} con ${numProductos} pz. no tiene lógica financiera definida.`);
+                                break;
+                        }
+
+                        if (appliesToLogic) {
+                            // 1. Crear el registro del gasto por venta
+                            const expenseRef = db.collection('gastosGenerales').doc();
+                            t.set(expenseRef, {
+                                monto: expenseToAdd,
+                                concepto: `Gastos por Venta #${pedidoData.folio}`,
+                                nota: `Venta automática de ${numProductos} pz.`,
+                                fecha: firebase.firestore.FieldValue.serverTimestamp()
+                            });
+                            
+                            // 2. Actualizar el resumen financiero
+                            t.set(finanzasRef, {
+                                ventas: firebase.firestore.FieldValue.increment(totalVenta),
+                                gastos: firebase.firestore.FieldValue.increment(expenseToAdd),
+                                utilidad: firebase.firestore.FieldValue.increment(profitToAdd),
+                                capital: firebase.firestore.FieldValue.increment(capitalToAdd)
+                            }, { merge: true });
+                            
+                            // 3. Guardar el ID del gasto en el pedido para poder revertirlo si se cancela
+                            updatesForOrder.gastoVentaId = expenseRef.id;
+                        }
+                    } 
+                    // Lógica para cuando se CANCELA un pedido
+                    else if (newStatus === 'Cancelado') {
+                        // Siempre se regresa el stock al inventario
+                        for (const producto of (pedidoData.productos || [])) {
+                            if (producto.id) {
+                               t.update(db.collection('productos').doc(producto.id), { stock: firebase.firestore.FieldValue.increment(1) });
+                            }
+                        }
+
+                        // Si el pedido estaba 'Entregado', revertir la operación financiera
+                        if (pedidoData.estado === 'Entregado') {
+                            const numProductos = (pedidoData.productos || []).length;
+                            const totalVenta = (pedidoData.productos || []).reduce((sum, p) => sum + (p.precio || 0), 0);
+                            
+                            let capitalToRemove = 0, expenseToRemove = 0, profitToRemove = 0, appliesToLogic = true;
+
+                            switch (numProductos) {
+                                case 1: capitalToRemove = 42; expenseToRemove = 40; profitToRemove = 98; break;
+                                case 2: capitalToRemove = 84; expenseToRemove = 50; profitToRemove = 226; break;
+                                case 3: capitalToRemove = 126; expenseToRemove = 65; profitToRemove = 349; break;
+                                default: appliesToLogic = false; break;
+                            }
+                            
+                            if (appliesToLogic) {
+                                // 1. Eliminar el gasto por venta asociado
+                                if (pedidoData.gastoVentaId) {
+                                    t.delete(db.collection('gastosGenerales').doc(pedidoData.gastoVentaId));
+                                }
+                                // 2. Revertir los montos en el resumen financiero
+                                t.set(finanzasRef, {
+                                    ventas: firebase.firestore.FieldValue.increment(-totalVenta),
+                                    gastos: firebase.firestore.FieldValue.increment(-expenseToRemove),
+                                    utilidad: firebase.firestore.FieldValue.increment(-profitToRemove),
+                                    capital: firebase.firestore.FieldValue.increment(-capitalToRemove)
+                                }, { merge: true });
+                            }
+                        }
                     }
                     
-                    if (newStatus === 'Cancelado' && pedidoData.estado !== 'Cancelado') {
-                        for (const producto of (pedidoData.productos || [])) {
-                            t.update(db.collection('productos').doc(producto.id), { stock: firebase.firestore.FieldValue.increment(1) });
-                        }
-                        if (pedidoData.estado === 'Entregado') {
-                            t.set(finanzasRef, {
-                                ventas: (data.ventas || 0) - totalVenta,
-                                utilidad: (data.utilidad || 0) - totalVenta,
-                                capital: (data.capital || 0) - totalVenta
-                            }, { merge: true });
-                        }
-                    }
-                    t.update(pedidoRef, { estado: newStatus, fechaActualizacion: firebase.firestore.FieldValue.serverTimestamp() });
+                    // Al final, actualizar el estado del pedido con todos los cambios
+                    t.update(pedidoRef, updatesForOrder);
                 });
                 showMessage(`Pedido actualizado a '${newStatus}'.`);
             } catch (error) {
@@ -908,6 +985,7 @@
                 showMessage('Error al actualizar el estado.');
             }
         }
+        // --- FIN DE LA FUNCIÓN MODIFICADA ---
 
         function promptCancelOrder(pedidoId, event) {
             event.stopPropagation();
@@ -1096,16 +1174,14 @@
                 await db.runTransaction(async t => {
                     const finanzasRef = db.collection('finanzas').doc('resumen');
                     const expenseRef = db.collection('gastosGenerales').doc();
-                    const finanzasDoc = await t.get(finanzasRef);
-                    const currentData = finanzasDoc.data() || {};
-
+                    
                     t.set(expenseRef, {
                         monto: amount, concepto: concept, nota: note,
                         fecha: firebase.firestore.FieldValue.serverTimestamp()
                     });
                     t.set(finanzasRef, {
-                        gastos: (currentData.gastos || 0) + amount,
-                        utilidad: (currentData.utilidad || 0) - amount,
+                        gastos: firebase.firestore.FieldValue.increment(amount),
+                        utilidad: firebase.firestore.FieldValue.increment(-amount),
                     }, { merge: true });
                 });
                 showMessage("Gasto registrado con éxito.");
@@ -1131,16 +1207,14 @@
                 await db.runTransaction(async (t) => {
                     const supplyRef = db.collection('insumos').doc();
                     const finanzasRef = db.collection('finanzas').doc('resumen');
-                    const finanzasDoc = await t.get(finanzasRef);
-                    const currentData = finanzasDoc.data() || {};
                     
                     t.set(supplyRef, {
                         descripcion: description, cantidad: quantity, costoTotal: totalCost,
                         fecha: firebase.firestore.FieldValue.serverTimestamp()
                     });
                     t.set(finanzasRef, {
-                        gastos: (currentData.gastos || 0) + totalCost,
-                        utilidad: (currentData.utilidad || 0) - totalCost,
+                        gastos: firebase.firestore.FieldValue.increment(totalCost),
+                        utilidad: firebase.firestore.FieldValue.increment(-totalCost),
                     }, { merge: true });
                 });
                 showMessage('Insumo registrado con éxito.');
@@ -1190,13 +1264,11 @@
                 await db.runTransaction(async (t) => {
                     const supplyRef = db.collection('insumos').doc(id);
                     const finanzasRef = db.collection('finanzas').doc('resumen');
-                    const finanzasDoc = await t.get(finanzasRef);
-                    const currentData = finanzasDoc.data() || {};
 
                     t.delete(supplyRef);
                     t.set(finanzasRef, {
-                        gastos: (currentData.gastos || 0) - cost,
-                        utilidad: (currentData.utilidad || 0) + cost,
+                        gastos: firebase.firestore.FieldValue.increment(-cost),
+                        utilidad: firebase.firestore.FieldValue.increment(cost),
                     }, { merge: true });
                 });
                 showMessage('Insumo eliminado.');
@@ -1260,17 +1332,15 @@
             const list = getEl('modal-sales-list');
             list.innerHTML = '<p>Cargando ventas...</p>';
             
-            // CORRECCIÓN: Se elimina el .orderBy() para evitar el error de índice y se ordena en el cliente.
             const unsubscribe = db.collection('pedidos').where('estado', '==', 'Entregado').onSnapshot((snapshot) => {
                 const sales = [];
                 snapshot.forEach(doc => {
                     const pedido = doc.data();
-                    if(pedido.fechaActualizacion) { // Solo incluir pedidos que tengan fecha
+                    if(pedido.fechaActualizacion) { 
                         sales.push({id: doc.id, ...pedido});
                     }
                 });
 
-                // Ordenar por fecha, de más reciente a más antiguo
                 sales.sort((a, b) => b.fechaActualizacion.toDate() - a.fechaActualizacion.toDate());
 
                 list.innerHTML = sales.length === 0 ? '<p>No hay ventas registradas.</p>' : '';
@@ -1380,9 +1450,8 @@
                 await db.runTransaction(async (t) => {
                     const finanzasRef = db.collection('finanzas').doc('resumen');
                     const folioRef = db.collection('contadores').doc('restocks');
-                    const finanzasDoc = await t.get(finanzasRef);
+                    
                     const folioDoc = await t.get(folioRef);
-                    const currentFinances = finanzasDoc.data() || {};
                     const currentFolio = (folioDoc.data()?.lastFolio || 0) + 1;
                     
                     for (const item of itemsToSave) {
@@ -1396,7 +1465,7 @@
                     });
                     t.set(folioRef, { lastFolio: currentFolio }, { merge: true });
                     t.set(finanzasRef, {
-                        capital: (currentFinances.capital || 0) - totalCost
+                        capital: firebase.firestore.FieldValue.increment(-totalCost)
                     }, { merge: true });
                 });
                 showMessage('Pedido de Re-Stock registrado con éxito.');
@@ -1456,15 +1525,12 @@
                     if (!restockDoc.exists) throw new Error("Pedido no encontrado");
                     const restockData = restockDoc.data();
                     
-                    const finanzasDoc = await t.get(finanzasRef);
-                    const currentFinances = finanzasDoc.data() || {};
-
                     for (const item of (restockData.items || [])) {
                         t.update(db.collection('productos').doc(item.productId), { stock: firebase.firestore.FieldValue.increment(-item.cantidad) });
                     }
 
                     t.set(finanzasRef, {
-                        capital: (currentFinances.capital || 0) + restockData.costoTotal
+                        capital: firebase.firestore.FieldValue.increment(restockData.costoTotal)
                     }, { merge: true });
 
                     t.delete(restockRef);
