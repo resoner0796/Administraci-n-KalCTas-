@@ -709,7 +709,9 @@
                 let movements = [];
                 salesSnapshot.forEach(doc => { const d = doc.data(); if (d.fechaActualizacion) movements.push({ date: d.fechaActualizacion.toDate(), description: `Venta #${d.folio}`, type: 'Venta', amount: d.montoTotal || 0, category: 'Ventas' }); });
                 expensesSnapshot.forEach(doc => { const d = doc.data(); if (d.fecha) movements.push({ date: d.fecha.toDate(), description: d.nota ? `${d.concepto} (${d.nota})` : d.concepto, type: 'Gasto', amount: -d.monto, category: d.concepto }); });
-                // ... (Otras cargas de movimientos si las tienes) ...
+                suppliesSnapshot.forEach(doc => { const d = doc.data(); if(d.fecha) movements.push({ date: d.fecha.toDate(), description: d.descripcion, type: 'Gasto', amount: -d.costoTotal, category: 'Insumos' }); });
+                restocksSnapshot.forEach(doc => { const d = doc.data(); if(d.fecha) movements.push({ date: d.fecha.toDate(), description: `Re-Stock #${d.folio}`, type: 'Gasto', amount: -d.costoTotal, category: 'Re-Stock' }); });
+
                 movements.sort((a, b) => b.date - a.date);
                 tbody.innerHTML = movements.length ? '' : '<tr><td colspan="5">No hay movimientos.</td></tr>';
                 movements.forEach(m => {
@@ -749,12 +751,229 @@
                 } catch (error) { showMessage("Error al agregar el concepto."); }
             }
         }
-
-        getEl('add-expense-form').addEventListener('submit', async (e) => { e.preventDefault(); /* ... lógica sin cambios ... */ });
-        getEl('add-supply-form').addEventListener('submit', async (e) => { e.preventDefault(); /* ... lógica sin cambios ... */ });
-        function loadSupplies() { /* ... lógica sin cambios ... */ }
         
-        async function loadSalesData() {
+        // --- Lógica de Gastos Generales (No era el problema, pero se completa) ---
+        getEl('add-expense-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const monto = parseFloat(getEl('expense-amount').value);
+            const concepto = getEl('expense-concept').value;
+            const nota = getEl('expense-note').value;
+            if (!monto || !concepto) { showMessage("Por favor, completa todos los campos."); return; }
+            try {
+                await db.collection('gastosGenerales').add({
+                    monto,
+                    concepto,
+                    nota,
+                    fecha: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                const finanzasRef = db.collection('finanzas').doc('resumen');
+                await db.runTransaction(async (t) => {
+                    const doc = await t.get(finanzasRef);
+                    const gastos = (doc.data()?.gastos || 0) + monto;
+                    const utilidad = (doc.data()?.ventas || 0) - gastos;
+                    t.update(finanzasRef, { gastos, utilidad });
+                });
+                showMessage('Gasto registrado con éxito!');
+                getEl('add-expense-form').reset();
+            } catch (error) { showMessage('Error al registrar el gasto.'); }
+        });
+        
+        // --- Lógica de Insumos (CORREGIDA) ---
+        getEl('add-supply-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const descripcion = getEl('supply-description').value;
+            const cantidad = parseInt(getEl('supply-quantity').value);
+            const costoUnidad = parseFloat(getEl('supply-cost').value);
+            if (!descripcion || isNaN(cantidad) || isNaN(costoUnidad) || cantidad <= 0 || costoUnidad < 0) {
+                showMessage("Por favor, completa todos los campos correctamente.");
+                return;
+            }
+            const costoTotal = cantidad * costoUnidad;
+            try {
+                await db.collection('insumos').add({
+                    descripcion,
+                    cantidad,
+                    costoUnidad,
+                    costoTotal,
+                    fecha: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                const finanzasRef = db.collection('finanzas').doc('resumen');
+                await db.runTransaction(async (t) => {
+                    const doc = await t.get(finanzasRef);
+                    const gastos = (doc.data()?.gastos || 0) + costoTotal;
+                    const utilidad = (doc.data()?.ventas || 0) - gastos;
+                    t.update(finanzasRef, { gastos, utilidad });
+                });
+                showMessage('Insumo registrado con éxito!');
+                getEl('add-supply-form').reset();
+            } catch (error) {
+                console.error("Error al registrar insumo:", error);
+                showMessage('Hubo un error al registrar el insumo.');
+            }
+        });
+
+        // --- Lógica de carga de insumos (CORREGIDA) ---
+        function loadSupplies() {
+            const tbody = getEl('supplies-table-body');
+            tbody.innerHTML = '<tr><td colspan="4">Cargando insumos...</td></tr>';
+            const unsub = db.collection('insumos').orderBy('fecha', 'desc').onSnapshot(snapshot => {
+                const supplies = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                tbody.innerHTML = supplies.length ? '' : '<tr><td colspan="4">No hay insumos registrados.</td></tr>';
+                supplies.forEach(s => {
+                    tbody.innerHTML += `
+                        <tr>
+                            <td>${s.descripcion}</td>
+                            <td>${s.cantidad}</td>
+                            <td>$${s.costoTotal.toFixed(2)}</td>
+                            <td>
+                                <button class="btn btn-delete" onclick="deleteSupply('${s.id}')">Eliminar</button>
+                            </td>
+                        </tr>
+                    `;
+                });
+            });
+            unsubscribes.push(unsub);
+        }
+
+        async function deleteSupply(id) {
+            if (!confirm("¿Estás seguro de que quieres eliminar este insumo? Esta acción no se puede deshacer.")) return;
+            try {
+                const doc = await db.collection('insumos').doc(id).get();
+                if (!doc.exists) { showMessage("Insumo no encontrado."); return; }
+                const costoTotal = doc.data().costoTotal;
+                
+                await db.collection('insumos').doc(id).delete();
+                
+                const finanzasRef = db.collection('finanzas').doc('resumen');
+                await db.runTransaction(async (t) => {
+                    const finanzasDoc = await t.get(finanzasRef);
+                    const gastos = (finanzasDoc.data()?.gastos || 0) - costoTotal;
+                    const utilidad = (finanzasDoc.data()?.ventas || 0) - gastos;
+                    t.update(finanzasRef, { gastos, utilidad });
+                });
+                
+                showMessage('Insumo eliminado con éxito.');
+            } catch (error) {
+                console.error("Error al eliminar insumo: ", error);
+                showMessage('Hubo un error al eliminar el insumo.');
+            }
+        }
+        
+        // --- Lógica de Re-Stock (CORREGIDA) ---
+        async function loadProductModels() {
+            const snapshot = await db.collection('productos').orderBy('nombre').get();
+            productModels = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        }
+
+        function addRestockLine() {
+            const container = getEl('restock-items');
+            const newLine = document.createElement('div');
+            newLine.className = 'restock-line'
+            newLine.style.display = 'flex';
+            newLine.style.gap = '10px';
+            newLine.style.marginBottom = '10px';
+            const options = productModels.map(p => `<option value="${p.id}">${p.nombre}</option>`).join('');
+            newLine.innerHTML = `
+                <select class="restock-product-select" required style="flex: 2;">
+                    <option value="" disabled selected>Selecciona un producto</option>
+                    ${options}
+                </select>
+                <input type="number" class="restock-quantity-input" placeholder="Cantidad" min="1" required style="flex: 1;">
+                <button type="button" class="btn btn-delete" onclick="this.parentNode.remove(); calculateRestockTotal()">-</button>
+            `;
+            container.appendChild(newLine);
+            newLine.querySelector('.restock-product-select').onchange = calculateRestockTotal;
+            newLine.querySelector('.restock-quantity-input').oninput = calculateRestockTotal;
+        }
+
+        function calculateRestockTotal() {
+            const lines = document.querySelectorAll('.restock-line');
+            let total = parseFloat(getEl('shipping-cost').value) || 0;
+            lines.forEach(line => {
+                const productId = line.querySelector('.restock-product-select').value;
+                const quantity = parseInt(line.querySelector('.restock-quantity-input').value) || 0;
+                const product = productModels.find(p => p.id === productId);
+                if (product) total += quantity * (product.precio || 0);
+            });
+            getEl('restock-total').textContent = `$${total.toFixed(2)}`;
+        }
+        
+        getEl('shipping-cost').addEventListener('input', calculateRestockTotal);
+
+        getEl('add-restock-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const lines = document.querySelectorAll('.restock-line');
+            const restockItems = [];
+            let totalCost = parseFloat(getEl('shipping-cost').value) || 0;
+            
+            lines.forEach(line => {
+                const productId = line.querySelector('.restock-product-select').value;
+                const quantity = parseInt(line.querySelector('.restock-quantity-input').value) || 0;
+                if (!productId || quantity <= 0) return;
+                const product = productModels.find(p => p.id === productId);
+                if (product) {
+                    restockItems.push({ id: productId, nombre: product.nombre, cantidad: quantity, costoUnidad: product.precio });
+                    totalCost += quantity * product.precio;
+                }
+            });
+
+            if (restockItems.length === 0) { showMessage("Debes agregar al menos un producto para el re-stock."); return; }
+
+            try {
+                const restockRef = await db.collection('restocks').add({
+                    items: restockItems,
+                    costoTotal: totalCost,
+                    fecha: firebase.firestore.FieldValue.serverTimestamp(),
+                    folio: `RS-${Date.now()}`
+                });
+
+                const batch = db.batch();
+                restockItems.forEach(item => {
+                    const productRef = db.collection('productos').doc(item.id);
+                    batch.update(productRef, { stock: firebase.firestore.FieldValue.increment(item.cantidad) });
+                });
+                
+                const finanzasRef = db.collection('finanzas').doc('resumen');
+                batch.update(finanzasRef, {
+                    gastos: firebase.firestore.FieldValue.increment(totalCost),
+                    utilidad: firebase.firestore.FieldValue.increment(-totalCost)
+                });
+                
+                await batch.commit();
+
+                showMessage('Pedido de re-stock registrado y stock actualizado con éxito!');
+                getEl('add-restock-form').reset();
+                showScreen('restock-screen');
+            } catch (error) {
+                console.error("Error al registrar re-stock:", error);
+                showMessage('Hubo un error al registrar el re-stock.');
+            }
+        });
+
+        function loadRestockHistory() {
+            const tbody = getEl('restock-table-body');
+            tbody.innerHTML = '<tr><td colspan="4">Cargando historial...</td></tr>';
+            const unsub = db.collection('restocks').orderBy('fecha', 'desc').onSnapshot(snapshot => {
+                const restocks = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                tbody.innerHTML = restocks.length ? '' : '<tr><td colspan="4">No hay re-stocks registrados.</td></tr>';
+                restocks.forEach(r => {
+                    const modelList = (r.items || []).map(i => `${i.nombre} (${i.cantidad})`).join(', ');
+                    const date = r.fecha?.toDate().toLocaleDateString() || 'N/A';
+                    tbody.innerHTML += `
+                        <tr>
+                            <td>${r.folio}</td>
+                            <td>${modelList}</td>
+                            <td>$${r.costoTotal.toFixed(2)}</td>
+                            <td>${date}</td>
+                        </tr>
+                    `;
+                });
+            });
+            unsubscribes.push(unsub);
+        }
+
+        
+        function loadSalesData() {
             const list = getEl('sales-list');
             list.innerHTML = '<p>Cargando datos de ventas...</p>';
             const q = db.collection('pedidos').where('estado', '==', 'Entregado').orderBy('fechaActualizacion', 'desc');
@@ -805,9 +1024,6 @@
 
         function closeSalesHistoryModal() { getEl('sales-history-modal').style.display = 'none'; }
         
-        async function loadProductModels() { /* ... sin cambios ... */ }
-        // ... (resto de funciones de re-stock sin cambios) ...
-
         // --- MODALES Y MENSAJES ---
         function showMessage(text) { getEl('message-text').textContent = text; getEl('message-box').style.display = 'flex'; }
         function closeMessage() { getEl('message-box').style.display = 'none'; }
