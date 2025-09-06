@@ -151,17 +151,17 @@
             overflow-x: auto;
             margin-top: 20px;
         }
-        #supplies-table, #restock-table, #movements-table {
+        #supplies-table {
             width: 100%;
             border-collapse: collapse;
         }
-        #supplies-table th, #supplies-table td, #restock-table th, #restock-table td, #movements-table th, #movements-table td {
+        #supplies-table th, #supplies-table td {
             border: 1px solid rgba(255, 255, 255, 0.3);
             padding: 10px;
             text-align: left;
             font-size: 0.9em;
         }
-        #supplies-table th, #restock-table th, #movements-table th {
+        #supplies-table th {
             background-color: rgba(255, 255, 255, 0.2);
         }
         .actions-cell button {
@@ -182,7 +182,7 @@
         .status-Entregado { background-color: #2ecc71; }
         .status-Pendiente { background-color: #f1c40f; color: #333; }
         .status-Cancelado { background-color: #e74c3c; }
-        
+
         /* --- ESTILOS PARA NUEVO INVENTARIO ACORDEÓN --- */
         #inventory-accordion { width: 100%; margin-top: 20px; }
         .category-group { background-color: rgba(0,0,0,0.1); border-radius: 10px; margin-bottom: 15px; padding: 10px; }
@@ -195,6 +195,42 @@
         .product-info strong { color: rgba(255,255,255,0.7); display: inline-block; width: 120px; }
         .product-actions { grid-column: 1 / -1; padding-top: 10px; display: flex; gap: 10px; border-top: 1px solid rgba(255,255,255,0.2); margin-top: 10px; }
         .product-actions button { padding: 8px 12px; font-size: 0.9em; }
+
+        /* --- ESTILOS PARA TARJETAS DE HISTORIAL DE MOVIMIENTOS Y RE-STOCKS --- */
+        .card-list { list-style: none; padding: 0; width: 100%; margin-top: 20px; }
+        .card-item {
+            background-color: rgba(255, 255, 255, 0.15);
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 10px;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            text-align: left;
+        }
+        .card-item:hover { transform: translateY(-3px); box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2); }
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: bold;
+            font-size: 1.1em;
+            margin-bottom: 10px;
+        }
+        .card-header span:first-child { flex-grow: 1; }
+        .card-content p { margin: 5px 0; font-size: 0.9em; }
+        .card-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 10px; }
+        .amount-positive { color: #2ecc71; }
+        .amount-negative { color: #e74c3c; }
+
+        /* --- Estilos para el filtro de movimientos --- */
+        .filter-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 20px;
+            width: 100%;
+        }
 
         /* --- Estilos para Modales y Paneles Financieros --- */
         .message-box, .edit-modal, .confirm-modal, .sales-history-modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.6); justify-content: center; align-items: center; }
@@ -209,12 +245,21 @@
         .finance-card h3 { margin-top: 0; font-size: 1.1em; }
         .finance-card p { margin: 0; font-size: 1.8em; font-weight: bold; }
         
+        .restock-line {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr 40px;
+            gap: 10px;
+            align-items: center;
+        }
+
         @media (max-width: 768px) {
             body { padding: 10px; }
             .container { padding: 20px; }
             h1 { font-size: 1.5em; }
             .finance-panel { grid-template-columns: 1fr; }
             .product-details { grid-template-columns: 80px 1fr; }
+            .restock-line { grid-template-columns: 1fr 80px 80px 40px; }
+            .filter-container { flex-direction: column; align-items: stretch; }
         }
     </style>
 </head>
@@ -288,12 +333,12 @@
         
         <section id="movements-history-screen" style="display: none;">
             <h1>Historial de Movimientos</h1>
-            <div class="table-container">
-                <table id="movements-table">
-                    <thead><tr><th>Fecha</th><th>Descripción</th><th>Tipo</th><th>Monto</th><th>Categoría</th></tr></thead>
-                    <tbody id="movements-table-body"></tbody>
-                </table>
+            <div class="filter-container">
+                <select id="movement-filter-category" onchange="loadMovementsHistory()">
+                    <option value="all">Todas las categorías</option>
+                </select>
             </div>
+            <ul id="movements-list" class="card-list"></ul>
             <button class="close-button" onclick="showScreen('finance-screen')">Volver a Administración</button>
         </section>
 
@@ -347,18 +392,14 @@
             <h2>Registrar Pedido</h2>
             <form id="add-restock-form">
                 <div id="restock-items"></div>
-                <button type="button" class="btn" onclick="addRestockLine()">Agregar otro modelo</button><br>
-                <input type="number" id="shipping-cost" placeholder="Costo de Envío" step="0.01" value="0">
+                <button type="button" class="btn" onclick="addRestockLine()">Agregar otro modelo</button>
+                <div style="text-align: right; font-size: 1.2em; font-weight: bold; margin: 15px 0;">Costo de Envío: <input type="number" id="shipping-cost" placeholder="0" step="0.01" value="0" style="width: 100px; text-align: right; font-size: 1em;"></div>
                 <div style="text-align: right; font-size: 1.5em; font-weight: bold; margin: 15px 0;">Total: <span id="restock-total">$0.00</span></div>
                 <button type="submit">Registrar Pedido de Re-Stock</button>
             </form>
-            <div class="table-container">
-                <h2>Historial de Re-Stocks</h2>
-                <table id="restock-table">
-                    <thead><tr><th>Folio</th><th>Modelos</th><th>Costo Total</th><th>Fecha</th><th>Acciones</th></tr></thead>
-                    <tbody id="restock-table-body"></tbody>
-                </table>
-            </div>
+            <hr style="width: 100%; border-color: rgba(255, 255, 255, 0.3);">
+            <h2>Historial de Re-Stocks</h2>
+            <ul id="restock-history-list" class="card-list"></ul>
             <button class="close-button" onclick="showScreen('finance-screen')">Volver a Administración</button>
         </section>
 
@@ -438,7 +479,7 @@
         const db = firebase.firestore();
 
         // --- VARIABLES GLOBALES ---
-        let productToDeleteId = null, supplyToDeleteId = null, restockToDeleteId = null;
+        let productToDeleteId = null, supplyToDeleteId = null, expenseToDeleteId = null, restockToDeleteId = null;
         let unsubscribes = [];
         let productModels = [], expenseConcepts = [];
         let salesChart;
@@ -469,7 +510,7 @@
                     }
                     break;
                 case 'sales-screen': loadSalesData(); break;
-                case 'movements-history-screen': loadMovementsHistory(); break;
+                case 'movements-history-screen': loadMovementCategories(); loadMovementsHistory(); break;
             }
         }
 
@@ -651,16 +692,62 @@
                     const updatesForOrder = { estado: newStatus, fechaActualizacion: firebase.firestore.FieldValue.serverTimestamp() };
 
                     if (newStatus === 'Entregado' && pedidoData.estado !== 'Entregado') {
+                        // Lógica de gastos operativos
+                        const costoEnvio = pedidoData.gastos?.transporte || 0;
+                        const costoEmpaque = pedidoData.gastos?.empaque || 0;
+                        const totalGastosOperativos = costoEnvio + costoEmpaque;
+
+                        // Registrar gasto de transporte si existe
+                        if (costoEnvio > 0) {
+                            const transporteRef = db.collection('movimientos').doc();
+                            t.set(transporteRef, {
+                                monto: costoEnvio,
+                                concepto: 'Transporte (gasto operativo)',
+                                tipo: 'Gasto Operativo',
+                                fecha: firebase.firestore.FieldValue.serverTimestamp(),
+                                nota: `Gasto de transporte del pedido ${pedidoData.folio}`,
+                                relatedOrderId: pedidoId
+                            });
+                        }
+
+                        // Registrar gasto de empaque si existe
+                        if (costoEmpaque > 0) {
+                            const empaqueRef = db.collection('movimientos').doc();
+                            t.set(empaqueRef, {
+                                monto: costoEmpaque,
+                                concepto: 'Empaque (gasto operativo)',
+                                tipo: 'Gasto Operativo',
+                                fecha: firebase.firestore.FieldValue.serverTimestamp(),
+                                nota: `Gasto de empaque del pedido ${pedidoData.folio}`,
+                                relatedOrderId: pedidoId
+                            });
+                        }
+                        
+                        // Actualizar finanzas
+                        const finanzasRef = db.collection('finanzas').doc('resumen');
+                        t.update(finanzasRef, {
+                            ventas: firebase.firestore.FieldValue.increment(pedidoData.montoTotal || 0),
+                            gastos: firebase.firestore.FieldValue.increment(totalGastosOperativos),
+                            utilidad: firebase.firestore.FieldValue.increment((pedidoData.montoTotal || 0) - totalGastosOperativos)
+                        });
+
+                        // Incrementar stock
                         for (const producto of pedidoData.productos) if (producto.id) t.update(db.collection('productos').doc(producto.id), { cantidadVendida: firebase.firestore.FieldValue.increment(1) });
                     } else if (newStatus === 'Cancelado' && pedidoData.estado === 'Entregado') {
+                        const costoEnvio = pedidoData.gastos?.transporte || 0;
+                        const costoEmpaque = pedidoData.gastos?.empaque || 0;
+                        const totalGastosOperativos = costoEnvio + costoEmpaque;
+
+                        const finanzasRef = db.collection('finanzas').doc('resumen');
+                        t.update(finanzasRef, {
+                            ventas: firebase.firestore.FieldValue.increment(-(pedidoData.montoTotal || 0)),
+                            gastos: firebase.firestore.FieldValue.increment(-totalGastosOperativos),
+                            utilidad: firebase.firestore.FieldValue.increment(-(pedidoData.montoTotal || 0) + totalGastosOperativos)
+                        });
+                        
                         for (const producto of pedidoData.productos) if (producto.id) t.update(db.collection('productos').doc(producto.id), { cantidadVendida: firebase.firestore.FieldValue.increment(-1) });
                     }
                     
-                    if (newStatus === 'Entregado' || (newStatus === 'Cancelado' && pedidoData.estado === 'Entregado')) {
-                        const finanzasRef = db.collection('finanzas').doc('resumen');
-                        const multiplier = (newStatus === 'Entregado' ? 1 : -1);
-                        t.set(finanzasRef, { ventas: firebase.firestore.FieldValue.increment((pedidoData.montoTotal || 0) * multiplier) }, { merge: true });
-                    }
                     t.update(pedidoRef, updatesForOrder);
                 });
                 showMessage(`Pedido actualizado a '${newStatus}'.`);
@@ -696,29 +783,124 @@
             unsubscribes.push(unsubscribe);
         }
 
-        async function loadMovementsHistory() {
-            const tbody = getEl('movements-table-body');
-            tbody.innerHTML = '<tr><td colspan="5">Cargando...</td></tr>';
+        async function loadMovementCategories() {
+            const select = getEl('movement-filter-category');
+            select.innerHTML = '<option value="all">Todas las categorías</option>';
+            const categories = new Set();
             try {
-                const [salesSnapshot, expensesSnapshot, suppliesSnapshot, restocksSnapshot] = await Promise.all([
-                    db.collection('pedidos').where('estado', '==', 'Entregado').get(),
-                    db.collection('gastosGenerales').get(),
+                const [gastosSnap, suppliesSnap, restocksSnap] = await Promise.all([
+                    db.collection('movimientos').get(),
                     db.collection('insumos').get(),
                     db.collection('restocks').get()
                 ]);
-                let movements = [];
-                salesSnapshot.forEach(doc => { const d = doc.data(); if (d.fechaActualizacion) movements.push({ date: d.fechaActualizacion.toDate(), description: `Venta #${d.folio}`, type: 'Venta', amount: d.montoTotal || 0, category: 'Ventas' }); });
-                expensesSnapshot.forEach(doc => { const d = doc.data(); if (d.fecha) movements.push({ date: d.fecha.toDate(), description: d.nota ? `${d.concepto} (${d.nota})` : d.concepto, type: 'Gasto', amount: -d.monto, category: d.concepto }); });
-                suppliesSnapshot.forEach(doc => { const d = doc.data(); if(d.fecha) movements.push({ date: d.fecha.toDate(), description: d.descripcion, type: 'Gasto', amount: -d.costoTotal, category: 'Insumos' }); });
-                restocksSnapshot.forEach(doc => { const d = doc.data(); if(d.fecha) movements.push({ date: d.fecha.toDate(), description: `Re-Stock #${d.folio}`, type: 'Gasto', amount: -d.costoTotal, category: 'Re-Stock' }); });
+                gastosSnap.forEach(doc => categories.add(doc.data().tipo));
+                suppliesSnap.forEach(doc => categories.add('Insumos'));
+                restocksSnap.forEach(doc => categories.add('Re-Stock'));
 
-                movements.sort((a, b) => b.date - a.date);
-                tbody.innerHTML = movements.length ? '' : '<tr><td colspan="5">No hay movimientos.</td></tr>';
-                movements.forEach(m => {
-                    const amountColor = m.amount >= 0 ? 'color: #2ecc71;' : 'color: #e74c3c;';
-                    tbody.innerHTML += `<tr><td>${m.date.toLocaleDateString()}</td><td>${m.description}</td><td>${m.type}</td><td style="${amountColor}">$${m.amount.toFixed(2)}</td><td>${m.category}</td></tr>`;
+                const orderedCategories = Array.from(categories).sort();
+                orderedCategories.forEach(cat => {
+                    if (cat) select.innerHTML += `<option value="${cat}">${cat}</option>`;
                 });
-            } catch (error) { tbody.innerHTML = '<tr><td colspan="5">Error al cargar movimientos.</td></tr>'; }
+            } catch (error) { console.error("Error al cargar categorías:", error); }
+        }
+
+        async function loadMovementsHistory() {
+            const list = getEl('movements-list');
+            list.innerHTML = '<p>Cargando historial...</p>';
+            const selectedCategory = getEl('movement-filter-category').value;
+            try {
+                const [salesSnapshot, generalExpensesSnapshot, suppliesSnapshot, restocksSnapshot, operativeExpensesSnapshot] = await Promise.all([
+                    db.collection('pedidos').where('estado', '==', 'Entregado').get(),
+                    db.collection('gastosGenerales').get(),
+                    db.collection('insumos').get(),
+                    db.collection('restocks').get(),
+                    db.collection('movimientos').where('tipo', '==', 'Gasto Operativo').get()
+                ]);
+                
+                let movements = [];
+                salesSnapshot.forEach(doc => { const d = doc.data(); if (d.fechaActualizacion) movements.push({ id: doc.id, date: d.fechaActualizacion.toDate(), description: `Venta #${d.folio}`, type: 'Venta', amount: d.montoTotal || 0, category: 'Ventas' }); });
+                generalExpensesSnapshot.forEach(doc => { const d = doc.data(); if (d.fecha) movements.push({ id: doc.id, date: d.fecha.toDate(), description: d.nota ? `${d.concepto} (${d.nota})` : d.concepto, type: 'Gasto General', amount: -d.monto, category: d.concepto }); });
+                suppliesSnapshot.forEach(doc => { const d = doc.data(); if(d.fecha) movements.push({ id: doc.id, date: d.fecha.toDate(), description: d.descripcion, type: 'Gasto Insumo', amount: -d.costoTotal, category: 'Insumos' }); });
+                restocksSnapshot.forEach(doc => { const d = doc.data(); if(d.fecha) movements.push({ id: doc.id, date: d.fecha.toDate(), description: `Re-Stock #${d.folio}`, type: 'Gasto Re-Stock', amount: -d.costoTotal, category: 'Re-Stock' }); });
+                operativeExpensesSnapshot.forEach(doc => { const d = doc.data(); if(d.fecha) movements.push({ id: doc.id, date: d.fecha.toDate(), description: d.nota, type: d.tipo, amount: -d.monto, category: d.tipo, docRef: db.collection('movimientos').doc(doc.id) }); });
+
+                const filteredMovements = selectedCategory === 'all' ? movements : movements.filter(m => m.category === selectedCategory);
+                filteredMovements.sort((a, b) => b.date - a.date);
+                
+                list.innerHTML = filteredMovements.length ? '' : '<p>No hay movimientos en esta categoría.</p>';
+                filteredMovements.forEach(m => {
+                    const amountClass = m.amount >= 0 ? 'amount-positive' : 'amount-negative';
+                    const amountSign = m.amount >= 0 ? '+' : '-';
+                    list.innerHTML += `
+                        <li class="card-item">
+                            <div class="card-header">
+                                <span>${m.description}</span>
+                                <span class="${amountClass}">$${Math.abs(m.amount).toFixed(2)}</span>
+                            </div>
+                            <div class="card-content">
+                                <p><strong>Fecha:</strong> ${m.date.toLocaleDateString()}</p>
+                                <p><strong>Tipo:</strong> ${m.type}</p>
+                                <p><strong>Categoría:</strong> ${m.category}</p>
+                            </div>
+                            ${m.type !== 'Venta' ? `<div class="card-actions"><button class="btn btn-delete" onclick="deleteMovement('${m.id}', '${m.type}', ${m.amount}, '${m.category}')">Eliminar</button></div>` : ''}
+                        </li>
+                    `;
+                });
+            } catch (error) { console.error("Error al cargar movimientos:", error); list.innerHTML = '<p>Error al cargar movimientos.</p>'; }
+        }
+
+        async function deleteMovement(id, type, amount, category) {
+            if (!confirm("¿Estás seguro de que quieres eliminar este movimiento? Esta acción no se puede deshacer.")) return;
+            try {
+                let collectionRef, originalDoc;
+
+                if (type === 'Gasto General') {
+                    collectionRef = db.collection('gastosGenerales');
+                    originalDoc = await collectionRef.doc(id).get();
+                } else if (type === 'Gasto Insumo') {
+                    collectionRef = db.collection('insumos');
+                    originalDoc = await collectionRef.doc(id).get();
+                } else if (type === 'Gasto Re-Stock') {
+                    collectionRef = db.collection('restocks');
+                    originalDoc = await collectionRef.doc(id).get();
+                    if (originalDoc.exists) {
+                        const batch = db.batch();
+                        const items = originalDoc.data().items;
+                        items.forEach(item => {
+                            const productRef = db.collection('productos').doc(item.id);
+                            batch.update(productRef, { stock: firebase.firestore.FieldValue.increment(-item.cantidad) });
+                        });
+                        await batch.commit();
+                    }
+                } else if (type === 'Gasto Operativo') {
+                    collectionRef = db.collection('movimientos');
+                    originalDoc = await collectionRef.doc(id).get();
+                } else {
+                    showMessage("No se puede eliminar este tipo de movimiento.");
+                    return;
+                }
+                
+                if (!originalDoc || !originalDoc.exists) {
+                    showMessage("Movimiento no encontrado.");
+                    return;
+                }
+
+                await collectionRef.doc(id).delete();
+                
+                const finanzasRef = db.collection('finanzas').doc('resumen');
+                await db.runTransaction(async (t) => {
+                    const finanzasDoc = await t.get(finanzasRef);
+                    const gastos = (finanzasDoc.data()?.gastos || 0) + amount; // amount es negativo, se suma para restar
+                    const utilidad = (finanzasDoc.data()?.utilidad || 0) - amount;
+                    t.update(finanzasRef, { gastos, utilidad });
+                });
+                
+                showMessage('Movimiento eliminado con éxito.');
+                loadMovementsHistory();
+            } catch (error) {
+                console.error("Error al eliminar movimiento: ", error);
+                showMessage('Hubo un error al eliminar el movimiento.');
+            }
         }
         
         function loadFinancialSummary() {
@@ -859,7 +1041,7 @@
             }
         }
         
-        // --- Lógica de Re-Stock (CORREGIDA) ---
+        // --- Lógica de Re-Stock (CORREGIDA y MEJORADA) ---
         async function loadProductModels() {
             const snapshot = await db.collection('productos').orderBy('nombre').get();
             productModels = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -868,32 +1050,29 @@
         function addRestockLine() {
             const container = getEl('restock-items');
             const newLine = document.createElement('div');
-            newLine.className = 'restock-line'
-            newLine.style.display = 'flex';
-            newLine.style.gap = '10px';
-            newLine.style.marginBottom = '10px';
-            const options = productModels.map(p => `<option value="${p.id}">${p.nombre}</option>`).join('');
+            newLine.className = 'restock-line';
+            const options = productModels.map(p => `<option value="${p.id}" data-price="${p.precio}">${p.nombre} (${p.categoria})</option>`).join('');
             newLine.innerHTML = `
-                <select class="restock-product-select" required style="flex: 2;">
-                    <option value="" disabled selected>Selecciona un producto</option>
+                <select class="restock-product-select" required>
+                    <option value="" disabled selected>Modelo</option>
                     ${options}
                 </select>
-                <input type="number" class="restock-quantity-input" placeholder="Cantidad" min="1" required style="flex: 1;">
+                <input type="number" class="restock-quantity-input" placeholder="Cantidad" min="1" value="1" required>
+                <input type="number" class="restock-cost-input" placeholder="Costo ($)" step="0.01" min="0" required>
                 <button type="button" class="btn btn-delete" onclick="this.parentNode.remove(); calculateRestockTotal()">-</button>
             `;
             container.appendChild(newLine);
-            newLine.querySelector('.restock-product-select').onchange = calculateRestockTotal;
             newLine.querySelector('.restock-quantity-input').oninput = calculateRestockTotal;
+            newLine.querySelector('.restock-cost-input').oninput = calculateRestockTotal;
         }
-
+        
         function calculateRestockTotal() {
             const lines = document.querySelectorAll('.restock-line');
             let total = parseFloat(getEl('shipping-cost').value) || 0;
             lines.forEach(line => {
-                const productId = line.querySelector('.restock-product-select').value;
                 const quantity = parseInt(line.querySelector('.restock-quantity-input').value) || 0;
-                const product = productModels.find(p => p.id === productId);
-                if (product) total += quantity * (product.precio || 0);
+                const cost = parseFloat(line.querySelector('.restock-cost-input').value) || 0;
+                total += quantity * cost;
             });
             getEl('restock-total').textContent = `$${total.toFixed(2)}`;
         }
@@ -909,11 +1088,12 @@
             lines.forEach(line => {
                 const productId = line.querySelector('.restock-product-select').value;
                 const quantity = parseInt(line.querySelector('.restock-quantity-input').value) || 0;
-                if (!productId || quantity <= 0) return;
+                const cost = parseFloat(line.querySelector('.restock-cost-input').value) || 0;
+                if (!productId || quantity <= 0 || cost < 0) return;
                 const product = productModels.find(p => p.id === productId);
                 if (product) {
-                    restockItems.push({ id: productId, nombre: product.nombre, cantidad: quantity, costoUnidad: product.precio });
-                    totalCost += quantity * product.precio;
+                    restockItems.push({ id: productId, nombre: `${product.nombre} (${product.categoria})`, cantidad: quantity, costoUnidad: cost });
+                    totalCost += quantity * cost;
                 }
             });
 
@@ -923,6 +1103,7 @@
                 const restockRef = await db.collection('restocks').add({
                     items: restockItems,
                     costoTotal: totalCost,
+                    costoEnvio: parseFloat(getEl('shipping-cost').value) || 0,
                     fecha: firebase.firestore.FieldValue.serverTimestamp(),
                     folio: `RS-${Date.now()}`
                 });
@@ -943,7 +1124,10 @@
 
                 showMessage('Pedido de re-stock registrado y stock actualizado con éxito!');
                 getEl('add-restock-form').reset();
-                showScreen('restock-screen');
+                getEl('restock-items').innerHTML = '';
+                addRestockLine();
+                calculateRestockTotal();
+                loadRestockHistory();
             } catch (error) {
                 console.error("Error al registrar re-stock:", error);
                 showMessage('Hubo un error al registrar el re-stock.');
@@ -951,27 +1135,68 @@
         });
 
         function loadRestockHistory() {
-            const tbody = getEl('restock-table-body');
-            tbody.innerHTML = '<tr><td colspan="4">Cargando historial...</td></tr>';
+            const list = getEl('restock-history-list');
+            list.innerHTML = '<p>Cargando historial...</p>';
             const unsub = db.collection('restocks').orderBy('fecha', 'desc').onSnapshot(snapshot => {
                 const restocks = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                tbody.innerHTML = restocks.length ? '' : '<tr><td colspan="4">No hay re-stocks registrados.</td></tr>';
+                list.innerHTML = restocks.length ? '' : '<p>No hay re-stocks registrados.</p>';
                 restocks.forEach(r => {
-                    const modelList = (r.items || []).map(i => `${i.nombre} (${i.cantidad})`).join(', ');
-                    const date = r.fecha?.toDate().toLocaleDateString() || 'N/A';
-                    tbody.innerHTML += `
-                        <tr>
-                            <td>${r.folio}</td>
-                            <td>${modelList}</td>
-                            <td>$${r.costoTotal.toFixed(2)}</td>
-                            <td>${date}</td>
-                        </tr>
+                    const itemsList = r.items.map(i => `<li>${i.nombre} (x${i.cantidad})</li>`).join('');
+                    const item = document.createElement('li');
+                    item.className = 'card-item';
+                    item.innerHTML = `
+                        <div class="card-header">
+                            <span>Re-Stock #${r.folio}</span>
+                            <span class="amount-negative">-$${r.costoTotal.toFixed(2)}</span>
+                        </div>
+                        <div class="card-content">
+                            <p><strong>Fecha:</strong> ${r.fecha?.toDate().toLocaleDateString() || 'N/A'}</p>
+                            <p><strong>Costo de Envío:</strong> $${(r.costoEnvio || 0).toFixed(2)}</p>
+                            <p><strong>Productos:</strong></p>
+                            <ul>${itemsList}</ul>
+                        </div>
+                        <div class="card-actions"><button class="btn btn-delete" onclick="deleteRestock('${r.id}')">Eliminar</button></div>
                     `;
+                    list.appendChild(item);
                 });
             });
             unsubscribes.push(unsub);
         }
 
+        async function deleteRestock(id) {
+            if (!confirm("¿Estás seguro de que quieres eliminar este re-stock? Esto revertirá los cambios en el inventario y las finanzas.")) return;
+            try {
+                const restockDoc = await db.collection('restocks').doc(id).get();
+                if (!restockDoc.exists) { showMessage("Re-stock no encontrado."); return; }
+                const restockData = restockDoc.data();
+                
+                const batch = db.batch();
+                
+                // Revertir stock
+                restockData.items.forEach(item => {
+                    const productRef = db.collection('productos').doc(item.id);
+                    batch.update(productRef, { stock: firebase.firestore.FieldValue.increment(-item.cantidad) });
+                });
+                
+                // Revertir finanzas
+                const finanzasRef = db.collection('finanzas').doc('resumen');
+                batch.update(finanzasRef, {
+                    gastos: firebase.firestore.FieldValue.increment(-restockData.costoTotal),
+                    utilidad: firebase.firestore.FieldValue.increment(restockData.costoTotal)
+                });
+                
+                // Eliminar el documento de restock
+                batch.delete(db.collection('restocks').doc(id));
+                
+                await batch.commit();
+                
+                showMessage('Re-stock eliminado y movimientos revertidos con éxito.');
+                loadRestockHistory();
+            } catch (error) {
+                console.error("Error al eliminar re-stock: ", error);
+                showMessage('Hubo un error al eliminar el re-stock.');
+            }
+        }
         
         function loadSalesData() {
             const list = getEl('sales-list');
