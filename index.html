@@ -834,7 +834,7 @@
                 
                 snapshot.forEach(doc => {
                     const pedido = doc.data();
-                    const total = (pedido.productos || []).reduce((sum, p) => sum + (p.precio || 0), 0);
+                    const total = pedido.total || 0; // Se utiliza el campo 'total' guardado
                     const item = document.createElement('li');
                     item.className = 'order-item';
                     item.innerHTML = `
@@ -865,7 +865,7 @@
             });
             unsubscribes.push(unsubscribe);
         }
-
+        
         // --- ✅ FUNCIÓN MODIFICADA ---
         async function updateOrderStatus(pedidoId, newStatus, event) {
             event.stopPropagation();
@@ -889,7 +889,7 @@
                     // Lógica para cuando se CONCRETA una venta
                     if (newStatus === 'Entregado') {
                         const numProductos = (pedidoData.productos || []).length;
-                        const totalVenta = (pedidoData.productos || []).reduce((sum, p) => sum + (p.precio || 0), 0);
+                        const totalVenta = pedidoData.total;
                         
                         let capitalToAdd = 0, expenseToAdd = 0, profitToAdd = 0, appliesToLogic = true;
 
@@ -949,7 +949,7 @@
                         // Si el pedido estaba 'Entregado', revertir la operación financiera
                         if (pedidoData.estado === 'Entregado') {
                             const numProductos = (pedidoData.productos || []).length;
-                            const totalVenta = (pedidoData.productos || []).reduce((sum, p) => sum + (p.precio || 0), 0);
+                            const totalVenta = pedidoData.total;
                             
                             let capitalToRemove = 0, expenseToRemove = 0, profitToRemove = 0, appliesToLogic = true;
 
@@ -1015,7 +1015,7 @@
 
                 list.innerHTML = pedidos.length === 0 ? '<p>No hay pedidos en el historial.</p>' : '';
                 pedidos.forEach(pedido => {
-                    const total = (pedido.productos || []).reduce((sum, p) => sum + (p.precio || 0), 0);
+                    const total = pedido.total || 0;
                     const item = document.createElement('li');
                     item.className = 'sale-item';
                     item.innerHTML = `
@@ -1048,7 +1048,7 @@
 
                 salesSnapshot.forEach(doc => {
                     const data = doc.data();
-                    const total = (data.productos || []).reduce((sum, p) => sum + (p.precio || 0), 0);
+                    const total = data.total || 0;
                     if (data.fechaActualizacion) {
                         movements.push({
                             date: data.fechaActualizacion.toDate(),
@@ -1287,7 +1287,7 @@
                 
                 snapshot.forEach(doc => {
                     const pedido = doc.data();
-                    const total = (pedido.productos || []).reduce((sum, p) => sum + (p.precio || 0), 0);
+                    const total = pedido.total || 0;
                     const fecha = pedido.fechaActualizacion && pedido.fechaActualizacion.toDate().toISOString().split('T')[0];
                     
                     if (fecha) {
@@ -1345,7 +1345,7 @@
 
                 list.innerHTML = sales.length === 0 ? '<p>No hay ventas registradas.</p>' : '';
                 sales.forEach(pedido => {
-                    const total = (pedido.productos || []).reduce((sum, p) => sum + (p.precio || 0), 0);
+                    const total = pedido.total || 0;
                     const date = pedido.fechaActualizacion.toDate().toLocaleDateString();
                     const item = document.createElement('li');
                     item.className = 'sales-history-item';
