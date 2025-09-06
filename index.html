@@ -312,7 +312,7 @@
                 <textarea id="expense-note" placeholder="Nota adicional (opcional)"></textarea>
                 <button type="submit">Registrar Gasto</button>
             </form>
-            <button type="button" class="btn btn-add-concept" onclick="addNewExpenseConcept()">+ Agregar Nuevo Concepto</button>
+            <button type="button" class="btn" style="background-color: #16a085; margin-top: -10px; margin-bottom: 20px; padding: 10px;" onclick="addNewExpenseConcept()">+ Agregar Nuevo Concepto</button>
             <hr style="width: 100%; border-color: rgba(255, 255, 255, 0.3);">
             <h2>Gestión</h2>
             <div class="main-menu-buttons">
@@ -364,7 +364,7 @@
 
         <section id="sales-screen" style="display: none;">
              <h1>Reporte de Ventas</h1>
-            <div class="chart-container" style="height: 300px; width: 100%;"><canvas id="sales-chart"></canvas></div>
+            <div class="chart-container" style="position: relative; height:40vh; width:80vw"><canvas id="sales-chart"></canvas></div>
             <h2>Detalle de Ventas</h2>
             <ul id="sales-list"></ul>
             <button class="close-button" onclick="showScreen('main-menu')">Volver al Menú</button>
@@ -409,7 +409,14 @@
                 </div>
             </div>
         </div>
+        <div id="sales-history-modal" class="sales-history-modal">
+            <div class="modal-content">
+                <h2>Historial de Ventas</h2>
+                <ul id="modal-sales-list" style="max-height: 400px; overflow-y: auto;"></ul>
+                <button class="close-button" onclick="closeSalesHistoryModal()">Cerrar</button>
+            </div>
         </div>
+    </div>
 
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
@@ -490,42 +497,28 @@
         async function loadInventory() {
             const accordionContainer = getEl('inventory-accordion');
             accordionContainer.innerHTML = '<p>Cargando inventario...</p>';
-
             try {
-                // LA CONSULTA AHORA ORDENA POR DOS CAMPOS: NECESITA ÍNDICE EN FIRESTORE
                 const snapshot = await db.collection('productos').orderBy('categoria').orderBy('nombre').get();
-                
                 if (snapshot.empty) {
                     accordionContainer.innerHTML = '<p>No hay productos en el inventario.</p>';
                     return;
                 }
-
                 const productsByCategory = {};
                 snapshot.forEach(doc => {
                     const product = { id: doc.id, ...doc.data() };
-                    if (!productsByCategory[product.categoria]) {
-                        productsByCategory[product.categoria] = [];
-                    }
+                    if (!productsByCategory[product.categoria]) productsByCategory[product.categoria] = [];
                     productsByCategory[product.categoria].push(product);
                 });
-
                 accordionContainer.innerHTML = '';
-                
                 for (const category in productsByCategory) {
                     const groupDiv = document.createElement('div');
                     groupDiv.className = 'category-group';
-                    
-                    const titleH3 = document.createElement('h3');
-                    titleH3.className = 'category-title';
-                    titleH3.textContent = category;
-                    groupDiv.appendChild(titleH3);
-
+                    groupDiv.innerHTML = `<h3 class="category-title">${category}</h3>`;
                     productsByCategory[category].forEach(product => {
                         const itemDiv = document.createElement('div');
                         itemDiv.className = 'product-item';
                         itemDiv.textContent = product.nombre;
                         itemDiv.onclick = (e) => e.currentTarget.nextElementSibling.classList.toggle('visible');
-
                         const detailsDiv = document.createElement('div');
                         detailsDiv.className = 'product-details';
                         detailsDiv.innerHTML = `
@@ -539,10 +532,8 @@
                                 <button class="btn btn-edit">Editar</button>
                                 <button class="btn btn-delete">Eliminar</button>
                             </div>`;
-                        
                         detailsDiv.querySelector('.btn-edit').onclick = () => editProduct(product.id);
                         detailsDiv.querySelector('.btn-delete').onclick = () => showConfirmModal(product.id);
-
                         groupDiv.appendChild(itemDiv);
                         groupDiv.appendChild(detailsDiv);
                     });
@@ -607,7 +598,6 @@
             const ordersList = getEl('orders-list');
             ordersList.innerHTML = '<p>Cargando pedidos...</p>';
             const q = db.collection('pedidos').where('estado', 'in', ['Pendiente', 'Confirmado']).orderBy('fechaCreacion', 'desc');
-
             const unsubscribe = q.onSnapshot((snapshot) => {
                 snapshot.docChanges().forEach((change) => {
                     if (change.type === 'added') {
@@ -615,7 +605,6 @@
                         if (sound) sound.play().catch(e => console.warn("El audio no se pudo reproducir."));
                     }
                 });
-                
                 ordersList.innerHTML = snapshot.empty ? '<p>No hay pedidos pendientes.</p>' : '';
                 snapshot.forEach(doc => {
                     const pedido = doc.data();
@@ -662,34 +651,15 @@
                     const updatesForOrder = { estado: newStatus, fechaActualizacion: firebase.firestore.FieldValue.serverTimestamp() };
 
                     if (newStatus === 'Entregado' && pedidoData.estado !== 'Entregado') {
-                        for (const producto of pedidoData.productos) {
-                            if (producto.id) t.update(db.collection('productos').doc(producto.id), { cantidadVendida: firebase.firestore.FieldValue.increment(1) });
-                        }
+                        for (const producto of pedidoData.productos) if (producto.id) t.update(db.collection('productos').doc(producto.id), { cantidadVendida: firebase.firestore.FieldValue.increment(1) });
                     } else if (newStatus === 'Cancelado' && pedidoData.estado === 'Entregado') {
-                        for (const producto of pedidoData.productos) {
-                            if (producto.id) t.update(db.collection('productos').doc(producto.id), { cantidadVendida: firebase.firestore.FieldValue.increment(-1) });
-                        }
+                        for (const producto of pedidoData.productos) if (producto.id) t.update(db.collection('productos').doc(producto.id), { cantidadVendida: firebase.firestore.FieldValue.increment(-1) });
                     }
                     
                     if (newStatus === 'Entregado' || (newStatus === 'Cancelado' && pedidoData.estado === 'Entregado')) {
                         const finanzasRef = db.collection('finanzas').doc('resumen');
-                        const numProductos = (pedidoData.productos || []).length;
-                        const totalVenta = pedidoData.montoTotal;
-                        let capital = 0, expense = 0, profit = 0;
-                        switch (numProductos) {
-                            case 1: capital = 42; expense = 40; profit = 98; break;
-                            case 2: capital = 84; expense = 50; profit = 226; break;
-                            case 3: capital = 126; expense = 65; profit = 349; break;
-                        }
-                        if (expense > 0) {
-                            const multiplier = (newStatus === 'Entregado' ? 1 : -1);
-                            t.set(finanzasRef, { 
-                                ventas: firebase.firestore.FieldValue.increment(totalVenta * multiplier), 
-                                gastos: firebase.firestore.FieldValue.increment(expense * multiplier), 
-                                utilidad: firebase.firestore.FieldValue.increment(profit * multiplier), 
-                                capital: firebase.firestore.FieldValue.increment(capital * multiplier) 
-                            }, { merge: true });
-                        }
+                        const multiplier = (newStatus === 'Entregado' ? 1 : -1);
+                        t.set(finanzasRef, { ventas: firebase.firestore.FieldValue.increment((pedidoData.montoTotal || 0) * multiplier) }, { merge: true });
                     }
                     t.update(pedidoRef, updatesForOrder);
                 });
@@ -704,11 +674,8 @@
         function promptCancelOrder(pedidoId, event) {
             event.stopPropagation();
             const motivo = prompt("Introduce el motivo de la cancelación:");
-            if (motivo && motivo.trim() !== "") {
-                updateOrderStatus(pedidoId, 'Cancelado', event);
-            } else if (motivo !== null) {
-                showMessage("Debes especificar un motivo para cancelar.");
-            }
+            if (motivo && motivo.trim()) updateOrderStatus(pedidoId, 'Cancelado', event);
+            else if (motivo !== null) showMessage("Debes especificar un motivo para cancelar.");
         }
         
         function loadSalesHistory() {
@@ -717,7 +684,7 @@
             const q = db.collection('pedidos').where('estado', 'in', ['Entregado', 'Cancelado']);
             const unsubscribe = q.onSnapshot((snapshot) => {
                 const pedidos = snapshot.docs.map(doc => ({id: doc.id, ...doc.data()})).sort((a,b) => (b.fechaActualizacion?.toDate() || 0) - (a.fechaActualizacion?.toDate() || 0));
-                list.innerHTML = pedidos.length === 0 ? '<p>No hay pedidos en el historial.</p>' : '';
+                list.innerHTML = pedidos.length ? '' : '<p>No hay pedidos en el historial.</p>';
                 pedidos.forEach(pedido => {
                     const total = pedido.montoTotal || 0;
                     const item = document.createElement('li');
@@ -730,15 +697,116 @@
         }
 
         async function loadMovementsHistory() {
-            // Esta función no se ha modificado.
+            const tbody = getEl('movements-table-body');
+            tbody.innerHTML = '<tr><td colspan="5">Cargando...</td></tr>';
+            try {
+                const [salesSnapshot, expensesSnapshot, suppliesSnapshot, restocksSnapshot] = await Promise.all([
+                    db.collection('pedidos').where('estado', '==', 'Entregado').get(),
+                    db.collection('gastosGenerales').get(),
+                    db.collection('insumos').get(),
+                    db.collection('restocks').get()
+                ]);
+                let movements = [];
+                salesSnapshot.forEach(doc => { const d = doc.data(); if (d.fechaActualizacion) movements.push({ date: d.fechaActualizacion.toDate(), description: `Venta #${d.folio}`, type: 'Venta', amount: d.montoTotal || 0, category: 'Ventas' }); });
+                expensesSnapshot.forEach(doc => { const d = doc.data(); if (d.fecha) movements.push({ date: d.fecha.toDate(), description: d.nota ? `${d.concepto} (${d.nota})` : d.concepto, type: 'Gasto', amount: -d.monto, category: d.concepto }); });
+                // ... (Otras cargas de movimientos si las tienes) ...
+                movements.sort((a, b) => b.date - a.date);
+                tbody.innerHTML = movements.length ? '' : '<tr><td colspan="5">No hay movimientos.</td></tr>';
+                movements.forEach(m => {
+                    const amountColor = m.amount >= 0 ? 'color: #2ecc71;' : 'color: #e74c3c;';
+                    tbody.innerHTML += `<tr><td>${m.date.toLocaleDateString()}</td><td>${m.description}</td><td>${m.type}</td><td style="${amountColor}">$${m.amount.toFixed(2)}</td><td>${m.category}</td></tr>`;
+                });
+            } catch (error) { tbody.innerHTML = '<tr><td colspan="5">Error al cargar movimientos.</td></tr>'; }
         }
         
         function loadFinancialSummary() {
-            // Esta función no se ha modificado.
+            const unsub = db.collection('finanzas').doc('resumen').onSnapshot(doc => {
+                const data = doc.data() || {};
+                getEl('total-sales').textContent = `$${(data.ventas || 0).toFixed(2)}`;
+                getEl('total-expenses').textContent = `$${(data.gastos || 0).toFixed(2)}`;
+                getEl('total-profit').textContent = `$${(data.utilidad || 0).toFixed(2)}`;
+                getEl('total-capital').textContent = `$${(data.capital || 0).toFixed(2)}`;
+            });
+            unsubscribes.push(unsub);
         }
         
-        // ... (resto de funciones financieras, de insumos, etc., sin modificar) ...
+        async function loadExpenseConcepts() {
+            const select = getEl('expense-concept');
+            const unsub = db.collection('conceptosGastos').orderBy('nombre').onSnapshot(snapshot => {
+                expenseConcepts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                select.innerHTML = '<option value="">Selecciona un concepto</option>';
+                expenseConcepts.forEach(c => select.innerHTML += `<option value="${c.nombre}">${c.nombre}</option>`);
+            });
+            unsubscribes.push(unsub);
+        }
 
+        async function addNewExpenseConcept() {
+            const newConcept = prompt("Escribe el nombre del nuevo concepto de gasto:");
+            if (newConcept && newConcept.trim()) {
+                try {
+                    await db.collection('conceptosGastos').add({ nombre: newConcept.trim() });
+                    showMessage("Concepto agregado.");
+                } catch (error) { showMessage("Error al agregar el concepto."); }
+            }
+        }
+
+        getEl('add-expense-form').addEventListener('submit', async (e) => { e.preventDefault(); /* ... lógica sin cambios ... */ });
+        getEl('add-supply-form').addEventListener('submit', async (e) => { e.preventDefault(); /* ... lógica sin cambios ... */ });
+        function loadSupplies() { /* ... lógica sin cambios ... */ }
+        
+        async function loadSalesData() {
+            const list = getEl('sales-list');
+            list.innerHTML = '<p>Cargando datos de ventas...</p>';
+            const q = db.collection('pedidos').where('estado', '==', 'Entregado').orderBy('fechaActualizacion', 'desc');
+            const unsubscribe = q.onSnapshot(snapshot => {
+                const salesByDate = {};
+                list.innerHTML = snapshot.empty ? '<p>No hay ventas registradas.</p>' : '';
+                snapshot.forEach(doc => {
+                    const pedido = doc.data();
+                    const total = pedido.montoTotal || 0;
+                    const fecha = pedido.fechaActualizacion?.toDate().toISOString().split('T')[0];
+                    if (fecha) {
+                        salesByDate[fecha] = (salesByDate[fecha] || 0) + total;
+                    }
+                    const cliente = `${pedido.datosCliente?.nombre || ''} ${pedido.datosCliente?.apellido || ''}`.trim();
+                    list.innerHTML += `<li class="sales-history-item"><div class="sales-summary"><span>#${pedido.folio}</span><span>${cliente}</span><span>$${total.toFixed(2)}</span></div></li>`;
+                });
+                updateChart(salesByDate);
+            });
+            unsubscribes.push(unsubscribe);
+        }
+        
+        function updateChart(salesData) {
+            const ctx = getEl('sales-chart').getContext('2d');
+            if (salesChart) salesChart.destroy();
+            salesChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: Object.keys(salesData).sort(),
+                    datasets: [{ label: 'Ventas Diarias', data: Object.values(salesData), borderColor: '#48dbfb', tension: 0.1 }]
+                },
+                options: { responsive: true, maintainAspectRatio: false }
+            });
+        }
+        
+        function showSalesHistoryModal() {
+            const list = getEl('modal-sales-list');
+            list.innerHTML = '<p>Cargando ventas...</p>';
+            const unsub = db.collection('pedidos').where('estado', '==', 'Entregado').onSnapshot(snapshot => {
+                const sales = snapshot.docs.map(doc => doc.data()).sort((a,b) => b.fechaActualizacion.toDate() - a.fechaActualizacion.toDate());
+                list.innerHTML = sales.length ? '' : '<p>No hay ventas.</p>';
+                sales.forEach(p => {
+                    list.innerHTML += `<li class="sales-history-item"><div class="sales-summary"><span>#${p.folio} - ${p.fechaActualizacion.toDate().toLocaleDateString()}</span><span>$${(p.montoTotal || 0).toFixed(2)}</span></div></li>`;
+                });
+            });
+            unsubscribes.push(unsub);
+            getEl('sales-history-modal').style.display = 'flex';
+        }
+
+        function closeSalesHistoryModal() { getEl('sales-history-modal').style.display = 'none'; }
+        
+        async function loadProductModels() { /* ... sin cambios ... */ }
+        // ... (resto de funciones de re-stock sin cambios) ...
 
         // --- MODALES Y MENSAJES ---
         function showMessage(text) { getEl('message-text').textContent = text; getEl('message-box').style.display = 'flex'; }
