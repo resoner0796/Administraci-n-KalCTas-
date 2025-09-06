@@ -659,7 +659,7 @@
             } catch (error) { showMessage('Error al actualizar.'); }
         });
 
-        // --- LÓGICA DE PEDIDOS ---
+        // --- LÓGICA DE PEDIDOS (ACTUALIZADA) ---
         function loadOrders() {
             const ordersList = getEl('orders-list');
             ordersList.innerHTML = '<p>Cargando pedidos...</p>';
@@ -689,7 +689,7 @@
                             <p><strong>Teléfono:</strong> ${pedido.datosCliente?.telefono || 'N/A'}</p>
                             <p><strong>Fecha Entrega:</strong> ${pedido.fechaEntrega}</p>
                             <p><strong>Lugar:</strong> ${pedido.lugarEntrega}</p>
-                            <p><strong>Forma de Pago:</strong> ${pedido.formaPago || 'N/A'}</p>
+                            <p><strong>Método de Pago:</strong> ${pedido.metodoPago || 'N/A'}</p>
                             <p><strong>Productos:</strong></p>
                             <ul>${(pedido.productos || []).map(p => `<li>${p.nombre}</li>`).join('')}</ul>
                             <div class="order-actions">
@@ -794,6 +794,7 @@
             else if (motivo !== null) showMessage("Debes especificar un motivo para cancelar.");
         }
         
+        // --- LÓGICA DE HISTORIAL DE VENTAS (ACTUALIZADA) ---
         function loadSalesHistory() {
             const list = getEl('sales-history-list');
             list.innerHTML = '<p>Cargando historial...</p>';
@@ -817,7 +818,7 @@
                             <p><strong>Teléfono:</strong> ${pedido.datosCliente?.telefono || 'N/A'}</p>
                             <p><strong>Fecha:</strong> ${pedido.fechaActualizacion?.toDate().toLocaleDateString() || 'N/A'}</p>
                             <p><strong>Punto de Entrega:</strong> ${pedido.lugarEntrega}</p>
-                            <p><strong>Forma de Pago:</strong> ${pedido.formaPago || 'N/A'}</p>
+                            <p><strong>Método de Pago:</strong> ${pedido.metodoPago || 'N/A'}</p>
                             <p><strong>Productos:</strong></p>
                             <ul>${(pedido.productos || []).map(p => `<li>${p.nombre}</li>`).join('')}</ul>
                         </div>`;
