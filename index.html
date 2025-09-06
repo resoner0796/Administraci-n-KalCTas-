@@ -483,6 +483,7 @@
         let unsubscribes = [];
         let productModels = [], expenseConcepts = [];
         let salesChart;
+        const CAPITAL_PER_PRODUCT = 42; // Variable global para el monto fijo por producto
 
         // --- SELECTOR DE ELEMENTOS ---
         const getEl = (id) => document.getElementById(id);
@@ -692,33 +693,34 @@
                     const updatesForOrder = { estado: newStatus, fechaActualizacion: firebase.firestore.FieldValue.serverTimestamp() };
 
                     if (newStatus === 'Entregado' && pedidoData.estado !== 'Entregado') {
-                        // Lógica de gastos operativos
-                        const costoEnvio = pedidoData.gastos?.transporte || 0;
-                        const costoEmpaque = pedidoData.gastos?.empaque || 0;
-                        const totalGastosOperativos = costoEnvio + costoEmpaque;
+                        // Lógica de Venta y separación de fondos
+                        const totalVenta = pedidoData.montoTotal || 0;
+                        const numeroProductos = pedidoData.productos?.length || 0;
+                        const capitalMonto = numeroProductos * CAPITAL_PER_PRODUCT;
+                        const utilidadMonto = totalVenta - capitalMonto;
 
-                        // Registrar gasto de transporte si existe
-                        if (costoEnvio > 0) {
-                            const transporteRef = db.collection('movimientos').doc();
-                            t.set(transporteRef, {
-                                monto: costoEnvio,
-                                concepto: 'Transporte (gasto operativo)',
-                                tipo: 'Gasto Operativo',
+                        // Registrar movimiento de ingreso para Capital
+                        if (capitalMonto > 0) {
+                            const capitalMovRef = db.collection('movimientos').doc();
+                            t.set(capitalMovRef, {
+                                monto: capitalMonto,
+                                concepto: 'Ingreso a Capital',
+                                tipo: 'Capital',
                                 fecha: firebase.firestore.FieldValue.serverTimestamp(),
-                                nota: `Gasto de transporte del pedido ${pedidoData.folio}`,
+                                nota: `Apartado de capital del pedido ${pedidoData.folio}`,
                                 relatedOrderId: pedidoId
                             });
                         }
 
-                        // Registrar gasto de empaque si existe
-                        if (costoEmpaque > 0) {
-                            const empaqueRef = db.collection('movimientos').doc();
-                            t.set(empaqueRef, {
-                                monto: costoEmpaque,
-                                concepto: 'Empaque (gasto operativo)',
-                                tipo: 'Gasto Operativo',
+                        // Registrar movimiento de ingreso para Utilidad
+                        if (utilidadMonto > 0) {
+                            const utilidadMovRef = db.collection('movimientos').doc();
+                            t.set(utilidadMovRef, {
+                                monto: utilidadMonto,
+                                concepto: 'Ingreso a Utilidad',
+                                tipo: 'Utilidad',
                                 fecha: firebase.firestore.FieldValue.serverTimestamp(),
-                                nota: `Gasto de empaque del pedido ${pedidoData.folio}`,
+                                nota: `Utilidad generada por el pedido ${pedidoData.folio}`,
                                 relatedOrderId: pedidoId
                             });
                         }
@@ -726,23 +728,25 @@
                         // Actualizar finanzas
                         const finanzasRef = db.collection('finanzas').doc('resumen');
                         t.update(finanzasRef, {
-                            ventas: firebase.firestore.FieldValue.increment(pedidoData.montoTotal || 0),
-                            gastos: firebase.firestore.FieldValue.increment(totalGastosOperativos),
-                            utilidad: firebase.firestore.FieldValue.increment((pedidoData.montoTotal || 0) - totalGastosOperativos)
+                            ventas: firebase.firestore.FieldValue.increment(totalVenta),
+                            utilidad: firebase.firestore.FieldValue.increment(utilidadMonto),
+                            capital: firebase.firestore.FieldValue.increment(capitalMonto)
                         });
 
                         // Incrementar stock
                         for (const producto of pedidoData.productos) if (producto.id) t.update(db.collection('productos').doc(producto.id), { cantidadVendida: firebase.firestore.FieldValue.increment(1) });
                     } else if (newStatus === 'Cancelado' && pedidoData.estado === 'Entregado') {
-                        const costoEnvio = pedidoData.gastos?.transporte || 0;
-                        const costoEmpaque = pedidoData.gastos?.empaque || 0;
-                        const totalGastosOperativos = costoEnvio + costoEmpaque;
+                        // Revertir la transacción
+                        const totalVenta = pedidoData.montoTotal || 0;
+                        const numeroProductos = pedidoData.productos?.length || 0;
+                        const capitalMonto = numeroProductos * CAPITAL_PER_PRODUCT;
+                        const utilidadMonto = totalVenta - capitalMonto;
 
                         const finanzasRef = db.collection('finanzas').doc('resumen');
                         t.update(finanzasRef, {
-                            ventas: firebase.firestore.FieldValue.increment(-(pedidoData.montoTotal || 0)),
-                            gastos: firebase.firestore.FieldValue.increment(-totalGastosOperativos),
-                            utilidad: firebase.firestore.FieldValue.increment(-(pedidoData.montoTotal || 0) + totalGastosOperativos)
+                            ventas: firebase.firestore.FieldValue.increment(-totalVenta),
+                            utilidad: firebase.firestore.FieldValue.increment(-utilidadMonto),
+                            capital: firebase.firestore.FieldValue.increment(-capitalMonto)
                         });
                         
                         for (const producto of pedidoData.productos) if (producto.id) t.update(db.collection('productos').doc(producto.id), { cantidadVendida: firebase.firestore.FieldValue.increment(-1) });
@@ -788,14 +792,16 @@
             select.innerHTML = '<option value="all">Todas las categorías</option>';
             const categories = new Set();
             try {
-                const [gastosSnap, suppliesSnap, restocksSnap] = await Promise.all([
-                    db.collection('movimientos').get(),
+                const [gastosSnap, suppliesSnap, restocksSnap, movementsSnap] = await Promise.all([
+                    db.collection('gastosGenerales').get(),
                     db.collection('insumos').get(),
-                    db.collection('restocks').get()
+                    db.collection('restocks').get(),
+                    db.collection('movimientos').get()
                 ]);
-                gastosSnap.forEach(doc => categories.add(doc.data().tipo));
+                gastosSnap.forEach(doc => categories.add(doc.data().concepto));
                 suppliesSnap.forEach(doc => categories.add('Insumos'));
                 restocksSnap.forEach(doc => categories.add('Re-Stock'));
+                movementsSnap.forEach(doc => categories.add(doc.data().tipo));
 
                 const orderedCategories = Array.from(categories).sort();
                 orderedCategories.forEach(cat => {
@@ -809,12 +815,13 @@
             list.innerHTML = '<p>Cargando historial...</p>';
             const selectedCategory = getEl('movement-filter-category').value;
             try {
-                const [salesSnapshot, generalExpensesSnapshot, suppliesSnapshot, restocksSnapshot, operativeExpensesSnapshot] = await Promise.all([
+                const [salesSnapshot, generalExpensesSnapshot, suppliesSnapshot, restocksSnapshot, capitalMovesSnapshot, utilityMovesSnapshot] = await Promise.all([
                     db.collection('pedidos').where('estado', '==', 'Entregado').get(),
                     db.collection('gastosGenerales').get(),
                     db.collection('insumos').get(),
                     db.collection('restocks').get(),
-                    db.collection('movimientos').where('tipo', '==', 'Gasto Operativo').get()
+                    db.collection('movimientos').where('tipo', '==', 'Capital').get(),
+                    db.collection('movimientos').where('tipo', '==', 'Utilidad').get()
                 ]);
                 
                 let movements = [];
@@ -822,7 +829,8 @@
                 generalExpensesSnapshot.forEach(doc => { const d = doc.data(); if (d.fecha) movements.push({ id: doc.id, date: d.fecha.toDate(), description: d.nota ? `${d.concepto} (${d.nota})` : d.concepto, type: 'Gasto General', amount: -d.monto, category: d.concepto }); });
                 suppliesSnapshot.forEach(doc => { const d = doc.data(); if(d.fecha) movements.push({ id: doc.id, date: d.fecha.toDate(), description: d.descripcion, type: 'Gasto Insumo', amount: -d.costoTotal, category: 'Insumos' }); });
                 restocksSnapshot.forEach(doc => { const d = doc.data(); if(d.fecha) movements.push({ id: doc.id, date: d.fecha.toDate(), description: `Re-Stock #${d.folio}`, type: 'Gasto Re-Stock', amount: -d.costoTotal, category: 'Re-Stock' }); });
-                operativeExpensesSnapshot.forEach(doc => { const d = doc.data(); if(d.fecha) movements.push({ id: doc.id, date: d.fecha.toDate(), description: d.nota, type: d.tipo, amount: -d.monto, category: d.tipo, docRef: db.collection('movimientos').doc(doc.id) }); });
+                capitalMovesSnapshot.forEach(doc => { const d = doc.data(); if (d.fecha) movements.push({ id: doc.id, date: d.fecha.toDate(), description: d.nota, type: d.tipo, amount: d.monto, category: d.tipo, docRef: db.collection('movimientos').doc(doc.id) }); });
+                utilityMovesSnapshot.forEach(doc => { const d = doc.data(); if (d.fecha) movements.push({ id: doc.id, date: d.fecha.toDate(), description: d.nota, type: d.tipo, amount: d.monto, category: d.tipo, docRef: db.collection('movimientos').doc(doc.id) }); });
 
                 const filteredMovements = selectedCategory === 'all' ? movements : movements.filter(m => m.category === selectedCategory);
                 filteredMovements.sort((a, b) => b.date - a.date);
@@ -830,12 +838,12 @@
                 list.innerHTML = filteredMovements.length ? '' : '<p>No hay movimientos en esta categoría.</p>';
                 filteredMovements.forEach(m => {
                     const amountClass = m.amount >= 0 ? 'amount-positive' : 'amount-negative';
-                    const amountSign = m.amount >= 0 ? '+' : '-';
+                    const amountSign = m.amount >= 0 ? '+' : '';
                     list.innerHTML += `
                         <li class="card-item">
                             <div class="card-header">
                                 <span>${m.description}</span>
-                                <span class="${amountClass}">$${Math.abs(m.amount).toFixed(2)}</span>
+                                <span class="${amountClass}">${amountSign}$${Math.abs(m.amount).toFixed(2)}</span>
                             </div>
                             <div class="card-content">
                                 <p><strong>Fecha:</strong> ${m.date.toLocaleDateString()}</p>
@@ -857,43 +865,52 @@
                 if (type === 'Gasto General') {
                     collectionRef = db.collection('gastosGenerales');
                     originalDoc = await collectionRef.doc(id).get();
+                    if (!originalDoc.exists) { showMessage("Movimiento no encontrado."); return; }
+                    const monto = originalDoc.data().monto;
+                    await db.runTransaction(async (t) => {
+                        t.delete(collectionRef.doc(id));
+                        const finanzasRef = db.collection('finanzas').doc('resumen');
+                        t.update(finanzasRef, {
+                            gastos: firebase.firestore.FieldValue.increment(-monto),
+                            utilidad: firebase.firestore.FieldValue.increment(monto)
+                        });
+                    });
                 } else if (type === 'Gasto Insumo') {
                     collectionRef = db.collection('insumos');
                     originalDoc = await collectionRef.doc(id).get();
+                    if (!originalDoc.exists) { showMessage("Movimiento no encontrado."); return; }
+                    const costoTotal = originalDoc.data().costoTotal;
+                    await db.runTransaction(async (t) => {
+                        t.delete(collectionRef.doc(id));
+                        const finanzasRef = db.collection('finanzas').doc('resumen');
+                        t.update(finanzasRef, {
+                            gastos: firebase.firestore.FieldValue.increment(-costoTotal),
+                            utilidad: firebase.firestore.FieldValue.increment(costoTotal)
+                        });
+                    });
                 } else if (type === 'Gasto Re-Stock') {
                     collectionRef = db.collection('restocks');
                     originalDoc = await collectionRef.doc(id).get();
-                    if (originalDoc.exists) {
-                        const batch = db.batch();
-                        const items = originalDoc.data().items;
-                        items.forEach(item => {
-                            const productRef = db.collection('productos').doc(item.id);
-                            batch.update(productRef, { stock: firebase.firestore.FieldValue.increment(-item.cantidad) });
-                        });
-                        await batch.commit();
-                    }
-                } else if (type === 'Gasto Operativo') {
-                    collectionRef = db.collection('movimientos');
-                    originalDoc = await collectionRef.doc(id).get();
+                    if (!originalDoc.exists) { showMessage("Movimiento no encontrado."); return; }
+                    const restockData = originalDoc.data();
+                    const batch = db.batch();
+                    
+                    restockData.items.forEach(item => {
+                        const productRef = db.collection('productos').doc(item.id);
+                        batch.update(productRef, { stock: firebase.firestore.FieldValue.increment(-item.cantidad) });
+                    });
+                    
+                    const finanzasRef = db.collection('finanzas').doc('resumen');
+                    batch.update(finanzasRef, {
+                        capital: firebase.firestore.FieldValue.increment(restockData.costoTotal)
+                    });
+                    
+                    batch.delete(collectionRef.doc(id));
+                    await batch.commit();
                 } else {
                     showMessage("No se puede eliminar este tipo de movimiento.");
                     return;
                 }
-                
-                if (!originalDoc || !originalDoc.exists) {
-                    showMessage("Movimiento no encontrado.");
-                    return;
-                }
-
-                await collectionRef.doc(id).delete();
-                
-                const finanzasRef = db.collection('finanzas').doc('resumen');
-                await db.runTransaction(async (t) => {
-                    const finanzasDoc = await t.get(finanzasRef);
-                    const gastos = (finanzasDoc.data()?.gastos || 0) + amount; // amount es negativo, se suma para restar
-                    const utilidad = (finanzasDoc.data()?.utilidad || 0) - amount;
-                    t.update(finanzasRef, { gastos, utilidad });
-                });
                 
                 showMessage('Movimiento eliminado con éxito.');
                 loadMovementsHistory();
@@ -934,7 +951,7 @@
             }
         }
         
-        // --- Lógica de Gastos Generales (No era el problema, pero se completa) ---
+        // --- Lógica de Gastos Generales (CORREGIDA para restar de Utilidad) ---
         getEl('add-expense-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             const monto = parseFloat(getEl('expense-amount').value);
@@ -952,7 +969,7 @@
                 await db.runTransaction(async (t) => {
                     const doc = await t.get(finanzasRef);
                     const gastos = (doc.data()?.gastos || 0) + monto;
-                    const utilidad = (doc.data()?.ventas || 0) - gastos;
+                    const utilidad = (doc.data()?.utilidad || 0) - monto;
                     t.update(finanzasRef, { gastos, utilidad });
                 });
                 showMessage('Gasto registrado con éxito!');
@@ -960,7 +977,7 @@
             } catch (error) { showMessage('Error al registrar el gasto.'); }
         });
         
-        // --- Lógica de Insumos (CORREGIDA) ---
+        // --- Lógica de Insumos (CORREGIDA para restar de Utilidad) ---
         getEl('add-supply-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             const descripcion = getEl('supply-description').value;
@@ -983,7 +1000,7 @@
                 await db.runTransaction(async (t) => {
                     const doc = await t.get(finanzasRef);
                     const gastos = (doc.data()?.gastos || 0) + costoTotal;
-                    const utilidad = (doc.data()?.ventas || 0) - gastos;
+                    const utilidad = (doc.data()?.utilidad || 0) - costoTotal;
                     t.update(finanzasRef, { gastos, utilidad });
                 });
                 showMessage('Insumo registrado con éxito!');
@@ -1030,7 +1047,7 @@
                 await db.runTransaction(async (t) => {
                     const finanzasDoc = await t.get(finanzasRef);
                     const gastos = (finanzasDoc.data()?.gastos || 0) - costoTotal;
-                    const utilidad = (finanzasDoc.data()?.ventas || 0) - gastos;
+                    const utilidad = (finanzasDoc.data()?.utilidad || 0) + costoTotal;
                     t.update(finanzasRef, { gastos, utilidad });
                 });
                 
@@ -1041,7 +1058,7 @@
             }
         }
         
-        // --- Lógica de Re-Stock (CORREGIDA y MEJORADA) ---
+        // --- Lógica de Re-Stock (CORREGIDA y MEJORADA para restar de Capital) ---
         async function loadProductModels() {
             const snapshot = await db.collection('productos').orderBy('nombre').get();
             productModels = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -1116,8 +1133,7 @@
                 
                 const finanzasRef = db.collection('finanzas').doc('resumen');
                 batch.update(finanzasRef, {
-                    gastos: firebase.firestore.FieldValue.increment(totalCost),
-                    utilidad: firebase.firestore.FieldValue.increment(-totalCost)
+                    capital: firebase.firestore.FieldValue.increment(-totalCost)
                 });
                 
                 await batch.commit();
@@ -1181,8 +1197,7 @@
                 // Revertir finanzas
                 const finanzasRef = db.collection('finanzas').doc('resumen');
                 batch.update(finanzasRef, {
-                    gastos: firebase.firestore.FieldValue.increment(-restockData.costoTotal),
-                    utilidad: firebase.firestore.FieldValue.increment(restockData.costoTotal)
+                    capital: firebase.firestore.FieldValue.increment(restockData.costoTotal)
                 });
                 
                 // Eliminar el documento de restock
