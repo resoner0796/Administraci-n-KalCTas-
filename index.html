@@ -214,6 +214,8 @@
         .product-info strong { color: rgba(255,255,255,0.7); display: inline-block; width: 120px; }
         .product-actions { grid-column: 1 / -1; padding-top: 10px; display: flex; gap: 10px; border-top: 1px solid rgba(255,255,255,0.2); margin-top: 10px; }
         .product-actions button { padding: 8px 12px; font-size: 0.9em; }
+        .product-image-container { max-width: 100px; height: 100px; overflow: hidden; display: flex; align-items: center; justify-content: center; background-color: rgba(255, 255, 255, 0.1); border-radius: 8px; }
+
 
         /* --- ESTILOS PARA TARJETAS DE HISTORIAL DE MOVIMIENTOS Y RE-STOCKS --- */
         .card-list { list-style: none; padding: 0; width: 100%; margin-top: 20px; }
@@ -330,7 +332,8 @@
                     <option value="KalCTas3-4">KalCTas 3/4</option>
                     <option value="KalCTasLargas">KalCTas Largas</option>
                 </select>
-                <input type="text" id="product-image-url" placeholder="Ruta de la imagen (ej: assets/KalCTas2-4/modelo.png)" required>
+                <label for="product-image-file" style="text-align: left; margin-top: 10px;">Subir imagen:</label>
+                <input type="file" id="product-image-file" accept="image/*" required>
                 <input type="number" id="product-stock" placeholder="Inventario" required>
                 <input type="number" id="product-price" placeholder="Precio" step="0.01" required>
                 <button type="submit">Guardar Producto</button>
@@ -443,8 +446,8 @@
                         <option value="KalCTas3-4">KalCTas 3/4</option>
                         <option value="KalCTasLargas">KalCTas Largas</option>
                     </select>
-                    <label for="edit-image-url">URL de la imagen:</label>
-                    <input type="text" id="edit-image-url" required>
+                    <label for="edit-image-file">Cambiar imagen:</label>
+                    <input type="file" id="edit-image-file" accept="image/*">
                     <label for="edit-stock">Stock:</label>
                     <input type="number" id="edit-stock" required>
                     <label for="edit-price">Precio:</label>
@@ -481,6 +484,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <script>
@@ -496,6 +500,7 @@
         firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
         const db = firebase.firestore();
+        const storage = firebase.storage();
 
         // --- VARIABLES GLOBALES ---
         let productToDeleteId = null, supplyToDeleteId = null, expenseToDeleteId = null, restockToDeleteId = null;
@@ -588,7 +593,9 @@
                         const detailsDiv = document.createElement('div');
                         detailsDiv.className = 'product-details';
                         detailsDiv.innerHTML = `
-                            <div><img src="${product.imagenUrl}" alt="${product.nombre}" onerror="this.style.display='none'"></div>
+                            <div class="product-image-container">
+                                <img src="${product.imagenUrl}" alt="${product.nombre}" onerror="this.src='https://via.placeholder.com/100?text=No+Image';">
+                            </div>
                             <div class="product-info">
                                 <p><strong>Stock:</strong> ${product.stock}</p>
                                 <p><strong>Vendidos:</strong> ${product.cantidadVendida || 0}</p>
@@ -614,10 +621,17 @@
         getEl('add-product-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             try {
+                const imageFile = getEl('product-image-file').files[0];
+                if (!imageFile) { showMessage('Por favor, selecciona una imagen.'); return; }
+
+                const storageRef = storage.ref(`productos/${getEl('product-category').value}/${imageFile.name}`);
+                const snapshot = await storageRef.put(imageFile);
+                const imageUrl = await snapshot.ref.getDownloadURL();
+
                 await db.collection('productos').add({
                     nombre: getEl('product-name').value,
                     categoria: getEl('product-category').value,
-                    imagenUrl: getEl('product-image-url').value,
+                    imagenUrl: imageUrl,
                     stock: parseInt(getEl('product-stock').value),
                     precio: parseFloat(getEl('product-price').value),
                     cantidadVendida: 0
@@ -625,7 +639,7 @@
                 showMessage('¡Producto agregado con éxito!');
                 getEl('add-product-form').reset();
                 showScreen('inventory-screen');
-            } catch (error) { showMessage('Hubo un error al agregar el producto.'); }
+            } catch (error) { console.error(error); showMessage('Hubo un error al agregar el producto.'); }
         });
         
         async function editProduct(id) {
@@ -635,7 +649,6 @@
                 getEl('edit-product-id').value = id;
                 getEl('edit-name').value = data.nombre;
                 getEl('edit-category').value = data.categoria;
-                getEl('edit-image-url').value = data.imagenUrl;
                 getEl('edit-stock').value = data.stock;
                 getEl('edit-price').value = data.precio;
                 getEl('edit-modal').style.display = 'flex';
@@ -646,17 +659,26 @@
             e.preventDefault();
             const id = getEl('edit-product-id').value;
             try {
-                await db.collection('productos').doc(id).update({
+                const updates = {
                     nombre: getEl('edit-name').value,
                     categoria: getEl('edit-category').value,
-                    imagenUrl: getEl('edit-image-url').value,
                     stock: parseInt(getEl('edit-stock').value),
                     precio: parseFloat(getEl('edit-price').value),
-                });
+                };
+
+                const imageFile = getEl('edit-image-file').files[0];
+                if (imageFile) {
+                    const storageRef = storage.ref(`productos/${getEl('edit-category').value}/${imageFile.name}`);
+                    const snapshot = await storageRef.put(imageFile);
+                    updates.imagenUrl = await snapshot.ref.getDownloadURL();
+                }
+
+                await db.collection('productos').doc(id).update(updates);
+                
                 showMessage('Producto actualizado.');
                 closeEditModal();
                 showScreen('inventory-screen');
-            } catch (error) { showMessage('Error al actualizar.'); }
+            } catch (error) { console.error(error); showMessage('Error al actualizar.'); }
         });
 
         // --- LÓGICA DE PEDIDOS (ACTUALIZADA) ---
