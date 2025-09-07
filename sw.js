@@ -2,18 +2,17 @@
 const CACHE_NAME = 'kalctas-admin-cache-v1';
 
 // Archivos esenciales para que la app funcione (el "App Shell")
+// Usamos rutas relativas para que funcione en subdirectorios de GitHub Pages.
 const urlsToCache = [
-  '/',
-  '/index.html',
-  '/LOGO.png',
-  '/notification.mp3',
-  '/icon-192x192.png',
-  '/icon-512x512.png'
-  // Si tuvieras archivos .css o .js externos, los agregarías aquí
+  './',
+  'index.html',
+  'LOGO.png',
+  'notification.mp3',
+  'icon-192x192.png',
+  'icon-512x512.png'
 ];
 
 // Evento 'install': Se dispara cuando el Service Worker se instala.
-// Aquí es donde guardamos los archivos del App Shell en el caché.
 self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(CACHE_NAME)
@@ -24,24 +23,18 @@ self.addEventListener('install', event => {
   );
 });
 
-// Evento 'fetch': Se dispara cada vez que la app solicita un recurso (una imagen, un script, etc.).
-// Interceptamos la petición y decidimos si la servimos desde el caché o desde la red.
+// Evento 'fetch': Intercepta las peticiones de red.
 self.addEventListener('fetch', event => {
   event.respondWith(
     caches.match(event.request)
       .then(response => {
-        // Si encontramos el recurso en el caché, lo devolvemos.
-        if (response) {
-          return response;
-        }
-        // Si no, lo pedimos a la red.
-        return fetch(event.request);
+        // Si el recurso está en caché, lo devuelve. Si no, lo busca en la red.
+        return response || fetch(event.request);
       })
   );
 });
 
-// Evento 'activate': Se dispara cuando el nuevo Service Worker se activa.
-// Aquí limpiamos los cachés antiguos que ya no se usan.
+// Evento 'activate': Limpia cachés antiguos.
 self.addEventListener('activate', event => {
   const cacheWhitelist = [CACHE_NAME];
   event.waitUntil(
