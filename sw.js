@@ -1,8 +1,9 @@
-// Nombre y versión del caché
-const CACHE_NAME = 'kalctas-admin-cache-v1';
+// Importar los scripts de Firebase
+importScripts('https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js');
+importScripts('https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging-compat.js');
 
-// Archivos esenciales para que la app funcione (el "App Shell")
-// Usamos rutas relativas para que funcione en subdirectorios de GitHub Pages.
+// --- 1. LÓGICA DE CACHÉ (LA QUE YA TENÍAS) ---
+const CACHE_NAME = 'kalctas-admin-cache-v1';
 const urlsToCache = [
   './',
   'index.html',
@@ -12,29 +13,18 @@ const urlsToCache = [
   'icon-512x512.png'
 ];
 
-// Evento 'install': Se dispara cuando el Service Worker se instala.
 self.addEventListener('install', event => {
   event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then(cache => {
-        console.log('Caché abierto');
-        return cache.addAll(urlsToCache);
-      })
+    caches.open(CACHE_NAME).then(cache => cache.addAll(urlsToCache))
   );
 });
 
-// Evento 'fetch': Intercepta las peticiones de red.
 self.addEventListener('fetch', event => {
   event.respondWith(
-    caches.match(event.request)
-      .then(response => {
-        // Si el recurso está en caché, lo devuelve. Si no, lo busca en la red.
-        return response || fetch(event.request);
-      })
+    caches.match(event.request).then(response => response || fetch(event.request))
   );
 });
 
-// Evento 'activate': Limpia cachés antiguos.
 self.addEventListener('activate', event => {
   const cacheWhitelist = [CACHE_NAME];
   event.waitUntil(
@@ -48,4 +38,35 @@ self.addEventListener('activate', event => {
       );
     })
   );
+});
+
+
+// --- 2. LÓGICA DE FIREBASE MESSAGING (NUEVA) ---
+
+// Tu configuración de Firebase (DEBE estar aquí)
+const firebaseConfig = {
+  apiKey: "AIzaSyDuNHPsYnLD_qmbG2K9ieTIOCX6U4slD1E",
+  authDomain: "tienda-kalctas.firebaseapp.com",
+  projectId: "tienda-kalctas",
+  storageBucket: "tienda-kalctas.firebasestorage.app",
+  messagingSenderId: "374355691085",
+  appId: "1:374355691085:web:18abb15678c7a6870bbe04"
+};
+
+// Inicializar Firebase
+firebase.initializeApp(firebaseConfig);
+
+const messaging = firebase.messaging();
+
+// Manejador de notificaciones en segundo plano
+messaging.onBackgroundMessage(function(payload) {
+  console.log('[firebase-messaging-sw.js] Received background message ', payload);
+  
+  const notificationTitle = payload.notification.title;
+  const notificationOptions = {
+    body: payload.notification.body,
+    icon: '/icon-192x192.png' // Ícono para la notificación
+  };
+
+  return self.registration.showNotification(notificationTitle, notificationOptions);
 });
