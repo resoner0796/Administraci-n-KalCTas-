@@ -2,13 +2,15 @@
 importScripts('https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging-compat.js');
 
-// --- 1. LÓGICA DE CACHÉ (LA QUE YA TENÍAS) ---
+// --- 1. LÓGICA DE CACHÉ ---
 const CACHE_NAME = 'kalctas-admin-cache-v1';
+
+// Lista de archivos para el caché inicial.
+// Se ha quitado 'notification.mp3' para evitar el error 206.
 const urlsToCache = [
   './',
   'index.html',
   'LOGO.png',
-  'notification.mp3',
   'icon-192x192.png',
   'icon-512x512.png'
 ];
@@ -41,9 +43,9 @@ self.addEventListener('activate', event => {
 });
 
 
-// --- 2. LÓGICA DE FIREBASE MESSAGING (NUEVA) ---
+// --- 2. LÓGICA DE FIREBASE MESSAGING ---
 
-// Tu configuración de Firebase (DEBE estar aquí)
+// Tu configuración de Firebase
 const firebaseConfig = {
   apiKey: "AIzaSyDuNHPsYnLD_qmbG2K9ieTIOCX6U4slD1E",
   authDomain: "tienda-kalctas.firebaseapp.com",
@@ -55,7 +57,6 @@ const firebaseConfig = {
 
 // Inicializar Firebase
 firebase.initializeApp(firebaseConfig);
-
 const messaging = firebase.messaging();
 
 // Manejador de notificaciones en segundo plano
@@ -65,7 +66,7 @@ messaging.onBackgroundMessage(function(payload) {
   const notificationTitle = payload.notification.title;
   const notificationOptions = {
     body: payload.notification.body,
-    icon: '/icon-192x192.png' // Ícono para la notificación
+    icon: './icon-192x192.png' // Usamos ruta relativa por si acaso
   };
 
   return self.registration.showNotification(notificationTitle, notificationOptions);
