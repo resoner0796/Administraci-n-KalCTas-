@@ -506,7 +506,22 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <script>
-        // --- CONFIGURACIÓN INICIAL ---
+        // --- INICIO: CÓDIGO AÑADIDO PARA REGISTRAR EL SERVICE WORKER ---
+        if ('serviceWorker' in navigator) {
+          window.addEventListener('load', () => {
+            navigator.serviceWorker.register('/sw.js')
+              .then(registration => {
+                console.log('ServiceWorker registrado con éxito: ', registration.scope);
+              })
+              .catch(err => {
+                console.log('Fallo en el registro del ServiceWorker: ', err);
+              });
+          });
+        }
+        // --- FIN: CÓDIGO AÑADIDO ---
+
+
+        // --- CONFIGURACIÓN INICIAL --- (Tu código original intacto)
         const firebaseConfig = {
           apiKey: "AIzaSyDuNHPsYnLD_qmbG2K9ieTIOCX6U4slD1E",
           authDomain: "tienda-kalctas.firebaseapp.com",
@@ -687,9 +702,6 @@
             unsubscribes.push(unsubscribe);
         }
         
-        // ... (El resto de tu código JS va aquí sin cambios) ...
-        // Tu código de updateOrderStatus, generarGaleria, etc. no necesita cambios.
-        // Pega este script completo en tu archivo, reemplazando el script existente.
         async function loadInventory() {
             const accordionContainer = getEl('inventory-accordion');
             accordionContainer.innerHTML = '<p>Cargando inventario...</p>';
