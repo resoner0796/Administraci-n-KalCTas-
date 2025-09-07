@@ -458,7 +458,7 @@
             </div>
         </div>
         <div id="message-box" class="message-box">
-            <div class="message-content">
+            <div class="modal-content">
                 <p id="message-text"></p>
                 <button class="close-button" onclick="closeMessage()">Aceptar</button>
             </div>
@@ -485,7 +485,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging-compat.js"></script> <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <script>
         // --- CONFIGURACIÓN INICIAL ---
@@ -501,18 +501,24 @@
         const auth = firebase.auth();
         const db = firebase.firestore();
         const storage = firebase.storage();
+        const messaging = firebase.messaging(); // <-- NUEVO: Inicializar Messaging
+
+        // <-- NUEVO: Clave VAPID para notificaciones push. Reemplázala con la tuya.
+        const vapidKey = "TU_VAPID_KEY_AQUI"; 
 
         // --- VARIABLES GLOBALES ---
+        // ... (el resto de tus variables globales sin cambios) ...
         let productToDeleteId = null, supplyToDeleteId = null, expenseToDeleteId = null, restockToDeleteId = null;
         let unsubscribes = [];
         let productModels = [], expenseConcepts = [];
         let salesChart;
-        const CAPITAL_PER_PRODUCT = 42; // Variable global para el monto fijo por producto
+        const CAPITAL_PER_PRODUCT = 42;
 
         // --- SELECTOR DE ELEMENTOS ---
         const getEl = (id) => document.getElementById(id);
         
         // --- MANEJO DE PANTALLAS ---
+        // ... (tu función showScreen sin cambios) ...
         async function showScreen(screenId) {
             document.querySelectorAll('section').forEach(screen => screen.style.display = 'none');
             getEl(screenId).style.display = 'block';
@@ -545,6 +551,7 @@
             unsubscribes = [];
             if (user) {
                 showScreen('main-menu');
+                solicitarPermisoNotificaciones(); // <-- NUEVO: Pedir permiso al iniciar sesión
             } else {
                 showScreen('login-screen');
             }
@@ -558,8 +565,61 @@
         });
 
         function logout() { auth.signOut(); }
+        
+        // ========================================================================= //
+        // <-- INICIO DE LA NUEVA LÓGICA DE NOTIFICACIONES -->
+        // ========================================================================= //
+
+        async function solicitarPermisoNotificaciones() {
+            try {
+                // 1. Pedir permiso al usuario
+                const permission = await Notification.requestPermission();
+                if (permission === 'granted') {
+                    console.log('Permiso para notificaciones concedido.');
+                    
+                    // 2. Obtener el token del dispositivo
+                    const token = await messaging.getToken({ vapidKey: vapidKey });
+                    if (token) {
+                        console.log('Token FCM obtenido:', token);
+                        
+                        // 3. Guardar el token en Firestore para que el backend lo use
+                        // Se guarda en una colección 'admin_devices' usando el propio token como ID
+                        // para evitar duplicados.
+                        const tokenRef = db.collection('admin_devices').doc(token);
+                        await tokenRef.set({
+                            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                            userAgent: navigator.userAgent
+                        });
+                        console.log('Token guardado en Firestore.');
+                    } else {
+                        console.log('No se pudo obtener el token de registro. Asegúrate de tener un service worker.');
+                    }
+                } else {
+                    console.log('Permiso para notificaciones denegado.');
+                }
+            } catch (error) {
+                console.error('Error al obtener el permiso o el token de FCM:', error);
+            }
+        }
+
+        // Escuchar mensajes cuando la app está en primer plano
+        messaging.onMessage((payload) => {
+            console.log('Mensaje recibido en primer plano: ', payload);
+            // Reproducir sonido
+            const sound = getEl('notification-sound');
+            if (sound) sound.play().catch(e => console.warn("El audio no se pudo reproducir."));
+
+            // Mostrar una alerta personalizada en lugar de la notificación del sistema
+            showMessage(`¡Nuevo Pedido! ${payload.notification.body}`);
+        });
+
+        // ========================================================================= //
+        // <-- FIN DE LA NUEVA LÓGICA DE NOTIFICACIONES -->
+        // ========================================================================= //
+
 
         // --- LÓGICA DE INVENTARIO (REDISEÑADA) ---
+        // ... (tu código de inventario sin cambios) ...
         async function loadInventory() {
             const accordionContainer = getEl('inventory-accordion');
             accordionContainer.innerHTML = '<p>Cargando inventario...</p>';
@@ -681,18 +741,16 @@
             } catch (error) { console.error(error); showMessage('Error al actualizar.'); }
         });
 
+
         // --- LÓGICA DE PEDIDOS (ACTUALIZADA) ---
+        // Se ha modificado ligeramente para NO reproducir el sonido dos veces.
+        // La notificación push se encarga ahora, y el 'onMessage' lo hará si la app está abierta.
         function loadOrders() {
             const ordersList = getEl('orders-list');
             ordersList.innerHTML = '<p>Cargando pedidos...</p>';
             const q = db.collection('pedidos').where('estado', 'in', ['Pendiente', 'Confirmado']).orderBy('fechaCreacion', 'desc');
             const unsubscribe = q.onSnapshot((snapshot) => {
-                snapshot.docChanges().forEach((change) => {
-                    if (change.type === 'added') {
-                        const sound = getEl('notification-sound');
-                        if (sound) sound.play().catch(e => console.warn("El audio no se pudo reproducir."));
-                    }
-                });
+                // Ya no necesitamos la lógica de sonido aquí, la función push y el onMessage se encargan.
                 ordersList.innerHTML = snapshot.empty ? '<p>No hay pedidos pendientes.</p>' : '';
                 snapshot.forEach(doc => {
                     const pedido = doc.data();
@@ -727,6 +785,7 @@
             unsubscribes.push(unsubscribe);
         }
         
+        // ... (El resto de tu código JS va aquí sin cambios) ...
         async function updateOrderStatus(pedidoId, newStatus, event) {
             event.stopPropagation();
             const pedidoRef = db.collection('pedidos').doc(pedidoId);
@@ -808,7 +867,6 @@
             }
         }
         
-        // --- OTRAS FUNCIONES ---
         function promptCancelOrder(pedidoId, event) {
             event.stopPropagation();
             const motivo = prompt("Introduce el motivo de la cancelación:");
@@ -816,7 +874,6 @@
             else if (motivo !== null) showMessage("Debes especificar un motivo para cancelar.");
         }
         
-        // --- LÓGICA DE HISTORIAL DE VENTAS (ACTUALIZADA) ---
         function loadSalesHistory() {
             const list = getEl('sales-history-list');
             list.innerHTML = '<p>Cargando historial...</p>';
@@ -1015,7 +1072,6 @@
             }
         }
         
-        // --- Lógica de Gastos Generales (CORREGIDA para restar de Utilidad) ---
         getEl('add-expense-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             const monto = parseFloat(getEl('expense-amount').value);
@@ -1041,7 +1097,6 @@
             } catch (error) { showMessage('Error al registrar el gasto.'); }
         });
         
-        // --- Lógica de Insumos (CORREGIDA para restar de Utilidad) ---
         getEl('add-supply-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             const descripcion = getEl('supply-description').value;
@@ -1075,7 +1130,6 @@
             }
         });
 
-        // --- Lógica de carga de insumos (CORREGIDA) ---
         function loadSupplies() {
             const tbody = getEl('supplies-table-body');
             tbody.innerHTML = '<tr><td colspan="4">Cargando insumos...</td></tr>';
@@ -1122,7 +1176,6 @@
             }
         }
         
-        // --- Lógica de Re-Stock (CORREGIDA y MEJORADA para restar de Capital) ---
         async function loadProductModels() {
             const snapshot = await db.collection('productos').orderBy('nombre').get();
             productModels = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -1329,7 +1382,15 @@
         function closeSalesHistoryModal() { getEl('sales-history-modal').style.display = 'none'; }
         
         // --- MODALES Y MENSAJES ---
-        function showMessage(text) { getEl('message-text').textContent = text; getEl('message-box').style.display = 'flex'; }
+        function showMessage(text) { 
+            const msgBox = getEl('message-box');
+            if (!msgBox) { // Fallback por si el elemento no está en el DOM aún
+                alert(text);
+                return;
+            }
+            getEl('message-text').textContent = text;
+            msgBox.style.display = 'flex';
+        }
         function closeMessage() { getEl('message-box').style.display = 'none'; }
         function closeEditModal() { getEl('edit-modal').style.display = 'none'; }
         function showConfirmModal(id) { productToDeleteId = id; getEl('confirm-modal').style.display = 'flex'; }
