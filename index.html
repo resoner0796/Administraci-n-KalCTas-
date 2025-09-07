@@ -4,6 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>KalCTas Admin</title>
+
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#ff9f43">
+
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="KalCTas Admin">
+    <link rel="apple-touch-icon" href="/icon-192x192.png">
+
     <style>
         /* Estilos generales */
         body {
@@ -125,6 +134,13 @@
             transform: translateY(-3px);
             box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
         }
+
+        /* // <-- NUEVO PWA: Estilo para el botón de instalar --> */
+        #install-app-button {
+            background-color: #27ae60;
+            display: none; /* Se mostrará con JS si es posible instalar */
+        }
+
 
         button {
             padding: 15px;
@@ -312,6 +328,7 @@
                 <button onclick="showScreen('sales-history-screen')">Historial de Pedidos 💰</button>
                 <button onclick="showScreen('finance-screen')">Administración 📈</button>
                 <button onclick="showScreen('sales-screen')">Reporte de Ventas 📊</button>
+                <button id="install-app-button">Instalar App 📲</button>
             </div>
         </section>
 
@@ -485,7 +502,8 @@
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging-compat.js"></script> <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging-compat.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <script>
         // --- CONFIGURACIÓN INICIAL ---
@@ -501,24 +519,23 @@
         const auth = firebase.auth();
         const db = firebase.firestore();
         const storage = firebase.storage();
-        const messaging = firebase.messaging(); // <-- NUEVO: Inicializar Messaging
+        const messaging = firebase.messaging(); 
 
-        // <-- NUEVO: Clave VAPID para notificaciones push. Reemplázala con la tuya.
-        const vapidKey = "BDsjml_NkyD7clhyqhKC3N-_VfdbpkgwXTaA2m9KIqTzPR7wKgfz8AZjbcW9Z7kZK4Fc-WNA3R1eHYvO2Uno5DY"; 
-
+        // <-- ¡ACCIÓN REQUERIDA! Reemplaza esto con tu clave VAPID de Firebase.
+        const vapidKey = "TU_VAPID_KEY_AQUI"; 
+        
         // --- VARIABLES GLOBALES ---
-        // ... (el resto de tus variables globales sin cambios) ...
         let productToDeleteId = null, supplyToDeleteId = null, expenseToDeleteId = null, restockToDeleteId = null;
         let unsubscribes = [];
         let productModels = [], expenseConcepts = [];
         let salesChart;
         const CAPITAL_PER_PRODUCT = 42;
+        let deferredInstallPrompt = null; // <-- NUEVO PWA: Variable para el evento de instalación
 
         // --- SELECTOR DE ELEMENTOS ---
         const getEl = (id) => document.getElementById(id);
         
         // --- MANEJO DE PANTALLAS ---
-        // ... (tu función showScreen sin cambios) ...
         async function showScreen(screenId) {
             document.querySelectorAll('section').forEach(screen => screen.style.display = 'none');
             getEl(screenId).style.display = 'block';
@@ -551,7 +568,7 @@
             unsubscribes = [];
             if (user) {
                 showScreen('main-menu');
-                solicitarPermisoNotificaciones(); // <-- NUEVO: Pedir permiso al iniciar sesión
+                solicitarPermisoNotificaciones();
             } else {
                 showScreen('login-screen');
             }
@@ -566,33 +583,49 @@
 
         function logout() { auth.signOut(); }
         
+        
         // ========================================================================= //
-        // <-- INICIO DE LA NUEVA LÓGICA DE NOTIFICACIONES -->
+        // <-- INICIO DE LA NUEVA LÓGICA DE PWA Y NOTIFICACIONES -->
         // ========================================================================= //
+        
+        // 1. Lógica para la Instalación de la PWA
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault(); // Prevenir que el mini-infobar aparezca en Chrome
+            deferredInstallPrompt = e; // Guardar el evento para mostrar el prompt después
+            const installButton = getEl('install-app-button');
+            if (installButton) {
+                installButton.style.display = 'block'; // Mostrar nuestro botón personalizado
+            }
+        });
 
+        const installButton = getEl('install-app-button');
+        if (installButton) {
+            installButton.addEventListener('click', async () => {
+                if (deferredInstallPrompt) {
+                    deferredInstallPrompt.prompt(); // Mostrar el diálogo de instalación
+                    const { outcome } = await deferredInstallPrompt.userChoice;
+                    console.log(`Resultado de la instalación: ${outcome}`);
+                    deferredInstallPrompt = null; // El prompt solo se puede usar una vez
+                    installButton.style.display = 'none'; // Ocultar el botón después de usarlo
+                }
+            });
+        }
+        
+        // 2. Lógica para Permisos y Notificaciones
         async function solicitarPermisoNotificaciones() {
             try {
-                // 1. Pedir permiso al usuario
                 const permission = await Notification.requestPermission();
                 if (permission === 'granted') {
                     console.log('Permiso para notificaciones concedido.');
-                    
-                    // 2. Obtener el token del dispositivo
                     const token = await messaging.getToken({ vapidKey: vapidKey });
                     if (token) {
                         console.log('Token FCM obtenido:', token);
-                        
-                        // 3. Guardar el token en Firestore para que el backend lo use
-                        // Se guarda en una colección 'admin_devices' usando el propio token como ID
-                        // para evitar duplicados.
                         const tokenRef = db.collection('admin_devices').doc(token);
                         await tokenRef.set({
                             createdAt: firebase.firestore.FieldValue.serverTimestamp(),
                             userAgent: navigator.userAgent
                         });
                         console.log('Token guardado en Firestore.');
-                    } else {
-                        console.log('No se pudo obtener el token de registro. Asegúrate de tener un service worker.');
                     }
                 } else {
                     console.log('Permiso para notificaciones denegado.');
@@ -602,24 +635,61 @@
             }
         }
 
-        // Escuchar mensajes cuando la app está en primer plano
         messaging.onMessage((payload) => {
             console.log('Mensaje recibido en primer plano: ', payload);
-            // Reproducir sonido
             const sound = getEl('notification-sound');
             if (sound) sound.play().catch(e => console.warn("El audio no se pudo reproducir."));
-
-            // Mostrar una alerta personalizada en lugar de la notificación del sistema
             showMessage(`¡Nuevo Pedido! ${payload.notification.body}`);
         });
 
         // ========================================================================= //
-        // <-- FIN DE LA NUEVA LÓGICA DE NOTIFICACIONES -->
+        // <-- FIN DE LA NUEVA LÓGICA DE PWA Y NOTIFICACIONES -->
         // ========================================================================= //
 
 
-        // --- LÓGICA DE INVENTARIO (REDISEÑADA) ---
-        // ... (tu código de inventario sin cambios) ...
+        // --- LÓGICA DE PEDIDOS ---
+        function loadOrders() {
+            const ordersList = getEl('orders-list');
+            ordersList.innerHTML = '<p>Cargando pedidos...</p>';
+            const q = db.collection('pedidos').where('estado', 'in', ['Pendiente', 'Confirmado']).orderBy('fechaCreacion', 'desc');
+            const unsubscribe = q.onSnapshot((snapshot) => {
+                ordersList.innerHTML = snapshot.empty ? '<p>No hay pedidos pendientes.</p>' : '';
+                snapshot.forEach(doc => {
+                    const pedido = doc.data();
+                    const total = pedido.montoTotal || 0;
+                    const clienteNombre = `${pedido.datosCliente?.nombre || ''} ${pedido.datosCliente?.apellido || ''}`.trim() || 'N/A';
+                    const item = document.createElement('li');
+                    item.className = 'order-item';
+                    item.innerHTML = `
+                        <div class="order-summary">
+                            <span>${pedido.folio} - ${clienteNombre}</span>
+                            <span class="order-status status-${pedido.estado}">${pedido.estado}</span>
+                            <span>$${total.toFixed(2)}</span>
+                        </div>
+                        <div class="order-details">
+                            <p><strong>Cliente:</strong> ${clienteNombre}</p>
+                            <p><strong>Teléfono:</strong> ${pedido.datosCliente?.telefono || 'N/A'}</p>
+                            <p><strong>Fecha Entrega:</strong> ${pedido.fechaEntrega}</p>
+                            <p><strong>Lugar:</strong> ${pedido.lugarEntrega}</p>
+                            <p><strong>Método de Pago:</strong> ${pedido.metodoPago || 'N/A'}</p>
+                            <p><strong>Productos:</strong></p>
+                            <ul>${(pedido.productos || []).map(p => `<li>${p.nombre}</li>`).join('')}</ul>
+                            <div class="order-actions">
+                                ${pedido.estado === 'Pendiente' ? `<button class="btn" onclick="updateOrderStatus('${doc.id}', 'Confirmado', event)">Confirmar</button>` : ''}
+                                <button class="btn" onclick="updateOrderStatus('${doc.id}', 'Entregado', event)">Marcar Entregado</button>
+                                <button class="btn btn-delete" onclick="promptCancelOrder('${doc.id}', event)">Cancelar</button>
+                            </div>
+                        </div>`;
+                    item.querySelector('.order-summary').onclick = (e) => e.currentTarget.nextElementSibling.style.display = e.currentTarget.nextElementSibling.style.display === 'block' ? 'none' : 'block';
+                    ordersList.appendChild(item);
+                });
+            });
+            unsubscribes.push(unsubscribe);
+        }
+        
+        // ... (El resto de tu código JS va aquí sin cambios) ...
+        // Tu código de updateOrderStatus, generarGaleria, etc. no necesita cambios.
+        // Pega este script completo en tu archivo, reemplazando el script existente.
         async function loadInventory() {
             const accordionContainer = getEl('inventory-accordion');
             accordionContainer.innerHTML = '<p>Cargando inventario...</p>';
@@ -643,12 +713,12 @@
                     productsByCategory[category].forEach(product => {
                         const itemDiv = document.createElement('div');
                         itemDiv.className = 'product-item';
-                        if (product.stock === 0) itemDiv.classList.add('agotado'); // Nuevo: Clase para stock 0
+                        if (product.stock === 0) itemDiv.classList.add('agotado');
                         itemDiv.innerHTML = `
                             <span>${product.nombre}</span>
                             <span style="font-size: 0.9em; font-weight: normal;">
                                 ${product.stock > 0 ? `Stock: ${product.stock}` : 'Agotado'}
-                            </span>`; // Nuevo: Mensaje "Agotado"
+                            </span>`;
                         itemDiv.onclick = (e) => e.currentTarget.nextElementSibling.classList.toggle('visible');
                         const detailsDiv = document.createElement('div');
                         detailsDiv.className = 'product-details';
@@ -740,52 +810,7 @@
                 showScreen('inventory-screen');
             } catch (error) { console.error(error); showMessage('Error al actualizar.'); }
         });
-
-
-        // --- LÓGICA DE PEDIDOS (ACTUALIZADA) ---
-        // Se ha modificado ligeramente para NO reproducir el sonido dos veces.
-        // La notificación push se encarga ahora, y el 'onMessage' lo hará si la app está abierta.
-        function loadOrders() {
-            const ordersList = getEl('orders-list');
-            ordersList.innerHTML = '<p>Cargando pedidos...</p>';
-            const q = db.collection('pedidos').where('estado', 'in', ['Pendiente', 'Confirmado']).orderBy('fechaCreacion', 'desc');
-            const unsubscribe = q.onSnapshot((snapshot) => {
-                // Ya no necesitamos la lógica de sonido aquí, la función push y el onMessage se encargan.
-                ordersList.innerHTML = snapshot.empty ? '<p>No hay pedidos pendientes.</p>' : '';
-                snapshot.forEach(doc => {
-                    const pedido = doc.data();
-                    const total = pedido.montoTotal || 0;
-                    const clienteNombre = `${pedido.datosCliente?.nombre || ''} ${pedido.datosCliente?.apellido || ''}`.trim() || 'N/A';
-                    const item = document.createElement('li');
-                    item.className = 'order-item';
-                    item.innerHTML = `
-                        <div class="order-summary">
-                            <span>${pedido.folio} - ${clienteNombre}</span>
-                            <span class="order-status status-${pedido.estado}">${pedido.estado}</span>
-                            <span>$${total.toFixed(2)}</span>
-                        </div>
-                        <div class="order-details">
-                            <p><strong>Cliente:</strong> ${clienteNombre}</p>
-                            <p><strong>Teléfono:</strong> ${pedido.datosCliente?.telefono || 'N/A'}</p>
-                            <p><strong>Fecha Entrega:</strong> ${pedido.fechaEntrega}</p>
-                            <p><strong>Lugar:</strong> ${pedido.lugarEntrega}</p>
-                            <p><strong>Método de Pago:</strong> ${pedido.metodoPago || 'N/A'}</p>
-                            <p><strong>Productos:</strong></p>
-                            <ul>${(pedido.productos || []).map(p => `<li>${p.nombre}</li>`).join('')}</ul>
-                            <div class="order-actions">
-                                ${pedido.estado === 'Pendiente' ? `<button class="btn" onclick="updateOrderStatus('${doc.id}', 'Confirmado', event)">Confirmar</button>` : ''}
-                                <button class="btn" onclick="updateOrderStatus('${doc.id}', 'Entregado', event)">Marcar Entregado</button>
-                                <button class="btn btn-delete" onclick="promptCancelOrder('${doc.id}', event)">Cancelar</button>
-                            </div>
-                        </div>`;
-                    item.querySelector('.order-summary').onclick = (e) => e.currentTarget.nextElementSibling.style.display = e.currentTarget.nextElementSibling.style.display === 'block' ? 'none' : 'block';
-                    ordersList.appendChild(item);
-                });
-            });
-            unsubscribes.push(unsubscribe);
-        }
         
-        // ... (El resto de tu código JS va aquí sin cambios) ...
         async function updateOrderStatus(pedidoId, newStatus, event) {
             event.stopPropagation();
             const pedidoRef = db.collection('pedidos').doc(pedidoId);
@@ -799,13 +824,11 @@
                     const updatesForOrder = { estado: newStatus, fechaActualizacion: firebase.firestore.FieldValue.serverTimestamp() };
 
                     if (newStatus === 'Entregado' && pedidoData.estado !== 'Entregado') {
-                        // Lógica de Venta y separación de fondos
                         const totalVenta = pedidoData.montoTotal || 0;
                         const numeroProductos = pedidoData.productos?.length || 0;
                         const capitalMonto = numeroProductos * CAPITAL_PER_PRODUCT;
                         const utilidadMonto = totalVenta - capitalMonto;
 
-                        // Registrar movimiento de ingreso para Capital
                         if (capitalMonto > 0) {
                             const capitalMovRef = db.collection('movimientos').doc();
                             t.set(capitalMovRef, {
@@ -818,7 +841,6 @@
                             });
                         }
 
-                        // Registrar movimiento de ingreso para Utilidad
                         if (utilidadMonto > 0) {
                             const utilidadMovRef = db.collection('movimientos').doc();
                             t.set(utilidadMovRef, {
@@ -831,7 +853,6 @@
                             });
                         }
                         
-                        // Actualizar finanzas
                         const finanzasRef = db.collection('finanzas').doc('resumen');
                         t.update(finanzasRef, {
                             ventas: firebase.firestore.FieldValue.increment(totalVenta),
@@ -839,10 +860,8 @@
                             capital: firebase.firestore.FieldValue.increment(capitalMonto)
                         });
 
-                        // Incrementar stock
                         for (const producto of pedidoData.productos) if (producto.id) t.update(db.collection('productos').doc(producto.id), { cantidadVendida: firebase.firestore.FieldValue.increment(1) });
                     } else if (newStatus === 'Cancelado' && pedidoData.estado === 'Entregado') {
-                        // Revertir la transacción
                         const totalVenta = pedidoData.montoTotal || 0;
                         const numeroProductos = pedidoData.productos?.length || 0;
                         const capitalMonto = numeroProductos * CAPITAL_PER_PRODUCT;
