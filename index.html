@@ -627,29 +627,46 @@
         }
         
         // 2. Lógica para Permisos y Notificaciones
-        async function solicitarPermisoNotificaciones() {
-            try {
-                const permission = await Notification.requestPermission();
-                if (permission === 'granted') {
-                    console.log('Permiso para notificaciones concedido.');
-                    const token = await messaging.getToken({ vapidKey: vapidKey });
-                    if (token) {
-                        console.log('Token FCM obtenido:', token);
-                        const tokenRef = db.collection('admin_devices').doc(token);
-                        await tokenRef.set({
-                            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                            userAgent: navigator.userAgent
-                        });
-                        console.log('Token guardado en Firestore.');
-                    }
-                } else {
-                    console.log('Permiso para notificaciones denegado.');
-                }
-            } catch (error) {
-                console.error('Error al obtener el permiso o el token de FCM:', error);
-            }
-        }
+        // REEMPLAZA TU FUNCIÓN ANTIGUA CON ESTA VERSIÓN CORREGIDA
 
+async function solicitarPermisoNotificaciones() {
+    try {
+        const permission = await Notification.requestPermission();
+        if (permission === 'granted') {
+            console.log('Permiso para notificaciones concedido.');
+
+            // --- INICIO DEL CAMBIO IMPORTANTE ---
+            
+            // 1. Esperamos a que nuestro Service Worker ('sw.js') esté listo y activo.
+            //    Esto nos da el objeto de registro que necesitamos.
+            const swRegistration = await navigator.serviceWorker.ready;
+            console.log('Nuestro Service Worker está listo:', swRegistration);
+
+            // 2. Pasamos explícitamente nuestro Service Worker a la función getToken().
+            //    Esto evita que Firebase busque el archivo 'firebase-messaging-sw.js' por defecto.
+            const token = await messaging.getToken({ 
+                vapidKey: vapidKey,
+                serviceWorkerRegistration: swRegistration  // <--- ¡Esta es la línea clave!
+            });
+            
+            // --- FIN DEL CAMBIO IMPORTANTE ---
+
+            if (token) {
+                console.log('Token FCM obtenido:', token);
+                const tokenRef = db.collection('admin_devices').doc(token);
+                await tokenRef.set({
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    userAgent: navigator.userAgent
+                });
+                console.log('Token guardado en Firestore.');
+            }
+        } else {
+            console.log('Permiso para notificaciones denegado.');
+        }
+    } catch (error) {
+        console.error('Error al obtener el permiso o el token de FCM:', error);
+    }
+}
         messaging.onMessage((payload) => {
             console.log('Mensaje recibido en primer plano: ', payload);
             const sound = getEl('notification-sound');
