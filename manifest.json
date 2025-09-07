@@ -2,19 +2,19 @@
   "name": "KalCTas Admin",
   "short_name": "KalCTas",
   "description": "Panel de administración para la tienda KalCTas.",
-  "start_url": "/index.html",
+  "start_url": ".",
   "display": "standalone",
   "background_color": "#e67e22",
   "theme_color": "#ff9f43",
   "orientation": "portrait-primary",
   "icons": [
     {
-      "src": "/icon-192x192.png",
+      "src": "icon-192x192.png",
       "type": "image/png",
       "sizes": "192x192"
     },
     {
-      "src": "/icon-512x512.png",
+      "src": "icon-512x512.png",
       "type": "image/png",
       "sizes": "512x512"
     }
