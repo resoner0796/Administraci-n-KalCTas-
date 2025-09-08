@@ -243,8 +243,8 @@
             display: none; border-top: 1px solid var(--border-color); 
             padding: 20px; margin: 0; 
         }
-        .order-details p { margin: 8px 0; color: var(--text-secondary); }
-        .order-details p strong { color: var(--text-primary); }
+        .order-details p, .sale-details p { margin: 8px 0; color: var(--text-secondary); }
+        .order-details p strong, .sale-details p strong { color: var(--text-primary); }
 
         /* Etiquetas de estado */
         .order-status { 
@@ -595,21 +595,17 @@
         const storage = firebase.storage();
         const messaging = firebase.messaging(); 
 
-        // <-- ¡ACCIÓN REQUERIDA! Reemplaza esto con tu clave VAPID de Firebase.
         const vapidKey = "BCI7mLN5SS6nZLTIC4BZNusMu2TCEYs_-XBvVrqQahBscDElMQBcfBU0lcnSPQDRItA-3g-3cbdATal2jywf1os"; 
         
-        // --- VARIABLES GLOBALES ---
         let productToDeleteId = null, supplyToDeleteId = null, expenseToDeleteId = null, restockToDeleteId = null;
         let unsubscribes = [];
         let productModels = [], expenseConcepts = [];
         let salesChart;
         const CAPITAL_PER_PRODUCT = 42;
-        let deferredInstallPrompt = null; // <-- NUEVO PWA: Variable para el evento de instalación
+        let deferredInstallPrompt = null;
 
-        // --- SELECTOR DE ELEMENTOS ---
         const getEl = (id) => document.getElementById(id);
         
-        // --- MANEJO DE PANTALLAS ---
         async function showScreen(screenId) {
             document.querySelectorAll('section').forEach(screen => screen.style.display = 'none');
             getEl(screenId).style.display = 'block';
@@ -636,7 +632,6 @@
             }
         }
 
-        // --- AUTENTICACIÓN ---
         auth.onAuthStateChanged(user => {
             unsubscribes.forEach(unsub => unsub());
             unsubscribes = [];
@@ -657,18 +652,12 @@
 
         function logout() { auth.signOut(); }
         
-        
-        // ========================================================================= //
-        // <-- INICIO DE LA NUEVA LÓGICA DE PWA Y NOTIFICACIONES -->
-        // ========================================================================= //
-        
-        // 1. Lógica para la Instalación de la PWA
         window.addEventListener('beforeinstallprompt', (e) => {
-            e.preventDefault(); // Prevenir que el mini-infobar aparezca en Chrome
-            deferredInstallPrompt = e; // Guardar el evento para mostrar el prompt después
+            e.preventDefault();
+            deferredInstallPrompt = e;
             const installButton = getEl('install-app-button');
             if (installButton) {
-                installButton.style.display = 'block'; // Mostrar nuestro botón personalizado
+                installButton.style.display = 'block';
             }
         });
 
@@ -676,39 +665,32 @@
         if (installButton) {
             installButton.addEventListener('click', async () => {
                 if (deferredInstallPrompt) {
-                    deferredInstallPrompt.prompt(); // Mostrar el diálogo de instalación
+                    deferredInstallPrompt.prompt();
                     const { outcome } = await deferredInstallPrompt.userChoice;
                     console.log(`Resultado de la instalación: ${outcome}`);
-                    deferredInstallPrompt = null; // El prompt solo se puede usar una vez
-                    installButton.style.display = 'none'; // Ocultar el botón después de usarlo
+                    deferredInstallPrompt = null;
+                    installButton.style.display = 'none';
                 }
             });
         }
         
-        // 2. Lógica para Permisos y Notificaciones
         async function solicitarPermisoNotificaciones() {
             try {
                 const permission = await Notification.requestPermission();
                 if (permission === 'granted') {
-                    console.log('Permiso para notificaciones concedido.');
                     const swRegistration = await navigator.serviceWorker.ready;
-                    console.log('Nuestro Service Worker está listo:', swRegistration);
                     const token = await messaging.getToken({ 
                         vapidKey: vapidKey,
                         serviceWorkerRegistration: swRegistration
                     });
                     
                     if (token) {
-                        console.log('Token FCM obtenido:', token);
                         const tokenRef = db.collection('admin_devices').doc(token);
                         await tokenRef.set({
                             createdAt: firebase.firestore.FieldValue.serverTimestamp(),
                             userAgent: navigator.userAgent
                         });
-                        console.log('Token guardado en Firestore.');
                     }
-                } else {
-                    console.log('Permiso para notificaciones denegado.');
                 }
             } catch (error) {
                 console.error('Error al obtener el permiso o el token de FCM:', error);
@@ -721,12 +703,36 @@
             showMessage(`¡Nuevo Pedido! ${payload.notification.body}`);
         });
 
-        // ========================================================================= //
-        // <-- FIN DE LA NUEVA LÓGICA DE PWA Y NOTIFICACIONES -->
-        // ========================================================================= //
+        // --- FUNCIÓN PARA GENERAR DETALLES DE ENTREGA (REUTILIZABLE) ---
+        function generarDetallesEntregaHTML(pedido) {
+            let detallesHTML = '';
+            const datosEntrega = pedido.datosEntrega;
 
+            if (datosEntrega) {
+                detallesHTML += `<p><strong>Forma de entrega:</strong> ${datosEntrega.tipo || 'N/A'}</p>`;
+                
+                if (datosEntrega.tipo === 'Punto medio') {
+                    detallesHTML += `<p><strong>Fecha de entrega:</strong> ${datosEntrega.fecha || 'N/A'}</p>`;
+                    detallesHTML += `<p><strong>Lugar de entrega:</strong> ${datosEntrega.lugar || 'N/A'}</p>`;
+                } else if (datosEntrega.tipo === 'Envío a domicilio') {
+                    detallesHTML += `<p><strong>Dirección:</strong> ${datosEntrega.calle || ''}, ${datosEntrega.colonia || ''}</p>`;
+                    if (datosEntrega.descripcion) {
+                        detallesHTML += `<p><strong>Descripción domicilio:</strong> ${datosEntrega.descripcion}</p>`;
+                    }
+                }
+            } else {
+                // Fallback para pedidos antiguos sin el objeto datosEntrega
+                detallesHTML += `<p><strong>Fecha Entrega:</strong> ${pedido.fechaEntrega || 'No especificada'}</p>`;
+                detallesHTML += `<p><strong>Lugar:</strong> ${pedido.lugarEntrega || 'No especificado'}</p>`;
+            }
 
-        // --- LÓGICA DE PEDIDOS ---
+            if (pedido.comentarios) {
+                detallesHTML += `<p><strong>Comentarios:</strong> ${pedido.comentarios}</p>`;
+            }
+            return detallesHTML;
+        }
+
+        // --- LÓGICA DE PEDIDOS (ACTUALIZADA) ---
         function loadOrders() {
             const ordersList = getEl('orders-list');
             ordersList.innerHTML = '<p>Cargando pedidos...</p>';
@@ -737,6 +743,9 @@
                     const pedido = doc.data();
                     const total = pedido.montoTotal || 0;
                     const clienteNombre = `${pedido.datosCliente?.nombre || ''} ${pedido.datosCliente?.apellido || ''}`.trim() || 'N/A';
+                    
+                    const detallesEntrega = generarDetallesEntregaHTML(pedido);
+
                     const item = document.createElement('li');
                     item.className = 'order-item';
                     item.innerHTML = `
@@ -748,8 +757,7 @@
                         <div class="order-details">
                             <p><strong>Cliente:</strong> ${clienteNombre}</p>
                             <p><strong>Teléfono:</strong> ${pedido.datosCliente?.telefono || 'N/A'}</p>
-                            <p><strong>Fecha Entrega:</strong> ${pedido.fechaEntrega}</p>
-                            <p><strong>Lugar:</strong> ${pedido.lugarEntrega}</p>
+                            ${detallesEntrega}
                             <p><strong>Método de Pago:</strong> ${pedido.metodoPago || 'N/A'}</p>
                             <p><strong>Productos:</strong></p>
                             <ul>${(pedido.productos || []).map(p => `<li>${p.nombre}</li>`).join('')}</ul>
@@ -824,11 +832,10 @@
             }
         }
         
-        // --- LÓGICA DE AGREGAR PRODUCTO (AJUSTADA) ---
         getEl('add-product-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             try {
-                const imageUrl = getEl('product-image-url').value; // Obtener URL del input de texto
+                const imageUrl = getEl('product-image-url').value;
                 if (!imageUrl) { 
                     showMessage('Por favor, ingresa la URL de la imagen.'); 
                     return; 
@@ -837,7 +844,7 @@
                 await db.collection('productos').add({
                     nombre: getEl('product-name').value,
                     categoria: getEl('product-category').value,
-                    imagenUrl: imageUrl, // Guardar la URL directamente
+                    imagenUrl: imageUrl,
                     stock: parseInt(getEl('product-stock').value),
                     precio: parseFloat(getEl('product-price').value),
                     cantidadVendida: 0
@@ -858,7 +865,6 @@
                 getEl('edit-product-id').value = id;
                 getEl('edit-name').value = data.nombre;
                 getEl('edit-category').value = data.categoria;
-                // Colocar la URL actual como placeholder y limpiar el valor
                 getEl('edit-image-url').placeholder = data.imagenUrl;
                 getEl('edit-image-url').value = ''; 
                 getEl('edit-stock').value = data.stock;
@@ -867,7 +873,6 @@
             }
         }
 
-        // --- LÓGICA DE EDITAR PRODUCTO (AJUSTADA) ---
         getEl('edit-product-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             const id = getEl('edit-product-id').value;
@@ -880,7 +885,6 @@
                 };
 
                 const newImageUrl = getEl('edit-image-url').value;
-                // Solo actualizar la URL si el usuario escribió una nueva
                 if (newImageUrl && newImageUrl.trim() !== '') {
                     updates.imagenUrl = newImageUrl.trim();
                 }
@@ -889,7 +893,7 @@
                 
                 showMessage('Producto actualizado.');
                 closeEditModal();
-                loadInventory(); // Recargar inventario para ver cambios
+                loadInventory();
             } catch (error) { 
                 console.error(error); 
                 showMessage('Error al actualizar.'); 
@@ -978,6 +982,7 @@
             else if (motivo !== null) showMessage("Debes especificar un motivo para cancelar.");
         }
         
+        // --- HISTORIAL DE VENTAS (ACTUALIZADO) ---
         function loadSalesHistory() {
             const list = getEl('sales-history-list');
             list.innerHTML = '<p>Cargando historial...</p>';
@@ -988,6 +993,9 @@
                 pedidos.forEach(pedido => {
                     const total = pedido.montoTotal || 0;
                     const clienteNombre = `${pedido.datosCliente?.nombre || ''} ${pedido.datosCliente?.apellido || ''}`.trim() || 'N/A';
+                    
+                    const detallesEntrega = generarDetallesEntregaHTML(pedido);
+
                     const item = document.createElement('li');
                     item.className = 'sale-item';
                     item.innerHTML = `
@@ -999,8 +1007,8 @@
                         <div class="sale-details">
                             <p><strong>Cliente:</strong> ${clienteNombre}</p>
                             <p><strong>Teléfono:</strong> ${pedido.datosCliente?.telefono || 'N/A'}</p>
-                            <p><strong>Fecha:</strong> ${pedido.fechaActualizacion?.toDate().toLocaleDateString() || 'N/A'}</p>
-                            <p><strong>Punto de Entrega:</strong> ${pedido.lugarEntrega}</p>
+                            <p><strong>Fecha de Finalización:</strong> ${pedido.fechaActualizacion?.toDate().toLocaleDateString() || 'N/A'}</p>
+                            ${detallesEntrega}
                             <p><strong>Método de Pago:</strong> ${pedido.metodoPago || 'N/A'}</p>
                             <p><strong>Productos:</strong></p>
                             <ul>${(pedido.productos || []).map(p => `<li>${p.nombre}</li>`).join('')}</ul>
@@ -1409,19 +1417,16 @@
                 
                 const batch = db.batch();
                 
-                // Revertir stock
                 restockData.items.forEach(item => {
                     const productRef = db.collection('productos').doc(item.id);
                     batch.update(productRef, { stock: firebase.firestore.FieldValue.increment(-item.cantidad) });
                 });
                 
-                // Revertir finanzas
                 const finanzasRef = db.collection('finanzas').doc('resumen');
                 batch.update(finanzasRef, {
                     capital: firebase.firestore.FieldValue.increment(restockData.costoTotal)
                 });
                 
-                // Eliminar el documento de restock
                 batch.delete(db.collection('restocks').doc(id));
                 
                 await batch.commit();
@@ -1485,10 +1490,9 @@
 
         function closeSalesHistoryModal() { getEl('sales-history-modal').style.display = 'none'; }
         
-        // --- MODALES Y MENSAJES ---
         function showMessage(text) { 
             const msgBox = getEl('message-box');
-            if (!msgBox) { // Fallback por si el elemento no está en el DOM aún
+            if (!msgBox) {
                 alert(text);
                 return;
             }
@@ -1505,7 +1509,7 @@
                     await db.collection('productos').doc(productToDeleteId).delete();
                     showMessage('Producto eliminado.');
                     cancelAction();
-                    loadInventory(); // Recargar inventario para ver el cambio
+                    loadInventory();
                 } catch (error) { showMessage('Error al eliminar.'); }
             }
         }
