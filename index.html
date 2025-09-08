@@ -82,23 +82,32 @@
             position: relative;
         }
 
-        /* --- Menú de Navegación --- */
+        /* --- Menú de Navegación (Logout Icon) --- */
         .admin-nav {
             position: absolute;
             top: 15px;
             right: 15px;
+            z-index: 10;
         }
-        .admin-nav .btn {
+        .btn-icon {
             background-color: var(--surface-color);
             color: var(--text-secondary);
-            font-size: 0.9em;
-            padding: 8px 12px;
             border: none;
-            border-radius: var(--border-radius-sm);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
             cursor: pointer;
             transition: all 0.2s ease;
+            padding: 0;
         }
-        .admin-nav .btn:hover {
+        .btn-icon svg {
+            width: 20px;
+            height: 20px;
+        }
+        .btn-icon:hover {
             background-color: var(--status-red);
             color: var(--text-primary);
         }
@@ -352,7 +361,11 @@
 
     <div class="container">
         <div class="admin-nav">
-            <button class="btn" onclick="logout()">Cerrar Sesión</button>
+            <button class="btn-icon" onclick="logout()" title="Cerrar Sesión">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="24" height="24">
+                    <path fill-rule="evenodd" d="M7.5 3.75A1.5 1.5 0 006 5.25v13.5a1.5 1.5 0 001.5 1.5h6a1.5 1.5 0 001.5-1.5V15a.75.75 0 011.5 0v3.75a3 3 0 01-3 3h-6a3 3 0 01-3-3V5.25a3 3 0 013-3h6a3 3 0 013 3V9A.75.75 0 0115 9V5.25a1.5 1.5 0 00-1.5-1.5h-6zm10.72 4.72a.75.75 0 011.06 0l3 3a.75.75 0 010 1.06l-3 3a.75.75 0 11-1.06-1.06l1.72-1.72H9a.75.75 0 010-1.5h10.94l-1.72-1.72a.75.75 0 010-1.06z" clip-rule="evenodd" />
+                </svg>
+            </button>
         </div>
 
         <section id="login-screen" style="display: block;">
@@ -395,8 +408,8 @@
                     <option value="KalCTas3-4">KalCTas 3/4</option>
                     <option value="KalCTasLargas">KalCTas Largas</option>
                 </select>
-                <label for="product-image-file" style="text-align: left; margin-top: 10px;">Subir imagen:</label>
-                <input type="file" id="product-image-file" accept="image/*" required>
+                <label for="product-image-url" style="text-align: left; margin-top: 10px;">URL de la imagen:</label>
+                <input type="text" id="product-image-url" placeholder="Ej: assets/KalCTas2-4/modelo.png" required>
                 <input type="number" id="product-stock" placeholder="Inventario" required>
                 <input type="number" id="product-price" placeholder="Precio" step="0.01" required>
                 <button type="submit">Guardar Producto</button>
@@ -509,8 +522,8 @@
                         <option value="KalCTas3-4">KalCTas 3/4</option>
                         <option value="KalCTasLargas">KalCTas Largas</option>
                     </select>
-                    <label for="edit-image-file">Cambiar imagen:</label>
-                    <input type="file" id="edit-image-file" accept="image/*">
+                    <label for="edit-image-url">Cambiar URL de imagen (opcional):</label>
+                    <input type="text" id="edit-image-url">
                     <label for="edit-stock">Stock:</label>
                     <input type="number" id="edit-stock" required>
                     <label for="edit-price">Precio:</label>
@@ -552,7 +565,6 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <script>
-        // TODO: TU CÓDIGO JAVASCRIPT ORIGINAL VA AQUÍ (SIN NINGÚN CAMBIO)
         // --- INICIO: CÓDIGO AÑADIDO PARA REGISTRAR EL SERVICE WORKER ---
         if ('serviceWorker' in navigator) {
           window.addEventListener('load', () => {
@@ -674,46 +686,34 @@
         }
         
         // 2. Lógica para Permisos y Notificaciones
-        // REEMPLAZA TU FUNCIÓN ANTIGUA CON ESTA VERSIÓN CORREGIDA
-
-async function solicitarPermisoNotificaciones() {
-    try {
-        const permission = await Notification.requestPermission();
-        if (permission === 'granted') {
-            console.log('Permiso para notificaciones concedido.');
-
-            // --- INICIO DEL CAMBIO IMPORTANTE ---
-            
-            // 1. Esperamos a que nuestro Service Worker ('sw.js') esté listo y activo.
-            //    Esto nos da el objeto de registro que necesitamos.
-            const swRegistration = await navigator.serviceWorker.ready;
-            console.log('Nuestro Service Worker está listo:', swRegistration);
-
-            // 2. Pasamos explícitamente nuestro Service Worker a la función getToken().
-            //    Esto evita que Firebase busque el archivo 'firebase-messaging-sw.js' por defecto.
-            const token = await messaging.getToken({ 
-                vapidKey: vapidKey,
-                serviceWorkerRegistration: swRegistration  // <--- ¡Esta es la línea clave!
-            });
-            
-            // --- FIN DEL CAMBIO IMPORTANTE ---
-
-            if (token) {
-                console.log('Token FCM obtenido:', token);
-                const tokenRef = db.collection('admin_devices').doc(token);
-                await tokenRef.set({
-                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                    userAgent: navigator.userAgent
-                });
-                console.log('Token guardado en Firestore.');
+        async function solicitarPermisoNotificaciones() {
+            try {
+                const permission = await Notification.requestPermission();
+                if (permission === 'granted') {
+                    console.log('Permiso para notificaciones concedido.');
+                    const swRegistration = await navigator.serviceWorker.ready;
+                    console.log('Nuestro Service Worker está listo:', swRegistration);
+                    const token = await messaging.getToken({ 
+                        vapidKey: vapidKey,
+                        serviceWorkerRegistration: swRegistration
+                    });
+                    
+                    if (token) {
+                        console.log('Token FCM obtenido:', token);
+                        const tokenRef = db.collection('admin_devices').doc(token);
+                        await tokenRef.set({
+                            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                            userAgent: navigator.userAgent
+                        });
+                        console.log('Token guardado en Firestore.');
+                    }
+                } else {
+                    console.log('Permiso para notificaciones denegado.');
+                }
+            } catch (error) {
+                console.error('Error al obtener el permiso o el token de FCM:', error);
             }
-        } else {
-            console.log('Permiso para notificaciones denegado.');
         }
-    } catch (error) {
-        console.error('Error al obtener el permiso o el token de FCM:', error);
-    }
-}
         messaging.onMessage((payload) => {
             console.log('Mensaje recibido en primer plano: ', payload);
             const sound = getEl('notification-sound');
@@ -800,7 +800,7 @@ async function solicitarPermisoNotificaciones() {
                         detailsDiv.className = 'product-details';
                         detailsDiv.innerHTML = `
                             <div class="product-image-container">
-                                <img src="${product.imagenUrl}" alt="${product.nombre}" onerror="this.src='https://via.placeholder.com/100?text=No+Image';">
+                                <img src="${product.imagenUrl}" alt="${product.nombre}" onerror="this.style.display='none';">
                             </div>
                             <div class="product-info">
                                 <p><strong>Stock:</strong> ${product.stock}</p>
@@ -824,20 +824,20 @@ async function solicitarPermisoNotificaciones() {
             }
         }
         
+        // --- LÓGICA DE AGREGAR PRODUCTO (AJUSTADA) ---
         getEl('add-product-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             try {
-                const imageFile = getEl('product-image-file').files[0];
-                if (!imageFile) { showMessage('Por favor, selecciona una imagen.'); return; }
-
-                const storageRef = storage.ref(`productos/${getEl('product-category').value}/${imageFile.name}`);
-                const snapshot = await storageRef.put(imageFile);
-                const imageUrl = await snapshot.ref.getDownloadURL();
+                const imageUrl = getEl('product-image-url').value; // Obtener URL del input de texto
+                if (!imageUrl) { 
+                    showMessage('Por favor, ingresa la URL de la imagen.'); 
+                    return; 
+                }
 
                 await db.collection('productos').add({
                     nombre: getEl('product-name').value,
                     categoria: getEl('product-category').value,
-                    imagenUrl: imageUrl,
+                    imagenUrl: imageUrl, // Guardar la URL directamente
                     stock: parseInt(getEl('product-stock').value),
                     precio: parseFloat(getEl('product-price').value),
                     cantidadVendida: 0
@@ -845,7 +845,10 @@ async function solicitarPermisoNotificaciones() {
                 showMessage('¡Producto agregado con éxito!');
                 getEl('add-product-form').reset();
                 showScreen('inventory-screen');
-            } catch (error) { console.error(error); showMessage('Hubo un error al agregar el producto.'); }
+            } catch (error) { 
+                console.error(error); 
+                showMessage('Hubo un error al agregar el producto.'); 
+            }
         });
         
         async function editProduct(id) {
@@ -855,12 +858,16 @@ async function solicitarPermisoNotificaciones() {
                 getEl('edit-product-id').value = id;
                 getEl('edit-name').value = data.nombre;
                 getEl('edit-category').value = data.categoria;
+                // Colocar la URL actual como placeholder y limpiar el valor
+                getEl('edit-image-url').placeholder = data.imagenUrl;
+                getEl('edit-image-url').value = ''; 
                 getEl('edit-stock').value = data.stock;
                 getEl('edit-price').value = data.precio;
                 getEl('edit-modal').style.display = 'flex';
             }
         }
 
+        // --- LÓGICA DE EDITAR PRODUCTO (AJUSTADA) ---
         getEl('edit-product-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             const id = getEl('edit-product-id').value;
@@ -872,19 +879,21 @@ async function solicitarPermisoNotificaciones() {
                     precio: parseFloat(getEl('edit-price').value),
                 };
 
-                const imageFile = getEl('edit-image-file').files[0];
-                if (imageFile) {
-                    const storageRef = storage.ref(`productos/${getEl('edit-category').value}/${imageFile.name}`);
-                    const snapshot = await storageRef.put(imageFile);
-                    updates.imagenUrl = await snapshot.ref.getDownloadURL();
+                const newImageUrl = getEl('edit-image-url').value;
+                // Solo actualizar la URL si el usuario escribió una nueva
+                if (newImageUrl && newImageUrl.trim() !== '') {
+                    updates.imagenUrl = newImageUrl.trim();
                 }
 
                 await db.collection('productos').doc(id).update(updates);
                 
                 showMessage('Producto actualizado.');
                 closeEditModal();
-                showScreen('inventory-screen');
-            } catch (error) { console.error(error); showMessage('Error al actualizar.'); }
+                loadInventory(); // Recargar inventario para ver cambios
+            } catch (error) { 
+                console.error(error); 
+                showMessage('Error al actualizar.'); 
+            }
         });
         
         async function updateOrderStatus(pedidoId, newStatus, event) {
@@ -1496,7 +1505,7 @@ async function solicitarPermisoNotificaciones() {
                     await db.collection('productos').doc(productToDeleteId).delete();
                     showMessage('Producto eliminado.');
                     cancelAction();
-                    showScreen('inventory-screen');
+                    loadInventory(); // Recargar inventario para ver el cambio
                 } catch (error) { showMessage('Error al eliminar.'); }
             }
         }
