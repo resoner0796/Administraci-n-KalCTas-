@@ -275,11 +275,17 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            transition: background-color 0.2s ease;
+            transition: background-color 0.2s ease, opacity 0.2s ease; /* --- MODIFICADO --- */
         }
         .product-item:not(:last-child) { border-bottom: 1px solid var(--border-color); }
         .product-item:hover { background-color: var(--surface-color); }
         .product-item.agotado { color: var(--status-red); }
+
+        /* --- NUEVO: Estilo para productos ocultos --- */
+        .product-item.hidden {
+            opacity: 0.6;
+        }
+
         .product-details { 
             display: none; padding: 20px; background-color: var(--bg-dark-secondary);
             text-align: left; grid-template-columns: 100px 1fr; gap: 20px; align-items: center;
@@ -528,6 +534,12 @@
                     <input type="number" id="edit-stock" required>
                     <label for="edit-price">Precio:</label>
                     <input type="number" id="edit-price" step="0.01" required>
+                    
+                    <div style="display: flex; align-items: center; justify-content: start; margin: 15px 0 10px 0; text-align: left;">
+                        <input type="checkbox" id="edit-visible" style="width: auto; height: auto; margin-right: 10px;">
+                        <label for="edit-visible" style="margin: 0;">Visible en la tienda</label>
+                    </div>
+                    
                     <button type="submit">Guardar Cambios</button>
                 </form>
                 <button class="close-button" onclick="closeEditModal()">Cancelar</button>
@@ -703,7 +715,6 @@
             showMessage(`¡Nuevo Pedido! ${payload.notification.body}`);
         });
 
-        // --- FUNCIÓN PARA GENERAR DETALLES DE ENTREGA (REUTILIZABLE) ---
         function generarDetallesEntregaHTML(pedido) {
             let detallesHTML = '';
             const datosEntrega = pedido.datosEntrega;
@@ -721,7 +732,6 @@
                     }
                 }
             } else {
-                // Fallback para pedidos antiguos sin el objeto datosEntrega
                 detallesHTML += `<p><strong>Fecha Entrega:</strong> ${pedido.fechaEntrega || 'No especificada'}</p>`;
                 detallesHTML += `<p><strong>Lugar:</strong> ${pedido.lugarEntrega || 'No especificado'}</p>`;
             }
@@ -732,7 +742,6 @@
             return detallesHTML;
         }
 
-        // --- LÓGICA DE PEDIDOS (ACTUALIZADA) ---
         function loadOrders() {
             const ordersList = getEl('orders-list');
             ordersList.innerHTML = '<p>Cargando pedidos...</p>';
@@ -774,6 +783,7 @@
             unsubscribes.push(unsubscribe);
         }
         
+        // --- INVENTARIO: FUNCIÓN MODIFICADA ---
         async function loadInventory() {
             const accordionContainer = getEl('inventory-accordion');
             accordionContainer.innerHTML = '<p>Cargando inventario...</p>';
@@ -795,17 +805,28 @@
                     groupDiv.className = 'category-group';
                     groupDiv.innerHTML = `<h3 class="category-title">${category}</h3>`;
                     productsByCategory[category].forEach(product => {
+                        const isVisible = product.visible !== false; // Por defecto es visible si el campo no existe
+                        
                         const itemDiv = document.createElement('div');
                         itemDiv.className = 'product-item';
                         if (product.stock === 0) itemDiv.classList.add('agotado');
+                        if (!isVisible) itemDiv.classList.add('hidden'); // Añade clase si está oculto
+                        
                         itemDiv.innerHTML = `
-                            <span>${product.nombre}</span>
+                            <span>${product.nombre} ${!isVisible ? '<span style="color:var(--status-yellow); font-size:0.8em;">(Oculto)</span>' : ''}</span>
                             <span style="font-size: 0.9em; font-weight: normal;">
                                 ${product.stock > 0 ? `Stock: ${product.stock}` : 'Agotado'}
                             </span>`;
+                        
                         itemDiv.onclick = (e) => e.currentTarget.nextElementSibling.classList.toggle('visible');
+                        
                         const detailsDiv = document.createElement('div');
                         detailsDiv.className = 'product-details';
+                        
+                        // Botón de visibilidad dinámico
+                        const toggleBtnText = isVisible ? 'Ocultar' : 'Mostrar';
+                        const toggleBtnColorClass = isVisible ? 'status-blue' : 'status-green';
+
                         detailsDiv.innerHTML = `
                             <div class="product-image-container">
                                 <img src="${product.imagenUrl}" alt="${product.nombre}" onerror="this.style.display='none';">
@@ -817,10 +838,13 @@
                             </div>
                             <div class="product-actions">
                                 <button class="btn btn-edit">Editar</button>
+                                <button class="btn" style="background-color: var(--${toggleBtnColorClass});" onclick="toggleProductVisibility('${product.id}', ${isVisible})">${toggleBtnText}</button>
                                 <button class="btn btn-delete">Eliminar</button>
                             </div>`;
+                        
                         detailsDiv.querySelector('.btn-edit').onclick = () => editProduct(product.id);
                         detailsDiv.querySelector('.btn-delete').onclick = () => showConfirmModal(product.id);
+
                         groupDiv.appendChild(itemDiv);
                         groupDiv.appendChild(detailsDiv);
                     });
@@ -832,6 +856,22 @@
             }
         }
         
+        // --- NUEVA: Función para Ocultar/Mostrar producto ---
+        async function toggleProductVisibility(productId, isVisible) {
+            const newVisibility = !isVisible;
+            try {
+                await db.collection('productos').doc(productId).update({
+                    visible: newVisibility
+                });
+                showMessage(`Producto ${newVisibility ? 'ahora está VISIBLE' : 'ha sido OCULTADO'}.`);
+                loadInventory(); // Recargar la vista del inventario para reflejar el cambio
+            } catch (error) {
+                console.error("Error al cambiar la visibilidad del producto:", error);
+                showMessage("Hubo un error al actualizar la visibilidad.");
+            }
+        }
+
+        // --- AGREGAR PRODUCTO: FUNCIÓN MODIFICADA ---
         getEl('add-product-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             try {
@@ -847,7 +887,8 @@
                     imagenUrl: imageUrl,
                     stock: parseInt(getEl('product-stock').value),
                     precio: parseFloat(getEl('product-price').value),
-                    cantidadVendida: 0
+                    cantidadVendida: 0,
+                    visible: true // Por defecto, el producto es visible
                 });
                 showMessage('¡Producto agregado con éxito!');
                 getEl('add-product-form').reset();
@@ -858,6 +899,7 @@
             }
         });
         
+        // --- EDITAR PRODUCTO: FUNCIÓN MODIFICADA ---
         async function editProduct(id) {
             const docSnap = await db.collection('productos').doc(id).get();
             if (docSnap.exists) {
@@ -869,10 +911,13 @@
                 getEl('edit-image-url').value = ''; 
                 getEl('edit-stock').value = data.stock;
                 getEl('edit-price').value = data.precio;
+                // Marcar el checkbox según el estado de visibilidad
+                getEl('edit-visible').checked = data.visible !== false;
                 getEl('edit-modal').style.display = 'flex';
             }
         }
 
+        // --- GUARDAR EDICIÓN: FUNCIÓN MODIFICADA ---
         getEl('edit-product-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             const id = getEl('edit-product-id').value;
@@ -882,6 +927,7 @@
                     categoria: getEl('edit-category').value,
                     stock: parseInt(getEl('edit-stock').value),
                     precio: parseFloat(getEl('edit-price').value),
+                    visible: getEl('edit-visible').checked // Guardar el estado del checkbox
                 };
 
                 const newImageUrl = getEl('edit-image-url').value;
@@ -982,7 +1028,6 @@
             else if (motivo !== null) showMessage("Debes especificar un motivo para cancelar.");
         }
         
-        // --- HISTORIAL DE VENTAS (ACTUALIZADO) ---
         function loadSalesHistory() {
             const list = getEl('sales-history-list');
             list.innerHTML = '<p>Cargando historial...</p>';
