@@ -404,11 +404,6 @@
         <section id="inventory-screen" style="display: none;">
             <h1>Inventario de Productos</h1>
             <button onclick="showScreen('add-product-screen')">Agregar Nuevo Producto</button>
-
-            <button id="update-old-products-btn" onclick="actualizarProductosAntiguos()" style="background-color: var(--status-blue); margin-top: 10px; font-size: 0.9em; padding: 12px;">
-                Actualizar Productos Antiguos (Hacer Visibles)
-            </button>
-            
             <div id="inventory-accordion"></div> 
             <button class="close-button" onclick="showScreen('main-menu')">Volver al Menú</button>
         </section>
@@ -1558,48 +1553,6 @@
                     cancelAction();
                     loadInventory();
                 } catch (error) { showMessage('Error al eliminar.'); }
-            }
-        }
-
-        // --- NUEVO: Función para actualizar productos antiguos ---
-        async function actualizarProductosAntiguos() {
-            const btn = document.getElementById('update-old-products-btn');
-            if (!confirm("¿Deseas actualizar todos los productos que no tengan estado de visibilidad? Se marcarán como VISIBLES. Esta acción solo se necesita ejecutar una vez.")) {
-                return;
-            }
-            
-            btn.disabled = true;
-            btn.textContent = 'Actualizando, por favor espera...';
-
-            try {
-                const snapshot = await db.collection('productos').get();
-                const batch = db.batch();
-                let productosActualizados = 0;
-
-                snapshot.forEach(doc => {
-                    const producto = doc.data();
-                    // Chequea si la propiedad 'visible' no existe en el documento
-                    if (producto.visible === undefined) {
-                        batch.update(doc.ref, { visible: true });
-                        productosActualizados++;
-                    }
-                });
-
-                if (productosActualizados > 0) {
-                    await batch.commit();
-                    showMessage(`¡Éxito! Se actualizaron ${productosActualizados} productos.`);
-                } else {
-                    showMessage('Todos tus productos ya estaban actualizados. No se necesitó ninguna acción.');
-                }
-                
-                loadInventory(); // Recargar el inventario para reflejar los cambios
-
-            } catch (error) {
-                console.error("Error al actualizar productos antiguos:", error);
-                showMessage("Hubo un error al intentar actualizar los productos. Revisa la consola para más detalles.");
-            } finally {
-                btn.disabled = false;
-                btn.textContent = 'Actualizar Productos Antiguos (Hacer Visibles)';
             }
         }
     </script>
