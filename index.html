@@ -169,6 +169,12 @@
         button:hover { background-color: var(--primary-accent-hover); }
         button:active { transform: scale(0.98); }
 
+        button:disabled {
+            background-color: var(--status-gray);
+            cursor: not-allowed;
+            transform: none;
+        }
+
         .main-menu-buttons {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -275,13 +281,11 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            transition: background-color 0.2s ease, opacity 0.2s ease; /* --- MODIFICADO --- */
+            transition: background-color 0.2s ease, opacity 0.2s ease;
         }
         .product-item:not(:last-child) { border-bottom: 1px solid var(--border-color); }
         .product-item:hover { background-color: var(--surface-color); }
         .product-item.agotado { color: var(--status-red); }
-
-        /* --- NUEVO: Estilo para productos ocultos --- */
         .product-item.hidden {
             opacity: 0.6;
         }
@@ -400,6 +404,11 @@
         <section id="inventory-screen" style="display: none;">
             <h1>Inventario de Productos</h1>
             <button onclick="showScreen('add-product-screen')">Agregar Nuevo Producto</button>
+
+            <button id="update-old-products-btn" onclick="actualizarProductosAntiguos()" style="background-color: var(--status-blue); margin-top: 10px; font-size: 0.9em; padding: 12px;">
+                Actualizar Productos Antiguos (Hacer Visibles)
+            </button>
+            
             <div id="inventory-accordion"></div> 
             <button class="close-button" onclick="showScreen('main-menu')">Volver al Menú</button>
         </section>
@@ -592,7 +601,7 @@
         // --- FIN: CÓDIGO AÑADIDO ---
 
 
-        // --- CONFIGURACIÓN INICIAL --- (Tu código original intacto)
+        // --- CONFIGURACIÓN INICIAL ---
         const firebaseConfig = {
           apiKey: "AIzaSyDuNHPsYnLD_qmbG2K9ieTIOCX6U4slD1E",
           authDomain: "tienda-kalctas.firebaseapp.com",
@@ -783,7 +792,6 @@
             unsubscribes.push(unsubscribe);
         }
         
-        // --- INVENTARIO: FUNCIÓN MODIFICADA ---
         async function loadInventory() {
             const accordionContainer = getEl('inventory-accordion');
             accordionContainer.innerHTML = '<p>Cargando inventario...</p>';
@@ -805,12 +813,12 @@
                     groupDiv.className = 'category-group';
                     groupDiv.innerHTML = `<h3 class="category-title">${category}</h3>`;
                     productsByCategory[category].forEach(product => {
-                        const isVisible = product.visible !== false; // Por defecto es visible si el campo no existe
+                        const isVisible = product.visible !== false; 
                         
                         const itemDiv = document.createElement('div');
                         itemDiv.className = 'product-item';
                         if (product.stock === 0) itemDiv.classList.add('agotado');
-                        if (!isVisible) itemDiv.classList.add('hidden'); // Añade clase si está oculto
+                        if (!isVisible) itemDiv.classList.add('hidden'); 
                         
                         itemDiv.innerHTML = `
                             <span>${product.nombre} ${!isVisible ? '<span style="color:var(--status-yellow); font-size:0.8em;">(Oculto)</span>' : ''}</span>
@@ -823,7 +831,6 @@
                         const detailsDiv = document.createElement('div');
                         detailsDiv.className = 'product-details';
                         
-                        // Botón de visibilidad dinámico
                         const toggleBtnText = isVisible ? 'Ocultar' : 'Mostrar';
                         const toggleBtnColorClass = isVisible ? 'status-blue' : 'status-green';
 
@@ -856,7 +863,6 @@
             }
         }
         
-        // --- NUEVA: Función para Ocultar/Mostrar producto ---
         async function toggleProductVisibility(productId, isVisible) {
             const newVisibility = !isVisible;
             try {
@@ -864,14 +870,13 @@
                     visible: newVisibility
                 });
                 showMessage(`Producto ${newVisibility ? 'ahora está VISIBLE' : 'ha sido OCULTADO'}.`);
-                loadInventory(); // Recargar la vista del inventario para reflejar el cambio
+                loadInventory();
             } catch (error) {
                 console.error("Error al cambiar la visibilidad del producto:", error);
                 showMessage("Hubo un error al actualizar la visibilidad.");
             }
         }
 
-        // --- AGREGAR PRODUCTO: FUNCIÓN MODIFICADA ---
         getEl('add-product-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             try {
@@ -888,7 +893,7 @@
                     stock: parseInt(getEl('product-stock').value),
                     precio: parseFloat(getEl('product-price').value),
                     cantidadVendida: 0,
-                    visible: true // Por defecto, el producto es visible
+                    visible: true
                 });
                 showMessage('¡Producto agregado con éxito!');
                 getEl('add-product-form').reset();
@@ -899,7 +904,6 @@
             }
         });
         
-        // --- EDITAR PRODUCTO: FUNCIÓN MODIFICADA ---
         async function editProduct(id) {
             const docSnap = await db.collection('productos').doc(id).get();
             if (docSnap.exists) {
@@ -911,13 +915,11 @@
                 getEl('edit-image-url').value = ''; 
                 getEl('edit-stock').value = data.stock;
                 getEl('edit-price').value = data.precio;
-                // Marcar el checkbox según el estado de visibilidad
                 getEl('edit-visible').checked = data.visible !== false;
                 getEl('edit-modal').style.display = 'flex';
             }
         }
 
-        // --- GUARDAR EDICIÓN: FUNCIÓN MODIFICADA ---
         getEl('edit-product-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             const id = getEl('edit-product-id').value;
@@ -927,7 +929,7 @@
                     categoria: getEl('edit-category').value,
                     stock: parseInt(getEl('edit-stock').value),
                     precio: parseFloat(getEl('edit-price').value),
-                    visible: getEl('edit-visible').checked // Guardar el estado del checkbox
+                    visible: getEl('edit-visible').checked
                 };
 
                 const newImageUrl = getEl('edit-image-url').value;
@@ -1503,7 +1505,7 @@
                 });
                 updateChart(salesByDate);
             });
-            unsubscribes.push(unsubscribe);
+            unsubscribes.push(unsub);
         }
         
         function updateChart(salesData) {
@@ -1556,6 +1558,48 @@
                     cancelAction();
                     loadInventory();
                 } catch (error) { showMessage('Error al eliminar.'); }
+            }
+        }
+
+        // --- NUEVO: Función para actualizar productos antiguos ---
+        async function actualizarProductosAntiguos() {
+            const btn = document.getElementById('update-old-products-btn');
+            if (!confirm("¿Deseas actualizar todos los productos que no tengan estado de visibilidad? Se marcarán como VISIBLES. Esta acción solo se necesita ejecutar una vez.")) {
+                return;
+            }
+            
+            btn.disabled = true;
+            btn.textContent = 'Actualizando, por favor espera...';
+
+            try {
+                const snapshot = await db.collection('productos').get();
+                const batch = db.batch();
+                let productosActualizados = 0;
+
+                snapshot.forEach(doc => {
+                    const producto = doc.data();
+                    // Chequea si la propiedad 'visible' no existe en el documento
+                    if (producto.visible === undefined) {
+                        batch.update(doc.ref, { visible: true });
+                        productosActualizados++;
+                    }
+                });
+
+                if (productosActualizados > 0) {
+                    await batch.commit();
+                    showMessage(`¡Éxito! Se actualizaron ${productosActualizados} productos.`);
+                } else {
+                    showMessage('Todos tus productos ya estaban actualizados. No se necesitó ninguna acción.');
+                }
+                
+                loadInventory(); // Recargar el inventario para reflejar los cambios
+
+            } catch (error) {
+                console.error("Error al actualizar productos antiguos:", error);
+                showMessage("Hubo un error al intentar actualizar los productos. Revisa la consola para más detalles.");
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Actualizar Productos Antiguos (Hacer Visibles)';
             }
         }
     </script>
