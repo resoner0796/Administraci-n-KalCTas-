@@ -1,1560 +1,1634 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KalCTas Admin</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KalCTas Admin</title>
 
-    <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#1a1a2e">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#1a1a2e">
 
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="KalCTas Admin">
-    <link rel="apple-touch-icon" href="icon-192x192.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="KalCTas Admin">
+    <link rel="apple-touch-icon" href="icon-192x192.png">
 
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
 
-    <style>
-        /* =================================================================
-           NUEVO DISEÑO MODERNO - TEMA OSCURO by Gemini ✨
-           ================================================================= */
-        
-        :root {
-            --bg-dark-primary: #1a1a2e;
-            --bg-dark-secondary: #2a2a3e;
-            --surface-color: #3a3a5e;
-            --primary-accent: #6366f1; /* Indigo */
-            --primary-accent-hover: #4f46e5;
-            --text-primary: #f0f0f5;
-            --text-secondary: #a0a0b8;
-            --border-color: #4a4a6e;
-            
-            --status-green: #34d399;
-            --status-yellow: #f59e0b;
-            --status-blue: #3b82f6;
-            --status-red: #ef4444;
-            --status-gray: #6b7280;
-            
-            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.1);
-            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.2), 0 2px 4px -1px rgba(0, 0, 0, 0.15);
-            --border-radius-md: 12px;
-            --border-radius-sm: 8px;
-        }
+    <style>
+        /* =================================================================
+           NUEVO DISEÑO MODERNO - TEMA OSCURO by Gemini ✨
+           ================================================================= */
+        
+        :root {
+            --bg-dark-primary: #1a1a2e;
+            --bg-dark-secondary: #2a2a3e;
+            --surface-color: #3a3a5e;
+            --primary-accent: #6366f1; /* Indigo */
+            --primary-accent-hover: #4f46e5;
+            --text-primary: #f0f0f5;
+            --text-secondary: #a0a0b8;
+            --border-color: #4a4a6e;
+            
+            --status-green: #34d399;
+            --status-yellow: #f59e0b;
+            --status-blue: #3b82f6;
+            --status-red: #ef4444;
+            --status-gray: #6b7280;
+            
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.1);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.2), 0 2px 4px -1px rgba(0, 0, 0, 0.15);
+            --border-radius-md: 12px;
+            --border-radius-sm: 8px;
+        }
 
-        *, *::before, *::after {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
+        *, *::before, *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
 
-        /* Estilos generales */
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: var(--bg-dark-primary);
-            color: var(--text-primary);
-            display: flex;
-            justify-content: center;
-            align-items: flex-start; /* Alinea al inicio para pantallas largas */
-            min-height: 100vh;
-            padding: 20px;
-        }
+        /* Estilos generales */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-dark-primary);
+            color: var(--text-primary);
+            display: flex;
+            justify-content: center;
+            align-items: flex-start; /* Alinea al inicio para pantallas largas */
+            min-height: 100vh;
+            padding: 20px;
+        }
 
-        /* Scrollbar personalizado */
-        ::-webkit-scrollbar { width: 8px; }
-        ::-webkit-scrollbar-track { background: var(--bg-dark-secondary); }
-        ::-webkit-scrollbar-thumb { background: var(--surface-color); border-radius: 4px; }
-        ::-webkit-scrollbar-thumb:hover { background: var(--primary-accent); }
+        /* Scrollbar personalizado */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: var(--bg-dark-secondary); }
+        ::-webkit-scrollbar-thumb { background: var(--surface-color); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--primary-accent); }
 
-        .container {
-            background-color: var(--bg-dark-secondary);
-            padding: 30px 40px;
-            border-radius: var(--border-radius-md);
-            border: 1px solid var(--border-color);
-            box-shadow: var(--shadow-md);
-            max-width: 950px;
-            width: 100%;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            position: relative;
-        }
+        .container {
+            background-color: var(--bg-dark-secondary);
+            padding: 30px 40px;
+            border-radius: var(--border-radius-md);
+            border: 1px solid var(--border-color);
+            box-shadow: var(--shadow-md);
+            max-width: 950px;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+        }
 
-        /* --- Menú de Navegación (Logout Icon) --- */
-        .admin-nav {
-            position: absolute;
-            top: 15px;
-            right: 15px;
-            z-index: 10;
-        }
-        .btn-icon {
-            background-color: var(--surface-color);
-            color: var(--text-secondary);
-            border: none;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            padding: 0;
-        }
-        .btn-icon svg {
-            width: 20px;
-            height: 20px;
-        }
-        .btn-icon:hover {
-            background-color: var(--status-red);
-            color: var(--text-primary);
-        }
+        /* --- Menú de Navegación (Logout Icon) --- */
+        .admin-nav {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            z-index: 10;
+        }
+        .btn-icon {
+            background-color: var(--surface-color);
+            color: var(--text-secondary);
+            border: none;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            padding: 0;
+        }
+        .btn-icon svg {
+            width: 20px;
+            height: 20px;
+        }
+        .btn-icon:hover {
+            background-color: var(--status-red);
+            color: var(--text-primary);
+        }
 
-        h1, h2 {
-            color: var(--text-primary);
-            text-align: center;
-            margin-bottom: 25px;
-            font-weight: 700;
-        }
-        h1 { font-size: 1.8em; }
-        h2 { 
-            font-size: 1.5em; 
-            border-bottom: 1px solid var(--border-color);
-            padding-bottom: 15px;
-            width: 100%;
-        }
-        
-        .logo-container { margin-bottom: 20px; }
-        .logo { max-width: 200px; height: auto; }
+        h1, h2 {
+            color: var(--text-primary);
+            text-align: center;
+            margin-bottom: 25px;
+            font-weight: 700;
+        }
+        h1 { font-size: 1.8em; }
+        h2 { 
+            font-size: 1.5em; 
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 15px;
+            width: 100%;
+        }
+        
+        .logo-container { margin-bottom: 20px; }
+        .logo { max-width: 200px; height: auto; }
 
-        form {
-            width: 100%;
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-        }
+        form {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
 
-        input, select, textarea {
-            padding: 14px;
-            border-radius: var(--border-radius-sm);
-            border: 1px solid var(--border-color);
-            font-size: 1em;
-            background-color: var(--bg-dark-primary);
-            color: var(--text-primary);
-            width: 100%;
-            transition: border-color 0.2s ease, box-shadow 0.2s ease;
-        }
-        input:focus, select:focus, textarea:focus {
-            outline: none;
-            border-color: var(--primary-accent);
-            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.3);
-        }
-        
-        textarea { resize: vertical; min-height: 100px; }
-        
-        /* Botones Principales */
-        button {
-            padding: 15px;
-            border: none;
-            border-radius: var(--border-radius-sm);
-            font-size: 1.1em;
-            font-weight: 500;
-            color: var(--text-primary);
-            cursor: pointer;
-            background-color: var(--primary-accent);
-            transition: background-color 0.2s ease, transform 0.1s ease;
-        }
-        button:hover { background-color: var(--primary-accent-hover); }
-        button:active { transform: scale(0.98); }
+        input, select, textarea {
+            padding: 14px;
+            border-radius: var(--border-radius-sm);
+            border: 1px solid var(--border-color);
+            font-size: 1em;
+            background-color: var(--bg-dark-primary);
+            color: var(--text-primary);
+            width: 100%;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: var(--primary-accent);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.3);
+        }
+        
+        textarea { resize: vertical; min-height: 100px; }
+        
+        /* Botones Principales */
+        button {
+            padding: 15px;
+            border: none;
+            border-radius: var(--border-radius-sm);
+            font-size: 1.1em;
+            font-weight: 500;
+            color: var(--text-primary);
+            cursor: pointer;
+            background-color: var(--primary-accent);
+            transition: background-color 0.2s ease, transform 0.1s ease;
+        }
+        button:hover { background-color: var(--primary-accent-hover); }
+        button:active { transform: scale(0.98); }
 
-        button:disabled {
-            background-color: var(--status-gray);
-            cursor: not-allowed;
-            transform: none;
-        }
+        button:disabled {
+            background-color: var(--status-gray);
+            cursor: not-allowed;
+            transform: none;
+        }
 
-        .main-menu-buttons {
+        .main-menu-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            width: 100%;
+        }
+
+        .main-menu-buttons button {
+            background-color: var(--surface-color);
+            padding: 20px;
+            font-size: 1.1em;
+            text-align: left;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            transition: all 0.2s ease;
+        }
+        .main-menu-buttons button:hover {
+            background-color: var(--primary-accent);
+            color: var(--text-primary);
+            transform: translateY(-3px);
+            box-shadow: var(--shadow-md);
+        }
+
+        /* --- NUEVO: Estilos para la pantalla de temas --- */
+        .theme-buttons {
             display: grid;
-            grid-template-columns: 1fr 1fr;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
             gap: 15px;
             width: 100%;
+            margin: 25px 0;
         }
-
-        .main-menu-buttons button {
+        .theme-buttons button {
             background-color: var(--surface-color);
             padding: 20px;
-            font-size: 1.1em;
-            text-align: left;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            transition: all 0.2s ease;
         }
-        .main-menu-buttons button:hover {
+        .theme-buttons button:hover {
+            background-color: var(--primary-accent-hover);
+        }
+        #current-theme-status {
             background-color: var(--primary-accent);
             color: var(--text-primary);
-            transform: translateY(-3px);
-            box-shadow: var(--shadow-md);
+            padding: 6px 12px;
+            border-radius: var(--border-radius-sm);
+            font-weight: bold;
+            display: inline-block;
+            margin-left: 10px;
+            text-transform: capitalize;
         }
-
-        /* --- Estilos para tablas --- */
-        .table-container { width: 100%; overflow-x: auto; margin-top: 20px; }
-        #supplies-table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 0.95em;
-        }
-        #supplies-table th, #supplies-table td {
-            padding: 12px 15px;
-            text-align: left;
-            border-bottom: 1px solid var(--border-color);
-        }
-        #supplies-table th {
-            background-color: var(--bg-dark-primary);
-            font-weight: 500;
+        #theme-screen p {
+            font-size: 1.1em;
             color: var(--text-secondary);
         }
-        #supplies-table tbody tr:hover { background-color: var(--bg-dark-primary); }
 
-        /* Botones de acción (Editar/Eliminar) */
-        .btn-edit { background-color: var(--status-yellow); }
-        .btn-edit:hover { background-color: #d97706; }
-        .btn-delete { background-color: var(--status-red); }
-        .btn-delete:hover { background-color: #dc2626; }
-        .actions-cell button { padding: 6px 12px; font-size: 0.85em; margin-right: 5px; }
+        /* --- Estilos para tablas --- */
+        .table-container { width: 100%; overflow-x: auto; margin-top: 20px; }
+        #supplies-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.95em;
+        }
+        #supplies-table th, #supplies-table td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+        }
+        #supplies-table th {
+            background-color: var(--bg-dark-primary);
+            font-weight: 500;
+            color: var(--text-secondary);
+        }
+        #supplies-table tbody tr:hover { background-color: var(--bg-dark-primary); }
 
-        /* --- Estilos para listas (Pedidos, Ventas) --- */
-        #orders-list, #sales-list, #sales-history-list, .card-list { 
-            list-style: none; padding: 0; width: 100%; margin-top: 20px; 
-        }
-        .order-item, .sale-item, .sales-history-item, .card-item { 
-            background-color: var(--bg-dark-primary);
-            border: 1px solid var(--border-color);
-            border-radius: var(--border-radius-md); 
-            margin-bottom: 12px;
-            transition: all 0.2s ease; 
-        }
-        .order-item:hover, .sale-item:hover, .sales-history-item:hover, .card-item:hover {
-             border-color: var(--primary-accent);
-             transform: translateY(-2px);
-             box-shadow: var(--shadow-sm);
-        }
-        .order-summary, .sale-summary, .sales-summary { 
-            display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; 
-            font-weight: 500; font-size: 1.1em; cursor: pointer; padding: 15px 20px;
-        }
-        .order-details, .sale-details, .sales-details { 
-            display: none; border-top: 1px solid var(--border-color); 
-            padding: 20px; margin: 0; 
-        }
-        .order-details p, .sale-details p { margin: 8px 0; color: var(--text-secondary); }
-        .order-details p strong, .sale-details p strong { color: var(--text-primary); }
+        /* Botones de acción (Editar/Eliminar) */
+        .btn-edit { background-color: var(--status-yellow); }
+        .btn-edit:hover { background-color: #d97706; }
+        .btn-delete { background-color: var(--status-red); }
+        .btn-delete:hover { background-color: #dc2626; }
+        .actions-cell button { padding: 6px 12px; font-size: 0.85em; margin-right: 5px; }
 
-        /* Etiquetas de estado */
-        .order-status { 
-            font-size: 0.8em; font-weight: 500; 
-            padding: 4px 10px; border-radius: 99px; /* Pill shape */
-        }
-        .status-Confirmado { background-color: var(--status-blue); color: #fff; }
-        .status-Entregado { background-color: var(--status-green); color: #fff; }
-        .status-Pendiente { background-color: var(--status-yellow); color: #111; }
-        .status-Cancelado { background-color: var(--status-red); color: #fff; }
+        /* --- Estilos para listas (Pedidos, Ventas) --- */
+        #orders-list, #sales-list, #sales-history-list, .card-list { 
+            list-style: none; padding: 0; width: 100%; margin-top: 20px; 
+        }
+        .order-item, .sale-item, .sales-history-item, .card-item { 
+            background-color: var(--bg-dark-primary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius-md); 
+            margin-bottom: 12px;
+            transition: all 0.2s ease; 
+        }
+        .order-item:hover, .sale-item:hover, .sales-history-item:hover, .card-item:hover {
+             border-color: var(--primary-accent);
+             transform: translateY(-2px);
+             box-shadow: var(--shadow-sm);
+        }
+        .order-summary, .sale-summary, .sales-summary { 
+            display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; 
+            font-weight: 500; font-size: 1.1em; cursor: pointer; padding: 15px 20px;
+        }
+        .order-details, .sale-details, .sales-details { 
+            display: none; border-top: 1px solid var(--border-color); 
+            padding: 20px; margin: 0; 
+        }
+        .order-details p, .sale-details p { margin: 8px 0; color: var(--text-secondary); }
+        .order-details p strong, .sale-details p strong { color: var(--text-primary); }
 
-        /* --- Inventario Acordeón --- */
-        #inventory-accordion { width: 100%; margin-top: 20px; }
-        .category-group { 
-            background-color: var(--bg-dark-primary); 
-            border: 1px solid var(--border-color);
-            border-radius: var(--border-radius-md); 
-            margin-bottom: 15px; 
-        }
-        .category-title { 
-            font-size: 1.2em; font-weight: 700; padding: 15px 20px; text-align: left;
-            border-bottom: 1px solid var(--border-color);
-        }
-        .product-item { 
-            padding: 15px 20px; 
-            cursor: pointer; 
-            font-weight: 500; 
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            transition: background-color 0.2s ease, opacity 0.2s ease;
-        }
-        .product-item:not(:last-child) { border-bottom: 1px solid var(--border-color); }
-        .product-item:hover { background-color: var(--surface-color); }
-        .product-item.agotado { color: var(--status-red); }
-        .product-item.hidden {
-            opacity: 0.6;
-        }
+        /* Etiquetas de estado */
+        .order-status { 
+            font-size: 0.8em; font-weight: 500; 
+            padding: 4px 10px; border-radius: 99px; /* Pill shape */
+        }
+        .status-Confirmado { background-color: var(--status-blue); color: #fff; }
+        .status-Entregado { background-color: var(--status-green); color: #fff; }
+        .status-Pendiente { background-color: var(--status-yellow); color: #111; }
+        .status-Cancelado { background-color: var(--status-red); color: #fff; }
 
-        .product-details { 
-            display: none; padding: 20px; background-color: var(--bg-dark-secondary);
-            text-align: left; grid-template-columns: 100px 1fr; gap: 20px; align-items: center;
-        }
-        .product-details.visible { display: grid; }
-        .product-details img { max-width: 100%; height: auto; border-radius: var(--border-radius-sm); }
-        .product-info p { margin: 0 0 8px 0; font-size: 0.95em; color: var(--text-secondary); }
-        .product-info strong { color: var(--text-primary); display: inline-block; width: 100px; }
-        .product-actions { 
-            grid-column: 1 / -1; padding-top: 15px; display: flex; 
-            gap: 10px; border-top: 1px solid var(--border-color); margin-top: 15px;
-        }
-        .product-actions button { padding: 8px 15px; font-size: 0.9em; }
+        /* --- Inventario Acordeón --- */
+        #inventory-accordion { width: 100%; margin-top: 20px; }
+        .category-group { 
+            background-color: var(--bg-dark-primary); 
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius-md); 
+            margin-bottom: 15px; 
+        }
+        .category-title { 
+            font-size: 1.2em; font-weight: 700; padding: 15px 20px; text-align: left;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .product-item { 
+            padding: 15px 20px; 
+            cursor: pointer; 
+            font-weight: 500; 
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: background-color 0.2s ease, opacity 0.2s ease;
+        }
+        .product-item:not(:last-child) { border-bottom: 1px solid var(--border-color); }
+        .product-item:hover { background-color: var(--surface-color); }
+        .product-item.agotado { color: var(--status-red); }
+        .product-item.hidden {
+            opacity: 0.6;
+        }
 
-        /* --- Modales --- */
-        .message-box, .edit-modal, .confirm-modal, .sales-history-modal { 
-            display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; 
-            background-color: rgba(10, 10, 20, 0.5);
-            backdrop-filter: blur(8px);
-            justify-content: center; align-items: center; padding: 15px;
-        }
-        .modal-content { 
-            background-color: var(--bg-dark-secondary); 
-            padding: 30px; border-radius: var(--border-radius-md); 
-            border: 1px solid var(--border-color);
-            box-shadow: var(--shadow-md); 
-            text-align: center; color: var(--text-primary); 
-            max-width: 500px; width: 100%;
-        }
-        .close-button { margin-top: 20px; background-color: var(--surface-color); }
-        .confirm-buttons { display: flex; justify-content: center; gap: 15px; margin-top: 20px; }
-        .btn-yes { background-color: var(--status-green); }
-        .btn-yes:hover { background-color: #15803d; }
-        .btn-no { background-color: var(--status-red); }
-        .btn-no:hover { background-color: #b91c1c; }
+        .product-details { 
+            display: none; padding: 20px; background-color: var(--bg-dark-secondary);
+            text-align: left; grid-template-columns: 100px 1fr; gap: 20px; align-items: center;
+        }
+        .product-details.visible { display: grid; }
+        .product-details img { max-width: 100%; height: auto; border-radius: var(--border-radius-sm); }
+        .product-info p { margin: 0 0 8px 0; font-size: 0.95em; color: var(--text-secondary); }
+        .product-info strong { color: var(--text-primary); display: inline-block; width: 100px; }
+        .product-actions { 
+            grid-column: 1 / -1; padding-top: 15px; display: flex; 
+            gap: 10px; border-top: 1px solid var(--border-color); margin-top: 15px;
+        }
+        .product-actions button { padding: 8px 15px; font-size: 0.9em; }
 
-        /* --- Panel Financiero --- */
-        .finance-panel { 
-            display: grid; grid-template-columns: repeat(2, 1fr); 
-            gap: 15px; width: 100%; margin-bottom: 30px; 
-        }
-        .finance-card { 
-            background: linear-gradient(145deg, var(--surface-color), var(--bg-dark-primary));
-            padding: 20px; border-radius: var(--border-radius-md); 
-            cursor: pointer; transition: all 0.2s ease;
-            border: 1px solid var(--border-color);
-        }
-        .finance-card:hover { transform: translateY(-5px); box-shadow: var(--shadow-md); border-color: var(--primary-accent); }
-        .finance-card h3 { margin-top: 0; font-size: 1em; color: var(--text-secondary); }
-        .finance-card p { margin: 5px 0 0; font-size: 1.8em; font-weight: 700; color: var(--text-primary); }
+        /* --- Modales --- */
+        .message-box, .edit-modal, .confirm-modal, .sales-history-modal { 
+            display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; 
+            background-color: rgba(10, 10, 20, 0.5);
+            backdrop-filter: blur(8px);
+            justify-content: center; align-items: center; padding: 15px;
+        }
+        .modal-content { 
+            background-color: var(--bg-dark-secondary); 
+            padding: 30px; border-radius: var(--border-radius-md); 
+            border: 1px solid var(--border-color);
+            box-shadow: var(--shadow-md); 
+            text-align: center; color: var(--text-primary); 
+            max-width: 500px; width: 100%;
+        }
+        .close-button { margin-top: 20px; background-color: var(--surface-color); }
+        .confirm-buttons { display: flex; justify-content: center; gap: 15px; margin-top: 20px; }
+        .btn-yes { background-color: var(--status-green); }
+        .btn-yes:hover { background-color: #15803d; }
+        .btn-no { background-color: var(--status-red); }
+        .btn-no:hover { background-color: #b91c1c; }
 
-        /* --- Botón Instalar PWA --- */
-        #install-app-button {
-            display: none; /* JS lo mostrará */
-            background-color: var(--status-green);
-            grid-column: 1 / -1; /* Ocupa todo el ancho en el grid */
-        }
-        #install-app-button:hover { background-color: #15803d; }
-        
-        .amount-positive { color: var(--status-green); }
-        .amount-negative { color: var(--status-red); }
+        /* --- Panel Financiero --- */
+        .finance-panel { 
+            display: grid; grid-template-columns: repeat(2, 1fr); 
+            gap: 15px; width: 100%; margin-bottom: 30px; 
+        }
+        .finance-card { 
+            background: linear-gradient(145deg, var(--surface-color), var(--bg-dark-primary));
+            padding: 20px; border-radius: var(--border-radius-md); 
+            cursor: pointer; transition: all 0.2s ease;
+            border: 1px solid var(--border-color);
+        }
+        .finance-card:hover { transform: translateY(-5px); box-shadow: var(--shadow-md); border-color: var(--primary-accent); }
+        .finance-card h3 { margin-top: 0; font-size: 1em; color: var(--text-secondary); }
+        .finance-card p { margin: 5px 0 0; font-size: 1.8em; font-weight: 700; color: var(--text-primary); }
 
-        /* Responsividad */
-        @media (max-width: 768px) {
-            body { padding: 10px; }
-            .container { padding: 20px; }
-            h1 { font-size: 1.5em; }
-            .main-menu-buttons { grid-template-columns: 1fr; }
-            .finance-panel { grid-template-columns: 1fr; }
-            .product-details { grid-template-columns: 80px 1fr; }
-            .restock-line { grid-template-columns: 1fr; gap: 8px; padding-bottom: 15px; border-bottom: 1px solid var(--border-color); }
-            .restock-line button { width: 100%; background-color: var(--status-red); }
-        }
-    </style>
+        /* --- Botón Instalar PWA --- */
+        #install-app-button {
+            display: none; /* JS lo mostrará */
+            background-color: var(--status-green);
+            grid-column: 1 / -1; /* Ocupa todo el ancho en el grid */
+        }
+        #install-app-button:hover { background-color: #15803d; }
+        
+        .amount-positive { color: var(--status-green); }
+        .amount-negative { color: var(--status-red); }
+
+        /* Responsividad */
+        @media (max-width: 768px) {
+            body { padding: 10px; }
+            .container { padding: 20px; }
+            h1 { font-size: 1.5em; }
+            .main-menu-buttons { grid-template-columns: 1fr; }
+            .finance-panel { grid-template-columns: 1fr; }
+            .product-details { grid-template-columns: 80px 1fr; }
+            .restock-line { grid-template-columns: 1fr; gap: 8px; padding-bottom: 15px; border-bottom: 1px solid var(--border-color); }
+            .restock-line button { width: 100%; background-color: var(--status-red); }
+        }
+    </style>
 </head>
 <body>
 
-    <audio id="notification-sound" src="notification.mp3" preload="auto"></audio>
+    <audio id="notification-sound" src="notification.mp3" preload="auto"></audio>
 
-    <div class="container">
-        <div class="admin-nav">
-            <button class="btn-icon" onclick="logout()" title="Cerrar Sesión">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="24" height="24">
-                    <path fill-rule="evenodd" d="M7.5 3.75A1.5 1.5 0 006 5.25v13.5a1.5 1.5 0 001.5 1.5h6a1.5 1.5 0 001.5-1.5V15a.75.75 0 011.5 0v3.75a3 3 0 01-3 3h-6a3 3 0 01-3-3V5.25a3 3 0 013-3h6a3 3 0 013 3V9A.75.75 0 0115 9V5.25a1.5 1.5 0 00-1.5-1.5h-6zm10.72 4.72a.75.75 0 011.06 0l3 3a.75.75 0 010 1.06l-3 3a.75.75 0 11-1.06-1.06l1.72-1.72H9a.75.75 0 010-1.5h10.94l-1.72-1.72a.75.75 0 010-1.06z" clip-rule="evenodd" />
-                </svg>
-            </button>
-        </div>
+    <div class="container">
+        <div class="admin-nav">
+            <button class="btn-icon" onclick="logout()" title="Cerrar Sesión">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="24" height="24">
+                    <path fill-rule="evenodd" d="M7.5 3.75A1.5 1.5 0 006 5.25v13.5a1.5 1.5 0 001.5 1.5h6a1.5 1.5 0 001.5-1.5V15a.75.75 0 011.5 0v3.75a3 3 0 01-3 3h-6a3 3 0 01-3-3V5.25a3 3 0 013-3h6a3 3 0 013 3V9A.75.75 0 0115 9V5.25a1.5 1.5 0 00-1.5-1.5h-6zm10.72 4.72a.75.75 0 011.06 0l3 3a.75.75 0 010 1.06l-3 3a.75.75 0 11-1.06-1.06l1.72-1.72H9a.75.75 0 010-1.5h10.94l-1.72-1.72a.75.75 0 010-1.06z" clip-rule="evenodd" />
+                </svg>
+            </button>
+        </div>
 
-        <section id="login-screen" style="display: block;">
-            <div class="logo-container"><img src="LOGO.png" alt="KalCTas Logo" class="logo"></div>
-            <h2>Iniciar Sesión</h2>
-            <form id="login-form">
-                <input type="email" id="login-email" placeholder="Correo electrónico" required>
-                <input type="password" id="login-password" placeholder="Contraseña" required>
-                <button type="submit">Entrar</button>
-            </form>
-        </section>
+        <section id="login-screen" style="display: block;">
+            <div class="logo-container"><img src="LOGO.png" alt="KalCTas Logo" class="logo"></div>
+            <h2>Iniciar Sesión</h2>
+            <form id="login-form">
+                <input type="email" id="login-email" placeholder="Correo electrónico" required>
+                <input type="password" id="login-password" placeholder="Contraseña" required>
+                <button type="submit">Entrar</button>
+            </form>
+        </section>
 
-        <section id="main-menu" style="display: none;">
-            <div class="logo-container"><img src="LOGO.png" alt="KalCTas Logo" class="logo"></div>
-            <h2>Menú Principal</h2>
-            <div class="main-menu-buttons">
-                <button onclick="showScreen('inventory-screen')">📦 Inventario</button>
-                <button onclick="showScreen('orders-screen')">📬 Pedidos</button>
-                <button onclick="showScreen('sales-history-screen')">💰 Historial de Pedidos</button>
-                <button onclick="showScreen('finance-screen')">📈 Administración</button>
-                <button onclick="showScreen('sales-screen')">📊 Reporte de Ventas</button>
-                <button id="install-app-button">📲 Instalar App</button>
+        <section id="main-menu" style="display: none;">
+            <div class="logo-container"><img src="LOGO.png" alt="KalCTas Logo" class="logo"></div>
+            <h2>Menú Principal</h2>
+            <div class="main-menu-buttons">
+                <button onclick="showScreen('inventory-screen')">📦 Inventario</button>
+                <button onclick="showScreen('orders-screen')">📬 Pedidos</button>
+                <button onclick="showScreen('sales-history-screen')">💰 Historial de Pedidos</button>
+                <button onclick="showScreen('finance-screen')">📈 Administración</button>
+                <button onclick="showScreen('theme-screen')">🎨 Tema de la Página</button>                 <button onclick="showScreen('sales-screen')">📊 Reporte de Ventas</button>
+                <button id="install-app-button">📲 Instalar App</button>
+            </div>
+        </section>
+
+        <section id="inventory-screen" style="display: none;">
+            <h1>Inventario de Productos</h1>
+            <button onclick="showScreen('add-product-screen')">Agregar Nuevo Producto</button>
+            <div id="inventory-accordion"></div> 
+            <button class="close-button" onclick="showScreen('main-menu')">Volver al Menú</button>
+        </section>
+
+        <section id="add-product-screen" style="display: none;">
+            <h1>Agregar Nuevo Producto</h1>
+            <form id="add-product-form">
+                <input type="text" id="product-name" placeholder="Nombre del producto" required>
+                <select id="product-category" required>
+                    <option value="" disabled selected>Selecciona una categoría</option>
+                    <option value="KalCTas2-4">KalCTas 2/4</option>
+                    <option value="KalCTas3-4">KalCTas 3/4</option>
+                    <option value="KalCTasLargas">KalCTas Largas</option>
+                </select>
+                <label for="product-image-url" style="text-align: left; margin-top: 10px;">URL de la imagen:</label>
+                <input type="text" id="product-image-url" placeholder="Ej: assets/KalCTas2-4/modelo.png" required>
+                <input type="number" id="product-stock" placeholder="Inventario" required>
+                <input type="number" id="product-price" placeholder="Precio" step="0.01" required>
+                <button type="submit">Guardar Producto</button>
+            </form>
+            <button class="close-button" onclick="showScreen('inventory-screen')">Volver al Inventario</button>
+        </section>
+
+        <section id="orders-screen" style="display: none;">
+            <h1>Pedidos Pendientes</h1>
+            <ul id="orders-list"></ul>
+            <button class="close-button" onclick="showScreen('main-menu')">Volver al Menú</button>
+        </section>
+
+        <section id="sales-history-screen" style="display: none;">
+            <h1>Historial de Pedidos</h1>
+            <ul id="sales-history-list"></ul>
+            <button class="close-button" onclick="showScreen('main-menu')">Volver al Menú</button>
+        </section>
+        
+        <section id="movements-history-screen" style="display: none;">
+            <h1>Historial de Movimientos</h1>
+            <div class="filter-container">
+                <select id="movement-filter-category" onchange="loadMovementsHistory()">
+                    <option value="all">Todas las categorías</option>
+                </select>
+            </div>
+            <ul id="movements-list" class="card-list"></ul>
+            <button class="close-button" onclick="showScreen('finance-screen')">Volver a Administración</button>
+        </section>
+
+        <section id="finance-screen" style="display: none;">
+             <h1>Administración Financiera</h1>
+            <div class="finance-panel">
+                <div class="finance-card" onclick="showSalesHistoryModal()"><h3>Ventas Totales</h3><p id="total-sales">$0.00</p></div>
+                <div class="finance-card"><h3>Gastos</h3><p id="total-expenses">$0.00</p></div>
+                <div class="finance-card"><h3>Utilidad</h3><p id="total-profit">$0.00</p></div>
+                <div class="finance-card"><h3>Capital</h3><p id="total-capital">$0.00</p></div>
+            </div>
+            <h2>Registrar Gasto General</h2>
+            <form id="add-expense-form">
+                <input type="number" id="expense-amount" placeholder="Monto del Gasto ($)" step="0.01" required>
+                <select id="expense-concept" required><option value="">Selecciona un concepto</option></select>
+                <textarea id="expense-note" placeholder="Nota adicional (opcional)"></textarea>
+                <button type="submit">Registrar Gasto</button>
+            </form>
+            <button type="button" class="btn" style="background-color: #16a085; margin-top: -10px; margin-bottom: 20px; padding: 10px;" onclick="addNewExpenseConcept()">+ Agregar Nuevo Concepto</button>
+            <hr style="width: 100%; border-color: rgba(255, 255, 255, 0.3);">
+            <h2>Gestión</h2>
+            <div class="main-menu-buttons">
+                <button onclick="showScreen('supplies-screen')">Insumos</button>
+                <button onclick="showScreen('restock-screen')">Re-Stock de Inventario</button>
+                <button onclick="showScreen('movements-history-screen')">Historial de Movimientos 🧾</button>
+            </div>
+            <button class="close-button" onclick="showScreen('main-menu')">Volver al Menú</button>
+        </section>
+
+        <section id="supplies-screen" style="display: none;">
+            <h1>Gestión de Insumos</h1>
+            <h2>Registrar Insumo</h2>
+            <form id="add-supply-form">
+                <input type="text" id="supply-description" placeholder="Descripción del insumo" required>
+                <input type="number" id="supply-quantity" placeholder="Cantidad" min="1" required>
+                <input type="number" id="supply-cost" placeholder="Costo por unidad" step="0.01" min="0" required>
+                <button type="submit">Registrar Insumo</button>
+            </form>
+            <div class="table-container">
+                <h2>Insumos Registrados</h2>
+                <table id="supplies-table">
+                    <thead><tr><th>Descripción</th><th>Cantidad</th><th>Costo Total</th><th>Acciones</th></tr></thead>
+                    <tbody id="supplies-table-body"></tbody>
+                </table>
+            </div>
+            <button class="close-button" onclick="showScreen('finance-screen')">Volver a Administración</button>
+        </section>
+        
+        <section id="restock-screen" style="display: none;">
+            <h1>Re-Stock de Inventario</h1>
+            <h2>Registrar Pedido</h2>
+            <form id="add-restock-form">
+                <div id="restock-items"></div>
+                <button type="button" class="btn" onclick="addRestockLine()">Agregar otro modelo</button>
+                <div style="text-align: right; font-size: 1.2em; font-weight: bold; margin: 15px 0;">Costo de Envío: <input type="number" id="shipping-cost" placeholder="0" step="0.01" value="0" style="width: 100px; text-align: right; font-size: 1em;"></div>
+                <div style="text-align: right; font-size: 1.5em; font-weight: bold; margin: 15px 0;">Total: <span id="restock-total">$0.00</span></div>
+                <button type="submit">Registrar Pedido de Re-Stock</button>
+            </form>
+            <hr style="width: 100%; border-color: rgba(255, 255, 255, 0.3);">
+            <h2>Historial de Re-Stocks</h2>
+            <ul id="restock-history-list" class="card-list"></ul>
+            <button class="close-button" onclick="showScreen('finance-screen')">Volver a Administración</button>
+        </section>
+
+        <section id="sales-screen" style="display: none;">
+             <h1>Reporte de Ventas</h1>
+            <div class="chart-container" style="position: relative; height:40vh; width:80vw; background: #fff; border-radius: 12px; padding: 10px;"><canvas id="sales-chart"></canvas></div>
+            <h2>Detalle de Ventas</h2>
+            <ul id="sales-list"></ul>
+            <button class="close-button" onclick="showScreen('main-menu')">Volver al Menú</button>
+        </section>
+
+        <section id="theme-screen" style="display: none;">
+            <h1>Gestionar Tema de la Tienda</h1>
+            <p>Selecciona el tema que se mostrará públicamente en la tienda en línea.</p>
+            <p style="margin-top: 15px;">Tema Actual: <strong id="current-theme-status">Cargando...</strong></p>
+            <div class="theme-buttons">
+                <button onclick="setTheme('default')">Default (Normal)</button>
+                <button onclick="setTheme('halloween')" style="background-color: #f9a03f; color: #0d0221;">Halloween 🎃</button>
+                <button onclick="setTheme('christmas')" style="background-color: #d94545;">Navidad 🎅</button>
             </div>
-        </section>
-
-        <section id="inventory-screen" style="display: none;">
-            <h1>Inventario de Productos</h1>
-            <button onclick="showScreen('add-product-screen')">Agregar Nuevo Producto</button>
-            <div id="inventory-accordion"></div> 
             <button class="close-button" onclick="showScreen('main-menu')">Volver al Menú</button>
         </section>
 
-        <section id="add-product-screen" style="display: none;">
-            <h1>Agregar Nuevo Producto</h1>
-            <form id="add-product-form">
-                <input type="text" id="product-name" placeholder="Nombre del producto" required>
-                <select id="product-category" required>
-                    <option value="" disabled selected>Selecciona una categoría</option>
-                    <option value="KalCTas2-4">KalCTas 2/4</option>
-                    <option value="KalCTas3-4">KalCTas 3/4</option>
-                    <option value="KalCTasLargas">KalCTas Largas</option>
-                </select>
-                <label for="product-image-url" style="text-align: left; margin-top: 10px;">URL de la imagen:</label>
-                <input type="text" id="product-image-url" placeholder="Ej: assets/KalCTas2-4/modelo.png" required>
-                <input type="number" id="product-stock" placeholder="Inventario" required>
-                <input type="number" id="product-price" placeholder="Precio" step="0.01" required>
-                <button type="submit">Guardar Producto</button>
-            </form>
-            <button class="close-button" onclick="showScreen('inventory-screen')">Volver al Inventario</button>
-        </section>
+        <div id="edit-modal" class="edit-modal">
+            <div class="modal-content">
+                <h2>Editar Producto</h2>
+                <form id="edit-product-form" class="edit-modal-form">
+                    <input type="hidden" id="edit-product-id">
+                    <label for="edit-name">Nombre:</label>
+                    <input type="text" id="edit-name" required>
+                    <label for="edit-category">Categoría:</label>
+                    <select id="edit-category" required>
+                        <option value="KalCTas2-4">KalCTas 2/4</option>
+                        <option value="KalCTas3-4">KalCTas 3/4</option>
+                        <option value="KalCTasLargas">KalCTas Largas</option>
+                    </select>
+                    <label for="edit-image-url">Cambiar URL de imagen (opcional):</label>
+                    <input type="text" id="edit-image-url">
+                    <label for="edit-stock">Stock:</label>
+                    <input type="number" id="edit-stock" required>
+                    <label for="edit-price">Precio:</label>
+                    <input type="number" id="edit-price" step="0.01" required>
+                    
+                    <div style="display: flex; align-items: center; justify-content: start; margin: 15px 0 10px 0; text-align: left;">
+                        <input type="checkbox" id="edit-visible" style="width: auto; height: auto; margin-right: 10px;">
+                        <label for="edit-visible" style="margin: 0;">Visible en la tienda</label>
+                    </div>
+                    
+                    <button type="submit">Guardar Cambios</button>
+                </form>
+                <button class="close-button" onclick="closeEditModal()">Cancelar</button>
+            </div>
+        </div>
+        <div id="message-box" class="message-box">
+            <div class="modal-content">
+                <p id="message-text"></p>
+                <button class="close-button" onclick="closeMessage()">Aceptar</button>
+            </div>
+        </div>
+        <div id="confirm-modal" class="confirm-modal">
+            <div class="modal-content">
+                <p>¿Estás seguro de que quieres eliminar este producto?</p>
+                <div class="confirm-buttons">
+                    <button class="btn btn-yes" onclick="confirmAction()">Sí, eliminar</button>
+                    <button class="btn btn-no" onclick="cancelAction()">Cancelar</button>
+                </div>
+            </div>
+        </div>
+        <div id="sales-history-modal" class="sales-history-modal">
+            <div class="modal-content">
+                <h2>Historial de Ventas</h2>
+                <ul id="modal-sales-list" style="max-height: 400px; overflow-y: auto;"></ul>
+                <button class="close-button" onclick="closeSalesHistoryModal()">Cerrar</button>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging-compat.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-        <section id="orders-screen" style="display: none;">
-            <h1>Pedidos Pendientes</h1>
-            <ul id="orders-list"></ul>
-            <button class="close-button" onclick="showScreen('main-menu')">Volver al Menú</button>
-        </section>
-
-        <section id="sales-history-screen" style="display: none;">
-            <h1>Historial de Pedidos</h1>
-            <ul id="sales-history-list"></ul>
-            <button class="close-button" onclick="showScreen('main-menu')">Volver al Menú</button>
-        </section>
-        
-        <section id="movements-history-screen" style="display: none;">
-            <h1>Historial de Movimientos</h1>
-            <div class="filter-container">
-                <select id="movement-filter-category" onchange="loadMovementsHistory()">
-                    <option value="all">Todas las categorías</option>
-                </select>
-            </div>
-            <ul id="movements-list" class="card-list"></ul>
-            <button class="close-button" onclick="showScreen('finance-screen')">Volver a Administración</button>
-        </section>
-
-        <section id="finance-screen" style="display: none;">
-             <h1>Administración Financiera</h1>
-            <div class="finance-panel">
-                <div class="finance-card" onclick="showSalesHistoryModal()"><h3>Ventas Totales</h3><p id="total-sales">$0.00</p></div>
-                <div class="finance-card"><h3>Gastos</h3><p id="total-expenses">$0.00</p></div>
-                <div class="finance-card"><h3>Utilidad</h3><p id="total-profit">$0.00</p></div>
-                <div class="finance-card"><h3>Capital</h3><p id="total-capital">$0.00</p></div>
-            </div>
-            <h2>Registrar Gasto General</h2>
-            <form id="add-expense-form">
-                <input type="number" id="expense-amount" placeholder="Monto del Gasto ($)" step="0.01" required>
-                <select id="expense-concept" required><option value="">Selecciona un concepto</option></select>
-                <textarea id="expense-note" placeholder="Nota adicional (opcional)"></textarea>
-                <button type="submit">Registrar Gasto</button>
-            </form>
-            <button type="button" class="btn" style="background-color: #16a085; margin-top: -10px; margin-bottom: 20px; padding: 10px;" onclick="addNewExpenseConcept()">+ Agregar Nuevo Concepto</button>
-            <hr style="width: 100%; border-color: rgba(255, 255, 255, 0.3);">
-            <h2>Gestión</h2>
-            <div class="main-menu-buttons">
-                <button onclick="showScreen('supplies-screen')">Insumos</button>
-                <button onclick="showScreen('restock-screen')">Re-Stock de Inventario</button>
-                <button onclick="showScreen('movements-history-screen')">Historial de Movimientos 🧾</button>
-            </div>
-            <button class="close-button" onclick="showScreen('main-menu')">Volver al Menú</button>
-        </section>
-
-        <section id="supplies-screen" style="display: none;">
-            <h1>Gestión de Insumos</h1>
-            <h2>Registrar Insumo</h2>
-            <form id="add-supply-form">
-                <input type="text" id="supply-description" placeholder="Descripción del insumo" required>
-                <input type="number" id="supply-quantity" placeholder="Cantidad" min="1" required>
-                <input type="number" id="supply-cost" placeholder="Costo por unidad" step="0.01" min="0" required>
-                <button type="submit">Registrar Insumo</button>
-            </form>
-            <div class="table-container">
-                <h2>Insumos Registrados</h2>
-                <table id="supplies-table">
-                    <thead><tr><th>Descripción</th><th>Cantidad</th><th>Costo Total</th><th>Acciones</th></tr></thead>
-                    <tbody id="supplies-table-body"></tbody>
-                </table>
-            </div>
-            <button class="close-button" onclick="showScreen('finance-screen')">Volver a Administración</button>
-        </section>
-        
-        <section id="restock-screen" style="display: none;">
-            <h1>Re-Stock de Inventario</h1>
-            <h2>Registrar Pedido</h2>
-            <form id="add-restock-form">
-                <div id="restock-items"></div>
-                <button type="button" class="btn" onclick="addRestockLine()">Agregar otro modelo</button>
-                <div style="text-align: right; font-size: 1.2em; font-weight: bold; margin: 15px 0;">Costo de Envío: <input type="number" id="shipping-cost" placeholder="0" step="0.01" value="0" style="width: 100px; text-align: right; font-size: 1em;"></div>
-                <div style="text-align: right; font-size: 1.5em; font-weight: bold; margin: 15px 0;">Total: <span id="restock-total">$0.00</span></div>
-                <button type="submit">Registrar Pedido de Re-Stock</button>
-            </form>
-            <hr style="width: 100%; border-color: rgba(255, 255, 255, 0.3);">
-            <h2>Historial de Re-Stocks</h2>
-            <ul id="restock-history-list" class="card-list"></ul>
-            <button class="close-button" onclick="showScreen('finance-screen')">Volver a Administración</button>
-        </section>
-
-        <section id="sales-screen" style="display: none;">
-             <h1>Reporte de Ventas</h1>
-            <div class="chart-container" style="position: relative; height:40vh; width:80vw; background: #fff; border-radius: 12px; padding: 10px;"><canvas id="sales-chart"></canvas></div>
-            <h2>Detalle de Ventas</h2>
-            <ul id="sales-list"></ul>
-            <button class="close-button" onclick="showScreen('main-menu')">Volver al Menú</button>
-        </section>
-
-        <div id="edit-modal" class="edit-modal">
-            <div class="modal-content">
-                <h2>Editar Producto</h2>
-                <form id="edit-product-form" class="edit-modal-form">
-                    <input type="hidden" id="edit-product-id">
-                    <label for="edit-name">Nombre:</label>
-                    <input type="text" id="edit-name" required>
-                    <label for="edit-category">Categoría:</label>
-                    <select id="edit-category" required>
-                        <option value="KalCTas2-4">KalCTas 2/4</option>
-                        <option value="KalCTas3-4">KalCTas 3/4</option>
-                        <option value="KalCTasLargas">KalCTas Largas</option>
-                    </select>
-                    <label for="edit-image-url">Cambiar URL de imagen (opcional):</label>
-                    <input type="text" id="edit-image-url">
-                    <label for="edit-stock">Stock:</label>
-                    <input type="number" id="edit-stock" required>
-                    <label for="edit-price">Precio:</label>
-                    <input type="number" id="edit-price" step="0.01" required>
-                    
-                    <div style="display: flex; align-items: center; justify-content: start; margin: 15px 0 10px 0; text-align: left;">
-                        <input type="checkbox" id="edit-visible" style="width: auto; height: auto; margin-right: 10px;">
-                        <label for="edit-visible" style="margin: 0;">Visible en la tienda</label>
-                    </div>
-                    
-                    <button type="submit">Guardar Cambios</button>
-                </form>
-                <button class="close-button" onclick="closeEditModal()">Cancelar</button>
-            </div>
-        </div>
-        <div id="message-box" class="message-box">
-            <div class="modal-content">
-                <p id="message-text"></p>
-                <button class="close-button" onclick="closeMessage()">Aceptar</button>
-            </div>
-        </div>
-        <div id="confirm-modal" class="confirm-modal">
-            <div class="modal-content">
-                <p>¿Estás seguro de que quieres eliminar este producto?</p>
-                <div class="confirm-buttons">
-                    <button class="btn btn-yes" onclick="confirmAction()">Sí, eliminar</button>
-                    <button class="btn btn-no" onclick="cancelAction()">Cancelar</button>
-                </div>
-            </div>
-        </div>
-        <div id="sales-history-modal" class="sales-history-modal">
-            <div class="modal-content">
-                <h2>Historial de Ventas</h2>
-                <ul id="modal-sales-list" style="max-height: 400px; overflow-y: auto;"></ul>
-                <button class="close-button" onclick="closeSalesHistoryModal()">Cerrar</button>
-            </div>
-        </div>
-    </div>
-    
-    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging-compat.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
-    <script>
-        // --- INICIO: CÓDIGO AÑADIDO PARA REGISTRAR EL SERVICE WORKER ---
-        if ('serviceWorker' in navigator) {
-          window.addEventListener('load', () => {
-            navigator.serviceWorker.register('sw.js')
-              .then(registration => {
-                console.log('ServiceWorker registrado con éxito: ', registration.scope);
-              })
-              .catch(err => {
-                console.log('Fallo en el registro del ServiceWorker: ', err);
-              });
-          });
-        }
-        // --- FIN: CÓDIGO AÑADIDO ---
+    <script>
+        // --- INICIO: CÓDIGO AÑADIDO PARA REGISTRAR EL SERVICE WORKER ---
+        if ('serviceWorker' in navigator) {
+          window.addEventListener('load', () => {
+            navigator.serviceWorker.register('sw.js')
+              .then(registration => {
+                console.log('ServiceWorker registrado con éxito: ', registration.scope);
+              })
+              .catch(err => {
+                console.log('Fallo en el registro del ServiceWorker: ', err);
+              });
+          });
+        }
+        // --- FIN: CÓDIGO AÑADIDO ---
 
 
-        // --- CONFIGURACIÓN INICIAL ---
-        const firebaseConfig = {
-          apiKey: "AIzaSyDuNHPsYnLD_qmbG2K9ieTIOCX6U4slD1E",
-          authDomain: "tienda-kalctas.firebaseapp.com",
-          projectId: "tienda-kalctas",
-          storageBucket: "tienda-kalctas.firebasestorage.app",
-          messagingSenderId: "374355691085",
-          appId: "1:374355691085:web:18abb15678c7a6870bbe04"
-        };
-        firebase.initializeApp(firebaseConfig);
-        const auth = firebase.auth();
-        const db = firebase.firestore();
-        const storage = firebase.storage();
-        const messaging = firebase.messaging(); 
+        // --- CONFIGURACIÓN INICIAL ---
+        const firebaseConfig = {
+          apiKey: "AIzaSyDuNHPsYnLD_qmbG2K9ieTIOCX6U4slD1E",
+          authDomain: "tienda-kalctas.firebaseapp.com",
+          projectId: "tienda-kalctas",
+          storageBucket: "tienda-kalctas.firebasestorage.app",
+          messagingSenderId: "374355691085",
+          appId: "1:374355691085:web:18abb15678c7a6870bbe04"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+        const storage = firebase.storage();
+        const messaging = firebase.messaging(); 
 
-        const vapidKey = "BCI7mLN5SS6nZLTIC4BZNusMu2TCEYs_-XBvVrqQahBscDElMQBcfBU0lcnSPQDRItA-3g-3cbdATal2jywf1os"; 
-        
-        let productToDeleteId = null, supplyToDeleteId = null, expenseToDeleteId = null, restockToDeleteId = null;
-        let unsubscribes = [];
-        let productModels = [], expenseConcepts = [];
-        let salesChart;
-        const CAPITAL_PER_PRODUCT = 42;
-        let deferredInstallPrompt = null;
+        const vapidKey = "BCI7mLN5SS6nZLTIC4BZNusMu2TCEYs_-XBvVrqQahBscDElMQBcfBU0lcnSPQDRItA-3g-3cbdATal2jywf1os"; 
+        
+        let productToDeleteId = null, supplyToDeleteId = null, expenseToDeleteId = null, restockToDeleteId = null;
+        let unsubscribes = [];
+        let productModels = [], expenseConcepts = [];
+        let salesChart;
+        const CAPITAL_PER_PRODUCT = 42;
+        let deferredInstallPrompt = null;
 
-        const getEl = (id) => document.getElementById(id);
-        
-        async function showScreen(screenId) {
-            document.querySelectorAll('section').forEach(screen => screen.style.display = 'none');
-            getEl(screenId).style.display = 'block';
+        const getEl = (id) => document.getElementById(id);
+        
+        async function showScreen(screenId) {
+            document.querySelectorAll('section').forEach(screen => screen.style.display = 'none');
+            getEl(screenId).style.display = 'block';
 
-            unsubscribes.forEach(unsub => unsub());
-            unsubscribes = [];
+            unsubscribes.forEach(unsub => unsub());
+            unsubscribes = [];
 
-            switch (screenId) {
-                case 'inventory-screen': loadInventory(); break;
-                case 'orders-screen': loadOrders(); break;
-                case 'sales-history-screen': loadSalesHistory(); break;
-                case 'finance-screen': loadFinancialSummary(); loadExpenseConcepts(); break;
-                case 'supplies-screen': loadSupplies(); break;
-                case 'restock-screen': 
-                    await loadProductModels();
-                    loadRestockHistory();
-                    if(getEl('restock-items')) {
-                        getEl('restock-items').innerHTML = '';
-                        addRestockLine();
-                    }
-                    break;
-                case 'sales-screen': loadSalesData(); break;
-                case 'movements-history-screen': loadMovementCategories(); loadMovementsHistory(); break;
-            }
-        }
+            switch (screenId) {
+                case 'inventory-screen': loadInventory(); break;
+                case 'orders-screen': loadOrders(); break;
+                case 'sales-history-screen': loadSalesHistory(); break;
+                case 'finance-screen': loadFinancialSummary(); loadExpenseConcepts(); break;
+                case 'supplies-screen': loadSupplies(); break;
+                case 'restock-screen': 
+                    await loadProductModels();
+                    loadRestockHistory();
+                    if(getEl('restock-items')) {
+                        getEl('restock-items').innerHTML = '';
+                        addRestockLine();
+                    }
+                    break;
+                case 'sales-screen': loadSalesData(); break;
+                case 'movements-history-screen': loadMovementCategories(); loadMovementsHistory(); break;
+                case 'theme-screen': loadCurrentTheme(); break; // CASO AÑADIDO
+            }
+        }
 
-        auth.onAuthStateChanged(user => {
-            unsubscribes.forEach(unsub => unsub());
-            unsubscribes = [];
-            if (user) {
-                showScreen('main-menu');
-                solicitarPermisoNotificaciones();
-            } else {
-                showScreen('login-screen');
-            }
-        });
-
-        getEl('login-form').addEventListener('submit', async (e) => {
-            e.preventDefault();
+        // --- NUEVAS FUNCIONES PARA GESTIONAR EL TEMA ---
+        async function loadCurrentTheme() {
+            const statusEl = getEl('current-theme-status');
+            statusEl.textContent = 'Cargando...';
             try {
-                await auth.signInWithEmailAndPassword(getEl('login-email').value, getEl('login-password').value);
-            } catch (error) { showMessage('Error al iniciar sesión.'); }
-        });
-
-        function logout() { auth.signOut(); }
-        
-        window.addEventListener('beforeinstallprompt', (e) => {
-            e.preventDefault();
-            deferredInstallPrompt = e;
-            const installButton = getEl('install-app-button');
-            if (installButton) {
-                installButton.style.display = 'block';
-            }
-        });
-
-        const installButton = getEl('install-app-button');
-        if (installButton) {
-            installButton.addEventListener('click', async () => {
-                if (deferredInstallPrompt) {
-                    deferredInstallPrompt.prompt();
-                    const { outcome } = await deferredInstallPrompt.userChoice;
-                    console.log(`Resultado de la instalación: ${outcome}`);
-                    deferredInstallPrompt = null;
-                    installButton.style.display = 'none';
-                }
-            });
-        }
-        
-        async function solicitarPermisoNotificaciones() {
-            try {
-                const permission = await Notification.requestPermission();
-                if (permission === 'granted') {
-                    const swRegistration = await navigator.serviceWorker.ready;
-                    const token = await messaging.getToken({ 
-                        vapidKey: vapidKey,
-                        serviceWorkerRegistration: swRegistration
-                    });
-                    
-                    if (token) {
-                        const tokenRef = db.collection('admin_devices').doc(token);
-                        await tokenRef.set({
-                            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                            userAgent: navigator.userAgent
-                        });
-                    }
-                }
-            } catch (error) {
-                console.error('Error al obtener el permiso o el token de FCM:', error);
-            }
-        }
-        messaging.onMessage((payload) => {
-            console.log('Mensaje recibido en primer plano: ', payload);
-            const sound = getEl('notification-sound');
-            if (sound) sound.play().catch(e => console.warn("El audio no se pudo reproducir."));
-            showMessage(`¡Nuevo Pedido! ${payload.notification.body}`);
-        });
-
-        function generarDetallesEntregaHTML(pedido) {
-            let detallesHTML = '';
-            const datosEntrega = pedido.datosEntrega;
-
-            if (datosEntrega) {
-                detallesHTML += `<p><strong>Forma de entrega:</strong> ${datosEntrega.tipo || 'N/A'}</p>`;
-                
-                if (datosEntrega.tipo === 'Punto medio') {
-                    detallesHTML += `<p><strong>Fecha de entrega:</strong> ${datosEntrega.fecha || 'N/A'}</p>`;
-                    detallesHTML += `<p><strong>Lugar de entrega:</strong> ${datosEntrega.lugar || 'N/A'}</p>`;
-                } else if (datosEntrega.tipo === 'Envío a domicilio') {
-                    detallesHTML += `<p><strong>Dirección:</strong> ${datosEntrega.calle || ''}, ${datosEntrega.colonia || ''}</p>`;
-                    if (datosEntrega.descripcion) {
-                        detallesHTML += `<p><strong>Descripción domicilio:</strong> ${datosEntrega.descripcion}</p>`;
-                    }
-                }
-            } else {
-                detallesHTML += `<p><strong>Fecha Entrega:</strong> ${pedido.fechaEntrega || 'No especificada'}</p>`;
-                detallesHTML += `<p><strong>Lugar:</strong> ${pedido.lugarEntrega || 'No especificado'}</p>`;
-            }
-
-            if (pedido.comentarios) {
-                detallesHTML += `<p><strong>Comentarios:</strong> ${pedido.comentarios}</p>`;
-            }
-            return detallesHTML;
-        }
-
-        function loadOrders() {
-            const ordersList = getEl('orders-list');
-            ordersList.innerHTML = '<p>Cargando pedidos...</p>';
-            const q = db.collection('pedidos').where('estado', 'in', ['Pendiente', 'Confirmado']).orderBy('fechaCreacion', 'desc');
-            const unsubscribe = q.onSnapshot((snapshot) => {
-                ordersList.innerHTML = snapshot.empty ? '<p>No hay pedidos pendientes.</p>' : '';
-                snapshot.forEach(doc => {
-                    const pedido = doc.data();
-                    const total = pedido.montoTotal || 0;
-                    const clienteNombre = `${pedido.datosCliente?.nombre || ''} ${pedido.datosCliente?.apellido || ''}`.trim() || 'N/A';
-                    
-                    const detallesEntrega = generarDetallesEntregaHTML(pedido);
-
-                    const item = document.createElement('li');
-                    item.className = 'order-item';
-                    item.innerHTML = `
-                        <div class="order-summary">
-                            <span>${pedido.folio} - ${clienteNombre}</span>
-                            <span class="order-status status-${pedido.estado}">${pedido.estado}</span>
-                            <span>$${total.toFixed(2)}</span>
-                        </div>
-                        <div class="order-details">
-                            <p><strong>Cliente:</strong> ${clienteNombre}</p>
-                            <p><strong>Teléfono:</strong> ${pedido.datosCliente?.telefono || 'N/A'}</p>
-                            ${detallesEntrega}
-                            <p><strong>Método de Pago:</strong> ${pedido.metodoPago || 'N/A'}</p>
-                            <p><strong>Productos:</strong></p>
-                            <ul>${(pedido.productos || []).map(p => `<li>${p.nombre}</li>`).join('')}</ul>
-                            <div class="order-actions">
-                                ${pedido.estado === 'Pendiente' ? `<button class="btn" onclick="updateOrderStatus('${doc.id}', 'Confirmado', event)">Confirmar</button>` : ''}
-                                <button class="btn" onclick="updateOrderStatus('${doc.id}', 'Entregado', event)">Marcar Entregado</button>
-                                <button class="btn btn-delete" onclick="promptCancelOrder('${doc.id}', event)">Cancelar</button>
-                            </div>
-                        </div>`;
-                    item.querySelector('.order-summary').onclick = (e) => e.currentTarget.nextElementSibling.style.display = e.currentTarget.nextElementSibling.style.display === 'block' ? 'none' : 'block';
-                    ordersList.appendChild(item);
-                });
-            });
-            unsubscribes.push(unsubscribe);
-        }
-        
-        async function loadInventory() {
-            const accordionContainer = getEl('inventory-accordion');
-            accordionContainer.innerHTML = '<p>Cargando inventario...</p>';
-            try {
-                const snapshot = await db.collection('productos').orderBy('categoria').orderBy('nombre').get();
-                if (snapshot.empty) {
-                    accordionContainer.innerHTML = '<p>No hay productos en el inventario.</p>';
-                    return;
-                }
-                const productsByCategory = {};
-                snapshot.forEach(doc => {
-                    const product = { id: doc.id, ...doc.data() };
-                    if (!productsByCategory[product.categoria]) productsByCategory[product.categoria] = [];
-                    productsByCategory[product.categoria].push(product);
-                });
-                accordionContainer.innerHTML = '';
-                for (const category in productsByCategory) {
-                    const groupDiv = document.createElement('div');
-                    groupDiv.className = 'category-group';
-                    groupDiv.innerHTML = `<h3 class="category-title">${category}</h3>`;
-                    productsByCategory[category].forEach(product => {
-                        const isVisible = product.visible !== false; 
-                        
-                        const itemDiv = document.createElement('div');
-                        itemDiv.className = 'product-item';
-                        if (product.stock === 0) itemDiv.classList.add('agotado');
-                        if (!isVisible) itemDiv.classList.add('hidden'); 
-                        
-                        itemDiv.innerHTML = `
-                            <span>${product.nombre} ${!isVisible ? '<span style="color:var(--status-yellow); font-size:0.8em;">(Oculto)</span>' : ''}</span>
-                            <span style="font-size: 0.9em; font-weight: normal;">
-                                ${product.stock > 0 ? `Stock: ${product.stock}` : 'Agotado'}
-                            </span>`;
-                        
-                        itemDiv.onclick = (e) => e.currentTarget.nextElementSibling.classList.toggle('visible');
-                        
-                        const detailsDiv = document.createElement('div');
-                        detailsDiv.className = 'product-details';
-                        
-                        const toggleBtnText = isVisible ? 'Ocultar' : 'Mostrar';
-                        const toggleBtnColorClass = isVisible ? 'status-blue' : 'status-green';
-
-                        detailsDiv.innerHTML = `
-                            <div class="product-image-container">
-                                <img src="${product.imagenUrl}" alt="${product.nombre}" onerror="this.style.display='none';">
-                            </div>
-                            <div class="product-info">
-                                <p><strong>Stock:</strong> ${product.stock}</p>
-                                <p><strong>Vendidos:</strong> ${product.cantidadVendida || 0}</p>
-                                <p><strong>Precio:</strong> $${product.precio.toFixed(2)}</p>
-                            </div>
-                            <div class="product-actions">
-                                <button class="btn btn-edit">Editar</button>
-                                <button class="btn" style="background-color: var(--${toggleBtnColorClass});" onclick="toggleProductVisibility('${product.id}', ${isVisible})">${toggleBtnText}</button>
-                                <button class="btn btn-delete">Eliminar</button>
-                            </div>`;
-                        
-                        detailsDiv.querySelector('.btn-edit').onclick = () => editProduct(product.id);
-                        detailsDiv.querySelector('.btn-delete').onclick = () => showConfirmModal(product.id);
-
-                        groupDiv.appendChild(itemDiv);
-                        groupDiv.appendChild(detailsDiv);
-                    });
-                    accordionContainer.appendChild(groupDiv);
-                }
-            } catch (error) {
-                console.error("Error al cargar inventario:", error);
-                accordionContainer.innerHTML = '<p>Error al cargar el inventario. Asegúrate de haber creado el índice en Firestore.</p>';
-            }
-        }
-        
-        async function toggleProductVisibility(productId, isVisible) {
-            const newVisibility = !isVisible;
-            try {
-                await db.collection('productos').doc(productId).update({
-                    visible: newVisibility
-                });
-                showMessage(`Producto ${newVisibility ? 'ahora está VISIBLE' : 'ha sido OCULTADO'}.`);
-                loadInventory();
-            } catch (error) {
-                console.error("Error al cambiar la visibilidad del producto:", error);
-                showMessage("Hubo un error al actualizar la visibilidad.");
-            }
-        }
-
-        getEl('add-product-form').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            try {
-                const imageUrl = getEl('product-image-url').value;
-                if (!imageUrl) { 
-                    showMessage('Por favor, ingresa la URL de la imagen.'); 
-                    return; 
-                }
-
-                await db.collection('productos').add({
-                    nombre: getEl('product-name').value,
-                    categoria: getEl('product-category').value,
-                    imagenUrl: imageUrl,
-                    stock: parseInt(getEl('product-stock').value),
-                    precio: parseFloat(getEl('product-price').value),
-                    cantidadVendida: 0,
-                    visible: true
-                });
-                showMessage('¡Producto agregado con éxito!');
-                getEl('add-product-form').reset();
-                showScreen('inventory-screen');
-            } catch (error) { 
-                console.error(error); 
-                showMessage('Hubo un error al agregar el producto.'); 
-            }
-        });
-        
-        async function editProduct(id) {
-            const docSnap = await db.collection('productos').doc(id).get();
-            if (docSnap.exists) {
-                const data = docSnap.data();
-                getEl('edit-product-id').value = id;
-                getEl('edit-name').value = data.nombre;
-                getEl('edit-category').value = data.categoria;
-                getEl('edit-image-url').placeholder = data.imagenUrl;
-                getEl('edit-image-url').value = ''; 
-                getEl('edit-stock').value = data.stock;
-                getEl('edit-price').value = data.precio;
-                getEl('edit-visible').checked = data.visible !== false;
-                getEl('edit-modal').style.display = 'flex';
-            }
-        }
-
-        getEl('edit-product-form').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const id = getEl('edit-product-id').value;
-            try {
-                const updates = {
-                    nombre: getEl('edit-name').value,
-                    categoria: getEl('edit-category').value,
-                    stock: parseInt(getEl('edit-stock').value),
-                    precio: parseFloat(getEl('edit-price').value),
-                    visible: getEl('edit-visible').checked
-                };
-
-                const newImageUrl = getEl('edit-image-url').value;
-                if (newImageUrl && newImageUrl.trim() !== '') {
-                    updates.imagenUrl = newImageUrl.trim();
-                }
-
-                await db.collection('productos').doc(id).update(updates);
-                
-                showMessage('Producto actualizado.');
-                closeEditModal();
-                loadInventory();
-            } catch (error) { 
-                console.error(error); 
-                showMessage('Error al actualizar.'); 
-            }
-        });
-        
-        async function updateOrderStatus(pedidoId, newStatus, event) {
-            event.stopPropagation();
-            const pedidoRef = db.collection('pedidos').doc(pedidoId);
-            try {
-                await db.runTransaction(async (t) => {
-                    const pedidoDoc = await t.get(pedidoRef);
-                    if (!pedidoDoc.exists) throw new Error("Pedido no encontrado");
-                    const pedidoData = pedidoDoc.data();
-                    if (pedidoData.estado === newStatus) return;
-
-                    const updatesForOrder = { estado: newStatus, fechaActualizacion: firebase.firestore.FieldValue.serverTimestamp() };
-
-                    if (newStatus === 'Entregado' && pedidoData.estado !== 'Entregado') {
-                        const totalVenta = pedidoData.montoTotal || 0;
-                        const numeroProductos = pedidoData.productos?.length || 0;
-                        const capitalMonto = numeroProductos * CAPITAL_PER_PRODUCT;
-                        const utilidadMonto = totalVenta - capitalMonto;
-
-                        if (capitalMonto > 0) {
-                            const capitalMovRef = db.collection('movimientos').doc();
-                            t.set(capitalMovRef, {
-                                monto: capitalMonto,
-                                concepto: 'Ingreso a Capital',
-                                tipo: 'Capital',
-                                fecha: firebase.firestore.FieldValue.serverTimestamp(),
-                                nota: `Apartado de capital del pedido ${pedidoData.folio}`,
-                                relatedOrderId: pedidoId
-                            });
-                        }
-
-                        if (utilidadMonto > 0) {
-                            const utilidadMovRef = db.collection('movimientos').doc();
-                            t.set(utilidadMovRef, {
-                                monto: utilidadMonto,
-                                concepto: 'Ingreso a Utilidad',
-                                tipo: 'Utilidad',
-                                fecha: firebase.firestore.FieldValue.serverTimestamp(),
-                                nota: `Utilidad generada por el pedido ${pedidoData.folio}`,
-                                relatedOrderId: pedidoId
-                            });
-                        }
-                        
-                        const finanzasRef = db.collection('finanzas').doc('resumen');
-                        t.update(finanzasRef, {
-                            ventas: firebase.firestore.FieldValue.increment(totalVenta),
-                            utilidad: firebase.firestore.FieldValue.increment(utilidadMonto),
-                            capital: firebase.firestore.FieldValue.increment(capitalMonto)
-                        });
-
-                        for (const producto of pedidoData.productos) if (producto.id) t.update(db.collection('productos').doc(producto.id), { cantidadVendida: firebase.firestore.FieldValue.increment(1) });
-                    } else if (newStatus === 'Cancelado' && pedidoData.estado === 'Entregado') {
-                        const totalVenta = pedidoData.montoTotal || 0;
-                        const numeroProductos = pedidoData.productos?.length || 0;
-                        const capitalMonto = numeroProductos * CAPITAL_PER_PRODUCT;
-                        const utilidadMonto = totalVenta - capitalMonto;
-
-                        const finanzasRef = db.collection('finanzas').doc('resumen');
-                        t.update(finanzasRef, {
-                            ventas: firebase.firestore.FieldValue.increment(-totalVenta),
-                            utilidad: firebase.firestore.FieldValue.increment(-utilidadMonto),
-                            capital: firebase.firestore.FieldValue.increment(-capitalMonto)
-                        });
-                        
-                        for (const producto of pedidoData.productos) if (producto.id) t.update(db.collection('productos').doc(producto.id), { cantidadVendida: firebase.firestore.FieldValue.increment(-1) });
-                    }
-                    
-                    t.update(pedidoRef, updatesForOrder);
-                });
-                showMessage(`Pedido actualizado a '${newStatus}'.`);
-            } catch (error) {
-                console.error("Error al actualizar estado: ", error);
-                showMessage('Error al actualizar el estado del pedido.');
-            }
-        }
-        
-        function promptCancelOrder(pedidoId, event) {
-            event.stopPropagation();
-            const motivo = prompt("Introduce el motivo de la cancelación:");
-            if (motivo && motivo.trim()) updateOrderStatus(pedidoId, 'Cancelado', event);
-            else if (motivo !== null) showMessage("Debes especificar un motivo para cancelar.");
-        }
-        
-        function loadSalesHistory() {
-            const list = getEl('sales-history-list');
-            list.innerHTML = '<p>Cargando historial...</p>';
-            const q = db.collection('pedidos').where('estado', 'in', ['Entregado', 'Cancelado']);
-            const unsubscribe = q.onSnapshot((snapshot) => {
-                const pedidos = snapshot.docs.map(doc => ({id: doc.id, ...doc.data()})).sort((a,b) => (b.fechaActualizacion?.toDate() || 0) - (a.fechaActualizacion?.toDate() || 0));
-                list.innerHTML = pedidos.length ? '' : '<p>No hay pedidos en el historial.</p>';
-                pedidos.forEach(pedido => {
-                    const total = pedido.montoTotal || 0;
-                    const clienteNombre = `${pedido.datosCliente?.nombre || ''} ${pedido.datosCliente?.apellido || ''}`.trim() || 'N/A';
-                    
-                    const detallesEntrega = generarDetallesEntregaHTML(pedido);
-
-                    const item = document.createElement('li');
-                    item.className = 'sale-item';
-                    item.innerHTML = `
-                        <div class="sale-summary">
-                            <span>#${pedido.folio}</span>
-                            <span class="order-status status-${pedido.estado}">${pedido.estado}</span>
-                            <span>$${total.toFixed(2)}</span>
-                        </div>
-                        <div class="sale-details">
-                            <p><strong>Cliente:</strong> ${clienteNombre}</p>
-                            <p><strong>Teléfono:</strong> ${pedido.datosCliente?.telefono || 'N/A'}</p>
-                            <p><strong>Fecha de Finalización:</strong> ${pedido.fechaActualizacion?.toDate().toLocaleDateString() || 'N/A'}</p>
-                            ${detallesEntrega}
-                            <p><strong>Método de Pago:</strong> ${pedido.metodoPago || 'N/A'}</p>
-                            <p><strong>Productos:</strong></p>
-                            <ul>${(pedido.productos || []).map(p => `<li>${p.nombre}</li>`).join('')}</ul>
-                        </div>`;
-                    item.querySelector('.sale-summary').onclick = (e) => e.currentTarget.nextElementSibling.style.display = e.currentTarget.nextElementSibling.style.display === 'block' ? 'none' : 'block';
-                    list.appendChild(item);
-                });
-            });
-            unsubscribes.push(unsubscribe);
-        }
-
-        async function loadMovementCategories() {
-            const select = getEl('movement-filter-category');
-            select.innerHTML = '<option value="all">Todas las categorías</option>';
-            const categories = new Set();
-            try {
-                const [gastosSnap, suppliesSnap, restocksSnap, movementsSnap] = await Promise.all([
-                    db.collection('gastosGenerales').get(),
-                    db.collection('insumos').get(),
-                    db.collection('restocks').get(),
-                    db.collection('movimientos').get()
-                ]);
-                gastosSnap.forEach(doc => categories.add(doc.data().concepto));
-                suppliesSnap.forEach(doc => categories.add('Insumos'));
-                restocksSnap.forEach(doc => categories.add('Re-Stock'));
-                movementsSnap.forEach(doc => categories.add(doc.data().tipo));
-
-                const orderedCategories = Array.from(categories).sort();
-                orderedCategories.forEach(cat => {
-                    if (cat) select.innerHTML += `<option value="${cat}">${cat}</option>`;
-                });
-            } catch (error) { console.error("Error al cargar categorías:", error); }
-        }
-
-        async function loadMovementsHistory() {
-            const list = getEl('movements-list');
-            list.innerHTML = '<p>Cargando historial...</p>';
-            const selectedCategory = getEl('movement-filter-category').value;
-            try {
-                const [salesSnapshot, generalExpensesSnapshot, suppliesSnapshot, restocksSnapshot, capitalMovesSnapshot, utilityMovesSnapshot] = await Promise.all([
-                    db.collection('pedidos').where('estado', '==', 'Entregado').get(),
-                    db.collection('gastosGenerales').get(),
-                    db.collection('insumos').get(),
-                    db.collection('restocks').get(),
-                    db.collection('movimientos').where('tipo', '==', 'Capital').get(),
-                    db.collection('movimientos').where('tipo', '==', 'Utilidad').get()
-                ]);
-                
-                let movements = [];
-                salesSnapshot.forEach(doc => { const d = doc.data(); if (d.fechaActualizacion) movements.push({ id: doc.id, date: d.fechaActualizacion.toDate(), description: `Venta #${d.folio}`, type: 'Venta', amount: d.montoTotal || 0, category: 'Ventas' }); });
-                generalExpensesSnapshot.forEach(doc => { const d = doc.data(); if (d.fecha) movements.push({ id: doc.id, date: d.fecha.toDate(), description: d.nota ? `${d.concepto} (${d.nota})` : d.concepto, type: 'Gasto General', amount: -d.monto, category: d.concepto }); });
-                suppliesSnapshot.forEach(doc => { const d = doc.data(); if(d.fecha) movements.push({ id: doc.id, date: d.fecha.toDate(), description: d.descripcion, type: 'Gasto Insumo', amount: -d.costoTotal, category: 'Insumos' }); });
-                restocksSnapshot.forEach(doc => { const d = doc.data(); if(d.fecha) movements.push({ id: doc.id, date: d.fecha.toDate(), description: `Re-Stock #${d.folio}`, type: 'Gasto Re-Stock', amount: -d.costoTotal, category: 'Re-Stock' }); });
-                capitalMovesSnapshot.forEach(doc => { const d = doc.data(); if (d.fecha) movements.push({ id: doc.id, date: d.fecha.toDate(), description: d.nota, type: d.tipo, amount: d.monto, category: d.tipo, docRef: db.collection('movimientos').doc(doc.id) }); });
-                utilityMovesSnapshot.forEach(doc => { const d = doc.data(); if (d.fecha) movements.push({ id: doc.id, date: d.fecha.toDate(), description: d.nota, type: d.tipo, amount: d.monto, category: d.tipo, docRef: db.collection('movimientos').doc(doc.id) }); });
-
-                const filteredMovements = selectedCategory === 'all' ? movements : movements.filter(m => m.category === selectedCategory);
-                filteredMovements.sort((a, b) => b.date - a.date);
-                
-                list.innerHTML = filteredMovements.length ? '' : '<p>No hay movimientos en esta categoría.</p>';
-                filteredMovements.forEach(m => {
-                    const amountClass = m.amount >= 0 ? 'amount-positive' : 'amount-negative';
-                    const amountSign = m.amount >= 0 ? '+' : '';
-                    list.innerHTML += `
-                        <li class="card-item">
-                            <div class="card-header">
-                                <span>${m.description}</span>
-                                <span class="${amountClass}">${amountSign}$${Math.abs(m.amount).toFixed(2)}</span>
-                            </div>
-                            <div class="card-content">
-                                <p><strong>Fecha:</strong> ${m.date.toLocaleDateString()}</p>
-                                <p><strong>Tipo:</strong> ${m.type}</p>
-                                <p><strong>Categoría:</strong> ${m.category}</p>
-                            </div>
-                            ${m.type !== 'Venta' ? `<div class="card-actions"><button class="btn btn-delete" onclick="deleteMovement('${m.id}', '${m.type}', ${m.amount}, '${m.category}')">Eliminar</button></div>` : ''}
-                        </li>
-                    `;
-                });
-            } catch (error) { console.error("Error al cargar movimientos:", error); list.innerHTML = '<p>Error al cargar movimientos.</p>'; }
-        }
-
-        async function deleteMovement(id, type, amount, category) {
-            if (!confirm("¿Estás seguro de que quieres eliminar este movimiento? Esta acción no se puede deshacer.")) return;
-            try {
-                let collectionRef, originalDoc;
-
-                if (type === 'Gasto General') {
-                    collectionRef = db.collection('gastosGenerales');
-                    originalDoc = await collectionRef.doc(id).get();
-                    if (!originalDoc.exists) { showMessage("Movimiento no encontrado."); return; }
-                    const monto = originalDoc.data().monto;
-                    await db.runTransaction(async (t) => {
-                        t.delete(collectionRef.doc(id));
-                        const finanzasRef = db.collection('finanzas').doc('resumen');
-                        t.update(finanzasRef, {
-                            gastos: firebase.firestore.FieldValue.increment(-monto),
-                            utilidad: firebase.firestore.FieldValue.increment(monto)
-                        });
-                    });
-                } else if (type === 'Gasto Insumo') {
-                    collectionRef = db.collection('insumos');
-                    originalDoc = await collectionRef.doc(id).get();
-                    if (!originalDoc.exists) { showMessage("Movimiento no encontrado."); return; }
-                    const costoTotal = originalDoc.data().costoTotal;
-                    await db.runTransaction(async (t) => {
-                        t.delete(collectionRef.doc(id));
-                        const finanzasRef = db.collection('finanzas').doc('resumen');
-                        t.update(finanzasRef, {
-                            gastos: firebase.firestore.FieldValue.increment(-costoTotal),
-                            utilidad: firebase.firestore.FieldValue.increment(costoTotal)
-                        });
-                    });
-                } else if (type === 'Gasto Re-Stock') {
-                    collectionRef = db.collection('restocks');
-                    originalDoc = await collectionRef.doc(id).get();
-                    if (!originalDoc.exists) { showMessage("Movimiento no encontrado."); return; }
-                    const restockData = originalDoc.data();
-                    const batch = db.batch();
-                    
-                    restockData.items.forEach(item => {
-                        const productRef = db.collection('productos').doc(item.id);
-                        batch.update(productRef, { stock: firebase.firestore.FieldValue.increment(-item.cantidad) });
-                    });
-                    
-                    const finanzasRef = db.collection('finanzas').doc('resumen');
-                    batch.update(finanzasRef, {
-                        capital: firebase.firestore.FieldValue.increment(restockData.costoTotal)
-                    });
-                    
-                    batch.delete(collectionRef.doc(id));
-                    await batch.commit();
+                const configRef = db.collection('configuracion').doc('tienda');
+                const doc = await configRef.get();
+                if (doc.exists) {
+                    statusEl.textContent = doc.data().temaActual || 'default';
                 } else {
-                    showMessage("No se puede eliminar este tipo de movimiento.");
-                    return;
+                    statusEl.textContent = 'default';
                 }
-                
-                showMessage('Movimiento eliminado con éxito.');
-                loadMovementsHistory();
             } catch (error) {
-                console.error("Error al eliminar movimiento: ", error);
-                showMessage('Hubo un error al eliminar el movimiento.');
+                console.error("Error al cargar el tema actual:", error);
+                statusEl.textContent = 'Error';
             }
-        }
-        
-        function loadFinancialSummary() {
-            const unsub = db.collection('finanzas').doc('resumen').onSnapshot(doc => {
-                const data = doc.data() || {};
-                getEl('total-sales').textContent = `$${(data.ventas || 0).toFixed(2)}`;
-                getEl('total-expenses').textContent = `$${(data.gastos || 0).toFixed(2)}`;
-                getEl('total-profit').textContent = `$${(data.utilidad || 0).toFixed(2)}`;
-                getEl('total-capital').textContent = `$${(data.capital || 0).toFixed(2)}`;
-            });
-            unsubscribes.push(unsub);
-        }
-        
-        async function loadExpenseConcepts() {
-            const select = getEl('expense-concept');
-            const unsub = db.collection('conceptosGastos').orderBy('nombre').onSnapshot(snapshot => {
-                expenseConcepts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                select.innerHTML = '<option value="">Selecciona un concepto</option>';
-                expenseConcepts.forEach(c => select.innerHTML += `<option value="${c.nombre}">${c.nombre}</option>`);
-            });
-            unsubscribes.push(unsub);
         }
 
-        async function addNewExpenseConcept() {
-            const newConcept = prompt("Escribe el nombre del nuevo concepto de gasto:");
-            if (newConcept && newConcept.trim()) {
-                try {
-                    await db.collection('conceptosGastos').add({ nombre: newConcept.trim() });
-                    showMessage("Concepto agregado.");
-                } catch (error) { showMessage("Error al agregar el concepto."); }
-            }
-        }
-        
-        getEl('add-expense-form').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const monto = parseFloat(getEl('expense-amount').value);
-            const concepto = getEl('expense-concept').value;
-            const nota = getEl('expense-note').value;
-            if (!monto || !concepto) { showMessage("Por favor, completa todos los campos."); return; }
+        async function setTheme(themeName) {
             try {
-                await db.collection('gastosGenerales').add({
-                    monto,
-                    concepto,
-                    nota,
-                    fecha: firebase.firestore.FieldValue.serverTimestamp()
-                });
-                const finanzasRef = db.collection('finanzas').doc('resumen');
-                await db.runTransaction(async (t) => {
-                    const doc = await t.get(finanzasRef);
-                    const gastos = (doc.data()?.gastos || 0) + monto;
-                    const utilidad = (doc.data()?.utilidad || 0) - monto;
-                    t.update(finanzasRef, { gastos, utilidad });
-                });
-                showMessage('Gasto registrado con éxito!');
-                getEl('add-expense-form').reset();
-            } catch (error) { showMessage('Error al registrar el gasto.'); }
-        });
-        
-        getEl('add-supply-form').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const descripcion = getEl('supply-description').value;
-            const cantidad = parseInt(getEl('supply-quantity').value);
-            const costoUnidad = parseFloat(getEl('supply-cost').value);
-            if (!descripcion || isNaN(cantidad) || isNaN(costoUnidad) || cantidad <= 0 || costoUnidad < 0) {
-                showMessage("Por favor, completa todos los campos correctamente.");
-                return;
-            }
-            const costoTotal = cantidad * costoUnidad;
-            try {
-                await db.collection('insumos').add({
-                    descripcion,
-                    cantidad,
-                    costoUnidad,
-                    costoTotal,
-                    fecha: firebase.firestore.FieldValue.serverTimestamp()
-                });
-                const finanzasRef = db.collection('finanzas').doc('resumen');
-                await db.runTransaction(async (t) => {
-                    const doc = await t.get(finanzasRef);
-                    const gastos = (doc.data()?.gastos || 0) + costoTotal;
-                    const utilidad = (doc.data()?.utilidad || 0) - costoTotal;
-                    t.update(finanzasRef, { gastos, utilidad });
-                });
-                showMessage('Insumo registrado con éxito!');
-                getEl('add-supply-form').reset();
+                const configRef = db.collection('configuracion').doc('tienda');
+                await configRef.set({ temaActual: themeName }, { merge: true });
+                showMessage(`¡Éxito! El tema de la tienda ahora es '${themeName}'.`);
+                loadCurrentTheme(); // Recargar el estado actual
             } catch (error) {
-                console.error("Error al registrar insumo:", error);
-                showMessage('Hubo un error al registrar el insumo.');
-            }
-        });
-
-        function loadSupplies() {
-            const tbody = getEl('supplies-table-body');
-            tbody.innerHTML = '<tr><td colspan="4">Cargando insumos...</td></tr>';
-            const unsub = db.collection('insumos').orderBy('fecha', 'desc').onSnapshot(snapshot => {
-                const supplies = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                tbody.innerHTML = supplies.length ? '' : '<tr><td colspan="4">No hay insumos registrados.</td></tr>';
-                supplies.forEach(s => {
-                    tbody.innerHTML += `
-                        <tr>
-                            <td>${s.descripcion}</td>
-                            <td>${s.cantidad}</td>
-                            <td>$${s.costoTotal.toFixed(2)}</td>
-                            <td>
-                                <button class="btn btn-delete" onclick="deleteSupply('${s.id}')">Eliminar</button>
-                            </td>
-                        </tr>
-                    `;
-                });
-            });
-            unsubscribes.push(unsub);
-        }
-
-        async function deleteSupply(id) {
-            if (!confirm("¿Estás seguro de que quieres eliminar este insumo? Esta acción no se puede deshacer.")) return;
-            try {
-                const doc = await db.collection('insumos').doc(id).get();
-                if (!doc.exists) { showMessage("Insumo no encontrado."); return; }
-                const costoTotal = doc.data().costoTotal;
-                
-                await db.collection('insumos').doc(id).delete();
-                
-                const finanzasRef = db.collection('finanzas').doc('resumen');
-                await db.runTransaction(async (t) => {
-                    const finanzasDoc = await t.get(finanzasRef);
-                    const gastos = (finanzasDoc.data()?.gastos || 0) - costoTotal;
-                    const utilidad = (finanzasDoc.data()?.utilidad || 0) + costoTotal;
-                    t.update(finanzasRef, { gastos, utilidad });
-                });
-                
-                showMessage('Insumo eliminado con éxito.');
-            } catch (error) {
-                console.error("Error al eliminar insumo: ", error);
-                showMessage('Hubo un error al eliminar el insumo.');
+                console.error("Error al actualizar el tema:", error);
+                showMessage('Hubo un error al intentar cambiar el tema.');
             }
         }
-        
-        async function loadProductModels() {
-            const snapshot = await db.collection('productos').orderBy('nombre').get();
-            productModels = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        }
+        // --- FIN DE NUEVAS FUNCIONES ---
 
-        function addRestockLine() {
-            const container = getEl('restock-items');
-            const newLine = document.createElement('div');
-            newLine.className = 'restock-line';
-            const options = productModels.map(p => `<option value="${p.id}" data-price="${p.precio}">${p.nombre} (${p.categoria})</option>`).join('');
-            newLine.innerHTML = `
-                <select class="restock-product-select" required>
-                    <option value="" disabled selected>Modelo</option>
-                    ${options}
-                </select>
-                <input type="number" class="restock-quantity-input" placeholder="Cantidad" min="1" value="1" required>
-                <input type="number" class="restock-cost-input" placeholder="Costo ($)" step="0.01" min="0" required>
-                <button type="button" class="btn btn-delete" onclick="this.parentNode.remove(); calculateRestockTotal()">-</button>
-            `;
-            container.appendChild(newLine);
-            newLine.querySelector('.restock-quantity-input').oninput = calculateRestockTotal;
-            newLine.querySelector('.restock-cost-input').oninput = calculateRestockTotal;
-        }
-        
-        function calculateRestockTotal() {
-            const lines = document.querySelectorAll('.restock-line');
-            let total = parseFloat(getEl('shipping-cost').value) || 0;
-            lines.forEach(line => {
-                const quantity = parseInt(line.querySelector('.restock-quantity-input').value) || 0;
-                const cost = parseFloat(line.querySelector('.restock-cost-input').value) || 0;
-                total += quantity * cost;
-            });
-            getEl('restock-total').textContent = `$${total.toFixed(2)}`;
-        }
-        
-        getEl('shipping-cost').addEventListener('input', calculateRestockTotal);
+        auth.onAuthStateChanged(user => {
+            unsubscribes.forEach(unsub => unsub());
+            unsubscribes = [];
+            if (user) {
+                showScreen('main-menu');
+                solicitarPermisoNotificaciones();
+            } else {
+                showScreen('login-screen');
+            }
+        });
 
-        getEl('add-restock-form').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const lines = document.querySelectorAll('.restock-line');
-            const restockItems = [];
-            let totalCost = parseFloat(getEl('shipping-cost').value) || 0;
-            
-            lines.forEach(line => {
-                const productId = line.querySelector('.restock-product-select').value;
-                const quantity = parseInt(line.querySelector('.restock-quantity-input').value) || 0;
-                const cost = parseFloat(line.querySelector('.restock-cost-input').value) || 0;
-                if (!productId || quantity <= 0 || cost < 0) return;
-                const product = productModels.find(p => p.id === productId);
-                if (product) {
-                    restockItems.push({ id: productId, nombre: `${product.nombre} (${product.categoria})`, cantidad: quantity, costoUnidad: cost });
-                    totalCost += quantity * cost;
-                }
-            });
+        getEl('login-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            try {
+                await auth.signInWithEmailAndPassword(getEl('login-email').value, getEl('login-password').value);
+            } catch (error) { showMessage('Error al iniciar sesión.'); }
+        });
 
-            if (restockItems.length === 0) { showMessage("Debes agregar al menos un producto para el re-stock."); return; }
+        function logout() { auth.signOut(); }
+        
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredInstallPrompt = e;
+            const installButton = getEl('install-app-button');
+            if (installButton) {
+                installButton.style.display = 'block';
+            }
+        });
 
-            try {
-                const restockRef = await db.collection('restocks').add({
-                    items: restockItems,
-                    costoTotal: totalCost,
-                    costoEnvio: parseFloat(getEl('shipping-cost').value) || 0,
-                    fecha: firebase.firestore.FieldValue.serverTimestamp(),
-                    folio: `RS-${Date.now()}`
-                });
+        const installButton = getEl('install-app-button');
+        if (installButton) {
+            installButton.addEventListener('click', async () => {
+                if (deferredInstallPrompt) {
+                    deferredInstallPrompt.prompt();
+                    const { outcome } = await deferredInstallPrompt.userChoice;
+                    console.log(`Resultado de la instalación: ${outcome}`);
+                    deferredInstallPrompt = null;
+                    installButton.style.display = 'none';
+                }
+            });
+        }
+        
+        async function solicitarPermisoNotificaciones() {
+            try {
+                const permission = await Notification.requestPermission();
+                if (permission === 'granted') {
+                    const swRegistration = await navigator.serviceWorker.ready;
+                    const token = await messaging.getToken({ 
+                        vapidKey: vapidKey,
+                        serviceWorkerRegistration: swRegistration
+                    });
+                    
+                    if (token) {
+                        const tokenRef = db.collection('admin_devices').doc(token);
+                        await tokenRef.set({
+                            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                            userAgent: navigator.userAgent
+                        });
+                    }
+                }
+            } catch (error) {
+                console.error('Error al obtener el permiso o el token de FCM:', error);
+            }
+        }
+        messaging.onMessage((payload) => {
+            console.log('Mensaje recibido en primer plano: ', payload);
+            const sound = getEl('notification-sound');
+            if (sound) sound.play().catch(e => console.warn("El audio no se pudo reproducir."));
+            showMessage(`¡Nuevo Pedido! ${payload.notification.body}`);
+        });
 
-                const batch = db.batch();
-                restockItems.forEach(item => {
-                    const productRef = db.collection('productos').doc(item.id);
-                    batch.update(productRef, { stock: firebase.firestore.FieldValue.increment(item.cantidad) });
-                });
-                
-                const finanzasRef = db.collection('finanzas').doc('resumen');
-                batch.update(finanzasRef, {
-                    capital: firebase.firestore.FieldValue.increment(-totalCost)
-                });
-                
-                await batch.commit();
+        function generarDetallesEntregaHTML(pedido) {
+            let detallesHTML = '';
+            const datosEntrega = pedido.datosEntrega;
 
-                showMessage('Pedido de re-stock registrado y stock actualizado con éxito!');
-                getEl('add-restock-form').reset();
-                getEl('restock-items').innerHTML = '';
-                addRestockLine();
-                calculateRestockTotal();
-                loadRestockHistory();
-            } catch (error) {
-                console.error("Error al registrar re-stock:", error);
-                showMessage('Hubo un error al registrar el re-stock.');
-            }
-        });
+            if (datosEntrega) {
+                detallesHTML += `<p><strong>Forma de entrega:</strong> ${datosEntrega.tipo || 'N/A'}</p>`;
+                
+                if (datosEntrega.tipo === 'Punto medio') {
+                    detallesHTML += `<p><strong>Fecha de entrega:</strong> ${datosEntrega.fecha || 'N/A'}</p>`;
+                    detallesHTML += `<p><strong>Lugar de entrega:</strong> ${datosEntrega.lugar || 'N/A'}</p>`;
+                } else if (datosEntrega.tipo === 'Envío a domicilio') {
+                    detallesHTML += `<p><strong>Dirección:</strong> ${datosEntrega.calle || ''}, ${datosEntrega.colonia || ''}</p>`;
+                    if (datosEntrega.descripcion) {
+                        detallesHTML += `<p><strong>Descripción domicilio:</strong> ${datosEntrega.descripcion}</p>`;
+                    }
+                }
+            } else {
+                detallesHTML += `<p><strong>Fecha Entrega:</strong> ${pedido.fechaEntrega || 'No especificada'}</p>`;
+                detallesHTML += `<p><strong>Lugar:</strong> ${pedido.lugarEntrega || 'No especificado'}</p>`;
+            }
 
-        function loadRestockHistory() {
-            const list = getEl('restock-history-list');
-            list.innerHTML = '<p>Cargando historial...</p>';
-            const unsub = db.collection('restocks').orderBy('fecha', 'desc').onSnapshot(snapshot => {
-                const restocks = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                list.innerHTML = restocks.length ? '' : '<p>No hay re-stocks registrados.</p>';
-                restocks.forEach(r => {
-                    const itemsList = r.items.map(i => `<li>${i.nombre} (x${i.cantidad})</li>`).join('');
-                    const item = document.createElement('li');
-                    item.className = 'card-item';
-                    item.innerHTML = `
-                        <div class="card-header">
-                            <span>Re-Stock #${r.folio}</span>
-                            <span class="amount-negative">-$${r.costoTotal.toFixed(2)}</span>
-                        </div>
-                        <div class="card-content">
-                            <p><strong>Fecha:</strong> ${r.fecha?.toDate().toLocaleDateString() || 'N/A'}</p>
-                            <p><strong>Costo de Envío:</strong> $${(r.costoEnvio || 0).toFixed(2)}</p>
-                            <p><strong>Productos:</strong></p>
-                            <ul>${itemsList}</ul>
-                        </div>
-                        <div class="card-actions"><button class="btn btn-delete" onclick="deleteRestock('${r.id}')">Eliminar</button></div>
-                    `;
-                    list.appendChild(item);
-                });
-            });
-            unsubscribes.push(unsub);
-        }
+            if (pedido.comentarios) {
+                detallesHTML += `<p><strong>Comentarios:</strong> ${pedido.comentarios}</p>`;
+            }
+            return detallesHTML;
+        }
 
-        async function deleteRestock(id) {
-            if (!confirm("¿Estás seguro de que quieres eliminar este re-stock? Esto revertirá los cambios en el inventario y las finanzas.")) return;
-            try {
-                const restockDoc = await db.collection('restocks').doc(id).get();
-                if (!restockDoc.exists) { showMessage("Re-stock no encontrado."); return; }
-                const restockData = restockDoc.data();
-                
-                const batch = db.batch();
-                
-                restockData.items.forEach(item => {
-                    const productRef = db.collection('productos').doc(item.id);
-                    batch.update(productRef, { stock: firebase.firestore.FieldValue.increment(-item.cantidad) });
-                });
-                
-                const finanzasRef = db.collection('finanzas').doc('resumen');
-                batch.update(finanzasRef, {
-                    capital: firebase.firestore.FieldValue.increment(restockData.costoTotal)
-                });
-                
-                batch.delete(db.collection('restocks').doc(id));
-                
-                await batch.commit();
-                
-                showMessage('Re-stock eliminado y movimientos revertidos con éxito.');
-                loadRestockHistory();
-            } catch (error) {
-                console.error("Error al eliminar re-stock: ", error);
-                showMessage('Hubo un error al eliminar el re-stock.');
-            }
-        }
-        
-        function loadSalesData() {
-            const list = getEl('sales-list');
-            list.innerHTML = '<p>Cargando datos de ventas...</p>';
-            const q = db.collection('pedidos').where('estado', '==', 'Entregado').orderBy('fechaActualizacion', 'desc');
-            const unsubscribe = q.onSnapshot(snapshot => {
-                const salesByDate = {};
-                list.innerHTML = snapshot.empty ? '<p>No hay ventas registradas.</p>' : '';
-                snapshot.forEach(doc => {
-                    const pedido = doc.data();
-                    const total = pedido.montoTotal || 0;
-                    const fecha = pedido.fechaActualizacion?.toDate().toISOString().split('T')[0];
-                    if (fecha) {
-                        salesByDate[fecha] = (salesByDate[fecha] || 0) + total;
-                    }
-                    const cliente = `${pedido.datosCliente?.nombre || ''} ${pedido.datosCliente?.apellido || ''}`.trim();
-                    list.innerHTML += `<li class="sales-history-item"><div class="sales-summary"><span>#${pedido.folio}</span><span>${cliente}</span><span>$${total.toFixed(2)}</span></div></li>`;
-                });
-                updateChart(salesByDate);
-            });
-            unsubscribes.push(unsub);
-        }
-        
-        function updateChart(salesData) {
-            const ctx = getEl('sales-chart').getContext('2d');
-            if (salesChart) salesChart.destroy();
-            salesChart = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: Object.keys(salesData).sort(),
-                    datasets: [{ label: 'Ventas Diarias', data: Object.values(salesData), borderColor: '#48dbfb', tension: 0.1 }]
-                },
-                options: { responsive: true, maintainAspectRatio: false }
-            });
-        }
-        
-        function showSalesHistoryModal() {
-            const list = getEl('modal-sales-list');
-            list.innerHTML = '<p>Cargando ventas...</p>';
-            const unsub = db.collection('pedidos').where('estado', '==', 'Entregado').onSnapshot(snapshot => {
-                const sales = snapshot.docs.map(doc => doc.data()).sort((a,b) => b.fechaActualizacion.toDate() - a.fechaActualizacion.toDate());
-                list.innerHTML = sales.length ? '' : '<p>No hay ventas.</p>';
-                sales.forEach(p => {
-                    list.innerHTML += `<li class="sales-history-item"><div class="sales-summary"><span>#${p.folio} - ${p.fechaActualizacion.toDate().toLocaleDateString()}</span><span>$${(p.montoTotal || 0).toFixed(2)}</span></div></li>`;
-                });
-            });
-            unsubscribes.push(unsub);
-            getEl('sales-history-modal').style.display = 'flex';
-        }
+        function loadOrders() {
+            const ordersList = getEl('orders-list');
+            ordersList.innerHTML = '<p>Cargando pedidos...</p>';
+            const q = db.collection('pedidos').where('estado', 'in', ['Pendiente', 'Confirmado']).orderBy('fechaCreacion', 'desc');
+            const unsubscribe = q.onSnapshot((snapshot) => {
+                ordersList.innerHTML = snapshot.empty ? '<p>No hay pedidos pendientes.</p>' : '';
+                snapshot.forEach(doc => {
+                    const pedido = doc.data();
+                    const total = pedido.montoTotal || 0;
+                    const clienteNombre = `${pedido.datosCliente?.nombre || ''} ${pedido.datosCliente?.apellido || ''}`.trim() || 'N/A';
+                    
+                    const detallesEntrega = generarDetallesEntregaHTML(pedido);
 
-        function closeSalesHistoryModal() { getEl('sales-history-modal').style.display = 'none'; }
-        
-        function showMessage(text) { 
-            const msgBox = getEl('message-box');
-            if (!msgBox) {
-                alert(text);
-                return;
-            }
-            getEl('message-text').textContent = text;
-            msgBox.style.display = 'flex';
-        }
-        function closeMessage() { getEl('message-box').style.display = 'none'; }
-        function closeEditModal() { getEl('edit-modal').style.display = 'none'; }
-        function showConfirmModal(id) { productToDeleteId = id; getEl('confirm-modal').style.display = 'flex'; }
-        function cancelAction() { getEl('confirm-modal').style.display = 'none'; productToDeleteId = null; }
-        async function confirmAction() {
-            if (productToDeleteId) {
-                try {
-                    await db.collection('productos').doc(productToDeleteId).delete();
-                    showMessage('Producto eliminado.');
-                    cancelAction();
-                    loadInventory();
-                } catch (error) { showMessage('Error al eliminar.'); }
-            }
-        }
-    </script>
+                    const item = document.createElement('li');
+                    item.className = 'order-item';
+                    item.innerHTML = `
+                        <div class="order-summary">
+                            <span>${pedido.folio} - ${clienteNombre}</span>
+                            <span class="order-status status-${pedido.estado}">${pedido.estado}</span>
+                            <span>$${total.toFixed(2)}</span>
+                        </div>
+                        <div class="order-details">
+                            <p><strong>Cliente:</strong> ${clienteNombre}</p>
+                            <p><strong>Teléfono:</strong> ${pedido.datosCliente?.telefono || 'N/A'}</p>
+                            ${detallesEntrega}
+                            <p><strong>Método de Pago:</strong> ${pedido.metodoPago || 'N/A'}</p>
+                            <p><strong>Productos:</strong></p>
+                            <ul>${(pedido.productos || []).map(p => `<li>${p.nombre}</li>`).join('')}</ul>
+                            <div class="order-actions">
+                                ${pedido.estado === 'Pendiente' ? `<button class="btn" onclick="updateOrderStatus('${doc.id}', 'Confirmado', event)">Confirmar</button>` : ''}
+                                <button class="btn" onclick="updateOrderStatus('${doc.id}', 'Entregado', event)">Marcar Entregado</button>
+                                <button class="btn btn-delete" onclick="promptCancelOrder('${doc.id}', event)">Cancelar</button>
+                            </div>
+                        </div>`;
+                    item.querySelector('.order-summary').onclick = (e) => e.currentTarget.nextElementSibling.style.display = e.currentTarget.nextElementSibling.style.display === 'block' ? 'none' : 'block';
+                    ordersList.appendChild(item);
+                });
+            });
+            unsubscribes.push(unsubscribe);
+        }
+        
+        async function loadInventory() {
+            const accordionContainer = getEl('inventory-accordion');
+            accordionContainer.innerHTML = '<p>Cargando inventario...</p>';
+            try {
+                const snapshot = await db.collection('productos').orderBy('categoria').orderBy('nombre').get();
+                if (snapshot.empty) {
+                    accordionContainer.innerHTML = '<p>No hay productos en el inventario.</p>';
+                    return;
+                }
+                const productsByCategory = {};
+                snapshot.forEach(doc => {
+                    const product = { id: doc.id, ...doc.data() };
+                    if (!productsByCategory[product.categoria]) productsByCategory[product.categoria] = [];
+                    productsByCategory[product.categoria].push(product);
+                });
+                accordionContainer.innerHTML = '';
+                for (const category in productsByCategory) {
+                    const groupDiv = document.createElement('div');
+                    groupDiv.className = 'category-group';
+                    groupDiv.innerHTML = `<h3 class="category-title">${category}</h3>`;
+                    productsByCategory[category].forEach(product => {
+                        const isVisible = product.visible !== false; 
+                        
+                        const itemDiv = document.createElement('div');
+                        itemDiv.className = 'product-item';
+                        if (product.stock === 0) itemDiv.classList.add('agotado');
+                        if (!isVisible) itemDiv.classList.add('hidden'); 
+                        
+                        itemDiv.innerHTML = `
+                            <span>${product.nombre} ${!isVisible ? '<span style="color:var(--status-yellow); font-size:0.8em;">(Oculto)</span>' : ''}</span>
+                            <span style="font-size: 0.9em; font-weight: normal;">
+                                ${product.stock > 0 ? `Stock: ${product.stock}` : 'Agotado'}
+                            </span>`;
+                        
+                        itemDiv.onclick = (e) => e.currentTarget.nextElementSibling.classList.toggle('visible');
+                        
+                        const detailsDiv = document.createElement('div');
+                        detailsDiv.className = 'product-details';
+                        
+                        const toggleBtnText = isVisible ? 'Ocultar' : 'Mostrar';
+                        const toggleBtnColorClass = isVisible ? 'status-blue' : 'status-green';
+
+                        detailsDiv.innerHTML = `
+                            <div class="product-image-container">
+                                <img src="${product.imagenUrl}" alt="${product.nombre}" onerror="this.style.display='none';">
+                            </div>
+                            <div class="product-info">
+                                <p><strong>Stock:</strong> ${product.stock}</p>
+                                <p><strong>Vendidos:</strong> ${product.cantidadVendida || 0}</p>
+                                <p><strong>Precio:</strong> $${product.precio.toFixed(2)}</p>
+                            </div>
+                            <div class="product-actions">
+                                <button class="btn btn-edit">Editar</button>
+                                <button class="btn" style="background-color: var(--${toggleBtnColorClass});" onclick="toggleProductVisibility('${product.id}', ${isVisible})">${toggleBtnText}</button>
+                                <button class="btn btn-delete">Eliminar</button>
+                            </div>`;
+                        
+                        detailsDiv.querySelector('.btn-edit').onclick = () => editProduct(product.id);
+                        detailsDiv.querySelector('.btn-delete').onclick = () => showConfirmModal(product.id);
+
+                        groupDiv.appendChild(itemDiv);
+                        groupDiv.appendChild(detailsDiv);
+                    });
+                    accordionContainer.appendChild(groupDiv);
+                }
+            } catch (error) {
+                console.error("Error al cargar inventario:", error);
+                accordionContainer.innerHTML = '<p>Error al cargar el inventario. Asegúrate de haber creado el índice en Firestore.</p>';
+            }
+        }
+        
+        async function toggleProductVisibility(productId, isVisible) {
+            const newVisibility = !isVisible;
+            try {
+                await db.collection('productos').doc(productId).update({
+                    visible: newVisibility
+                });
+                showMessage(`Producto ${newVisibility ? 'ahora está VISIBLE' : 'ha sido OCULTADO'}.`);
+                loadInventory();
+            } catch (error) {
+                console.error("Error al cambiar la visibilidad del producto:", error);
+                showMessage("Hubo un error al actualizar la visibilidad.");
+            }
+        }
+
+        getEl('add-product-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            try {
+                const imageUrl = getEl('product-image-url').value;
+                if (!imageUrl) { 
+                    showMessage('Por favor, ingresa la URL de la imagen.'); 
+                    return; 
+                }
+
+                await db.collection('productos').add({
+                    nombre: getEl('product-name').value,
+                    categoria: getEl('product-category').value,
+                    imagenUrl: imageUrl,
+                    stock: parseInt(getEl('product-stock').value),
+                    precio: parseFloat(getEl('product-price').value),
+                    cantidadVendida: 0,
+                    visible: true
+                });
+                showMessage('¡Producto agregado con éxito!');
+                getEl('add-product-form').reset();
+                showScreen('inventory-screen');
+            } catch (error) { 
+                console.error(error); 
+                showMessage('Hubo un error al agregar el producto.'); 
+            }
+        });
+        
+        async function editProduct(id) {
+            const docSnap = await db.collection('productos').doc(id).get();
+            if (docSnap.exists) {
+                const data = docSnap.data();
+                getEl('edit-product-id').value = id;
+                getEl('edit-name').value = data.nombre;
+                getEl('edit-category').value = data.categoria;
+                getEl('edit-image-url').placeholder = data.imagenUrl;
+                getEl('edit-image-url').value = ''; 
+                getEl('edit-stock').value = data.stock;
+                getEl('edit-price').value = data.precio;
+                getEl('edit-visible').checked = data.visible !== false;
+                getEl('edit-modal').style.display = 'flex';
+            }
+        }
+
+        getEl('edit-product-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const id = getEl('edit-product-id').value;
+            try {
+                const updates = {
+                    nombre: getEl('edit-name').value,
+                    categoria: getEl('edit-category').value,
+                    stock: parseInt(getEl('edit-stock').value),
+                    precio: parseFloat(getEl('edit-price').value),
+                    visible: getEl('edit-visible').checked
+                };
+
+                const newImageUrl = getEl('edit-image-url').value;
+                if (newImageUrl && newImageUrl.trim() !== '') {
+                    updates.imagenUrl = newImageUrl.trim();
+                }
+
+                await db.collection('productos').doc(id).update(updates);
+                
+                showMessage('Producto actualizado.');
+                closeEditModal();
+                loadInventory();
+            } catch (error) { 
+                console.error(error); 
+                showMessage('Error al actualizar.'); 
+            }
+        });
+        
+        async function updateOrderStatus(pedidoId, newStatus, event) {
+            event.stopPropagation();
+            const pedidoRef = db.collection('pedidos').doc(pedidoId);
+            try {
+                await db.runTransaction(async (t) => {
+                    const pedidoDoc = await t.get(pedidoRef);
+                    if (!pedidoDoc.exists) throw new Error("Pedido no encontrado");
+                    const pedidoData = pedidoDoc.data();
+                    if (pedidoData.estado === newStatus) return;
+
+                    const updatesForOrder = { estado: newStatus, fechaActualizacion: firebase.firestore.FieldValue.serverTimestamp() };
+
+                    if (newStatus === 'Entregado' && pedidoData.estado !== 'Entregado') {
+                        const totalVenta = pedidoData.montoTotal || 0;
+                        const numeroProductos = pedidoData.productos?.length || 0;
+                        const capitalMonto = numeroProductos * CAPITAL_PER_PRODUCT;
+                        const utilidadMonto = totalVenta - capitalMonto;
+
+                        if (capitalMonto > 0) {
+                            const capitalMovRef = db.collection('movimientos').doc();
+                            t.set(capitalMovRef, {
+                                monto: capitalMonto,
+                                concepto: 'Ingreso a Capital',
+                                tipo: 'Capital',
+                                fecha: firebase.firestore.FieldValue.serverTimestamp(),
+                                nota: `Apartado de capital del pedido ${pedidoData.folio}`,
+                                relatedOrderId: pedidoId
+                            });
+                        }
+
+                        if (utilidadMonto > 0) {
+                            const utilidadMovRef = db.collection('movimientos').doc();
+                            t.set(utilidadMovRef, {
+                                monto: utilidadMonto,
+                                concepto: 'Ingreso a Utilidad',
+                                tipo: 'Utilidad',
+                                fecha: firebase.firestore.FieldValue.serverTimestamp(),
+                                nota: `Utilidad generada por el pedido ${pedidoData.folio}`,
+                                relatedOrderId: pedidoId
+                            });
+                        }
+                        
+                        const finanzasRef = db.collection('finanzas').doc('resumen');
+                        t.update(finanzasRef, {
+                            ventas: firebase.firestore.FieldValue.increment(totalVenta),
+                            utilidad: firebase.firestore.FieldValue.increment(utilidadMonto),
+                            capital: firebase.firestore.FieldValue.increment(capitalMonto)
+                        });
+
+                        for (const producto of pedidoData.productos) if (producto.id) t.update(db.collection('productos').doc(producto.id), { cantidadVendida: firebase.firestore.FieldValue.increment(1) });
+                    } else if (newStatus === 'Cancelado' && pedidoData.estado === 'Entregado') {
+                        const totalVenta = pedidoData.montoTotal || 0;
+                        const numeroProductos = pedidoData.productos?.length || 0;
+                        const capitalMonto = numeroProductos * CAPITAL_PER_PRODUCT;
+                        const utilidadMonto = totalVenta - capitalMonto;
+
+                        const finanzasRef = db.collection('finanzas').doc('resumen');
+                        t.update(finanzasRef, {
+                            ventas: firebase.firestore.FieldValue.increment(-totalVenta),
+                            utilidad: firebase.firestore.FieldValue.increment(-utilidadMonto),
+                            capital: firebase.firestore.FieldValue.increment(-capitalMonto)
+                        });
+                        
+                        for (const producto of pedidoData.productos) if (producto.id) t.update(db.collection('productos').doc(producto.id), { cantidadVendida: firebase.firestore.FieldValue.increment(-1) });
+                    }
+                    
+                    t.update(pedidoRef, updatesForOrder);
+                });
+                showMessage(`Pedido actualizado a '${newStatus}'.`);
+            } catch (error) {
+                console.error("Error al actualizar estado: ", error);
+                showMessage('Error al actualizar el estado del pedido.');
+            }
+        }
+        
+        function promptCancelOrder(pedidoId, event) {
+            event.stopPropagation();
+            const motivo = prompt("Introduce el motivo de la cancelación:");
+            if (motivo && motivo.trim()) updateOrderStatus(pedidoId, 'Cancelado', event);
+            else if (motivo !== null) showMessage("Debes especificar un motivo para cancelar.");
+        }
+        
+        function loadSalesHistory() {
+            const list = getEl('sales-history-list');
+            list.innerHTML = '<p>Cargando historial...</p>';
+            const q = db.collection('pedidos').where('estado', 'in', ['Entregado', 'Cancelado']);
+            const unsubscribe = q.onSnapshot((snapshot) => {
+                const pedidos = snapshot.docs.map(doc => ({id: doc.id, ...doc.data()})).sort((a,b) => (b.fechaActualizacion?.toDate() || 0) - (a.fechaActualizacion?.toDate() || 0));
+                list.innerHTML = pedidos.length ? '' : '<p>No hay pedidos en el historial.</p>';
+                pedidos.forEach(pedido => {
+                    const total = pedido.montoTotal || 0;
+                    const clienteNombre = `${pedido.datosCliente?.nombre || ''} ${pedido.datosCliente?.apellido || ''}`.trim() || 'N/A';
+                    
+                    const detallesEntrega = generarDetallesEntregaHTML(pedido);
+
+                    const item = document.createElement('li');
+                    item.className = 'sale-item';
+                    item.innerHTML = `
+                        <div class="sale-summary">
+                            <span>#${pedido.folio}</span>
+                            <span class="order-status status-${pedido.estado}">${pedido.estado}</span>
+                            <span>$${total.toFixed(2)}</span>
+                        </div>
+                        <div class="sale-details">
+                            <p><strong>Cliente:</strong> ${clienteNombre}</p>
+                            <p><strong>Teléfono:</strong> ${pedido.datosCliente?.telefono || 'N/A'}</p>
+                            <p><strong>Fecha de Finalización:</strong> ${pedido.fechaActualizacion?.toDate().toLocaleDateString() || 'N/A'}</p>
+                            ${detallesEntrega}
+                            <p><strong>Método de Pago:</strong> ${pedido.metodoPago || 'N/A'}</p>
+                            <p><strong>Productos:</strong></p>
+                            <ul>${(pedido.productos || []).map(p => `<li>${p.nombre}</li>`).join('')}</ul>
+                        </div>`;
+                    item.querySelector('.sale-summary').onclick = (e) => e.currentTarget.nextElementSibling.style.display = e.currentTarget.nextElementSibling.style.display === 'block' ? 'none' : 'block';
+                    list.appendChild(item);
+                });
+            });
+            unsubscribes.push(unsubscribe);
+        }
+
+        async function loadMovementCategories() {
+            const select = getEl('movement-filter-category');
+            select.innerHTML = '<option value="all">Todas las categorías</option>';
+            const categories = new Set();
+            try {
+                const [gastosSnap, suppliesSnap, restocksSnap, movementsSnap] = await Promise.all([
+                    db.collection('gastosGenerales').get(),
+                    db.collection('insumos').get(),
+                    db.collection('restocks').get(),
+                    db.collection('movimientos').get()
+                ]);
+                gastosSnap.forEach(doc => categories.add(doc.data().concepto));
+                suppliesSnap.forEach(doc => categories.add('Insumos'));
+                restocksSnap.forEach(doc => categories.add('Re-Stock'));
+                movementsSnap.forEach(doc => categories.add(doc.data().tipo));
+
+                const orderedCategories = Array.from(categories).sort();
+                orderedCategories.forEach(cat => {
+                    if (cat) select.innerHTML += `<option value="${cat}">${cat}</option>`;
+                });
+            } catch (error) { console.error("Error al cargar categorías:", error); }
+        }
+
+        async function loadMovementsHistory() {
+            const list = getEl('movements-list');
+            list.innerHTML = '<p>Cargando historial...</p>';
+            const selectedCategory = getEl('movement-filter-category').value;
+            try {
+                const [salesSnapshot, generalExpensesSnapshot, suppliesSnapshot, restocksSnapshot, capitalMovesSnapshot, utilityMovesSnapshot] = await Promise.all([
+                    db.collection('pedidos').where('estado', '==', 'Entregado').get(),
+                    db.collection('gastosGenerales').get(),
+                    db.collection('insumos').get(),
+                    db.collection('restocks').get(),
+                    db.collection('movimientos').where('tipo', '==', 'Capital').get(),
+                    db.collection('movimientos').where('tipo', '==', 'Utilidad').get()
+                ]);
+                
+                let movements = [];
+                salesSnapshot.forEach(doc => { const d = doc.data(); if (d.fechaActualizacion) movements.push({ id: doc.id, date: d.fechaActualizacion.toDate(), description: `Venta #${d.folio}`, type: 'Venta', amount: d.montoTotal || 0, category: 'Ventas' }); });
+                generalExpensesSnapshot.forEach(doc => { const d = doc.data(); if (d.fecha) movements.push({ id: doc.id, date: d.fecha.toDate(), description: d.nota ? `${d.concepto} (${d.nota})` : d.concepto, type: 'Gasto General', amount: -d.monto, category: d.concepto }); });
+                suppliesSnapshot.forEach(doc => { const d = doc.data(); if(d.fecha) movements.push({ id: doc.id, date: d.fecha.toDate(), description: d.descripcion, type: 'Gasto Insumo', amount: -d.costoTotal, category: 'Insumos' }); });
+                restocksSnapshot.forEach(doc => { const d = doc.data(); if(d.fecha) movements.push({ id: doc.id, date: d.fecha.toDate(), description: `Re-Stock #${d.folio}`, type: 'Gasto Re-Stock', amount: -d.costoTotal, category: 'Re-Stock' }); });
+                capitalMovesSnapshot.forEach(doc => { const d = doc.data(); if (d.fecha) movements.push({ id: doc.id, date: d.fecha.toDate(), description: d.nota, type: d.tipo, amount: d.monto, category: d.tipo, docRef: db.collection('movimientos').doc(doc.id) }); });
+                utilityMovesSnapshot.forEach(doc => { const d = doc.data(); if (d.fecha) movements.push({ id: doc.id, date: d.fecha.toDate(), description: d.nota, type: d.tipo, amount: d.monto, category: d.tipo, docRef: db.collection('movimientos').doc(doc.id) }); });
+
+                const filteredMovements = selectedCategory === 'all' ? movements : movements.filter(m => m.category === selectedCategory);
+                filteredMovements.sort((a, b) => b.date - a.date);
+                
+                list.innerHTML = filteredMovements.length ? '' : '<p>No hay movimientos en esta categoría.</p>';
+                filteredMovements.forEach(m => {
+                    const amountClass = m.amount >= 0 ? 'amount-positive' : 'amount-negative';
+                    const amountSign = m.amount >= 0 ? '+' : '';
+                    list.innerHTML += `
+                        <li class="card-item">
+                            <div class="card-header">
+                                <span>${m.description}</span>
+                                <span class="${amountClass}">${amountSign}$${Math.abs(m.amount).toFixed(2)}</span>
+                            </div>
+                            <div class="card-content">
+                                <p><strong>Fecha:</strong> ${m.date.toLocaleDateString()}</p>
+                                <p><strong>Tipo:</strong> ${m.type}</p>
+                                <p><strong>Categoría:</strong> ${m.category}</p>
+                            </div>
+                            ${m.type !== 'Venta' ? `<div class="card-actions"><button class="btn btn-delete" onclick="deleteMovement('${m.id}', '${m.type}', ${m.amount}, '${m.category}')">Eliminar</button></div>` : ''}
+                        </li>
+                    `;
+                });
+            } catch (error) { console.error("Error al cargar movimientos:", error); list.innerHTML = '<p>Error al cargar movimientos.</p>'; }
+        }
+
+        async function deleteMovement(id, type, amount, category) {
+            if (!confirm("¿Estás seguro de que quieres eliminar este movimiento? Esta acción no se puede deshacer.")) return;
+            try {
+                let collectionRef, originalDoc;
+
+                if (type === 'Gasto General') {
+                    collectionRef = db.collection('gastosGenerales');
+                    originalDoc = await collectionRef.doc(id).get();
+                    if (!originalDoc.exists) { showMessage("Movimiento no encontrado."); return; }
+                    const monto = originalDoc.data().monto;
+                    await db.runTransaction(async (t) => {
+                        t.delete(collectionRef.doc(id));
+                        const finanzasRef = db.collection('finanzas').doc('resumen');
+                        t.update(finanzasRef, {
+                            gastos: firebase.firestore.FieldValue.increment(-monto),
+                            utilidad: firebase.firestore.FieldValue.increment(monto)
+                        });
+                    });
+                } else if (type === 'Gasto Insumo') {
+                    collectionRef = db.collection('insumos');
+                    originalDoc = await collectionRef.doc(id).get();
+                    if (!originalDoc.exists) { showMessage("Movimiento no encontrado."); return; }
+                    const costoTotal = originalDoc.data().costoTotal;
+                    await db.runTransaction(async (t) => {
+                        t.delete(collectionRef.doc(id));
+                        const finanzasRef = db.collection('finanzas').doc('resumen');
+                        t.update(finanzasRef, {
+                            gastos: firebase.firestore.FieldValue.increment(-costoTotal),
+                            utilidad: firebase.firestore.FieldValue.increment(costoTotal)
+                        });
+                    });
+                } else if (type === 'Gasto Re-Stock') {
+                    collectionRef = db.collection('restocks');
+                    originalDoc = await collectionRef.doc(id).get();
+                    if (!originalDoc.exists) { showMessage("Movimiento no encontrado."); return; }
+                    const restockData = originalDoc.data();
+                    const batch = db.batch();
+                    
+                    restockData.items.forEach(item => {
+                        const productRef = db.collection('productos').doc(item.id);
+                        batch.update(productRef, { stock: firebase.firestore.FieldValue.increment(-item.cantidad) });
+                    });
+                    
+                    const finanzasRef = db.collection('finanzas').doc('resumen');
+                    batch.update(finanzasRef, {
+                        capital: firebase.firestore.FieldValue.increment(restockData.costoTotal)
+                    });
+                    
+                    batch.delete(collectionRef.doc(id));
+                    await batch.commit();
+                } else {
+                    showMessage("No se puede eliminar este tipo de movimiento.");
+                    return;
+                }
+                
+                showMessage('Movimiento eliminado con éxito.');
+                loadMovementsHistory();
+            } catch (error) {
+                console.error("Error al eliminar movimiento: ", error);
+                showMessage('Hubo un error al eliminar el movimiento.');
+            }
+        }
+        
+        function loadFinancialSummary() {
+            const unsub = db.collection('finanzas').doc('resumen').onSnapshot(doc => {
+                const data = doc.data() || {};
+                getEl('total-sales').textContent = `$${(data.ventas || 0).toFixed(2)}`;
+                getEl('total-expenses').textContent = `$${(data.gastos || 0).toFixed(2)}`;
+                getEl('total-profit').textContent = `$${(data.utilidad || 0).toFixed(2)}`;
+                getEl('total-capital').textContent = `$${(data.capital || 0).toFixed(2)}`;
+            });
+            unsubscribes.push(unsub);
+        }
+        
+        async function loadExpenseConcepts() {
+            const select = getEl('expense-concept');
+            const unsub = db.collection('conceptosGastos').orderBy('nombre').onSnapshot(snapshot => {
+                expenseConcepts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                select.innerHTML = '<option value="">Selecciona un concepto</option>';
+                expenseConcepts.forEach(c => select.innerHTML += `<option value="${c.nombre}">${c.nombre}</option>`);
+            });
+            unsubscribes.push(unsub);
+        }
+
+        async function addNewExpenseConcept() {
+            const newConcept = prompt("Escribe el nombre del nuevo concepto de gasto:");
+            if (newConcept && newConcept.trim()) {
+                try {
+                    await db.collection('conceptosGastos').add({ nombre: newConcept.trim() });
+                    showMessage("Concepto agregado.");
+                } catch (error) { showMessage("Error al agregar el concepto."); }
+            }
+        }
+        
+        getEl('add-expense-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const monto = parseFloat(getEl('expense-amount').value);
+            const concepto = getEl('expense-concept').value;
+            const nota = getEl('expense-note').value;
+            if (!monto || !concepto) { showMessage("Por favor, completa todos los campos."); return; }
+            try {
+                await db.collection('gastosGenerales').add({
+                    monto,
+                    concepto,
+                    nota,
+                    fecha: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                const finanzasRef = db.collection('finanzas').doc('resumen');
+                await db.runTransaction(async (t) => {
+                    const doc = await t.get(finanzasRef);
+                    const gastos = (doc.data()?.gastos || 0) + monto;
+                    const utilidad = (doc.data()?.utilidad || 0) - monto;
+                    t.update(finanzasRef, { gastos, utilidad });
+                });
+                showMessage('Gasto registrado con éxito!');
+                getEl('add-expense-form').reset();
+            } catch (error) { showMessage('Error al registrar el gasto.'); }
+        });
+        
+        getEl('add-supply-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const descripcion = getEl('supply-description').value;
+            const cantidad = parseInt(getEl('supply-quantity').value);
+            const costoUnidad = parseFloat(getEl('supply-cost').value);
+            if (!descripcion || isNaN(cantidad) || isNaN(costoUnidad) || cantidad <= 0 || costoUnidad < 0) {
+                showMessage("Por favor, completa todos los campos correctamente.");
+                return;
+            }
+            const costoTotal = cantidad * costoUnidad;
+            try {
+                await db.collection('insumos').add({
+                    descripcion,
+                    cantidad,
+                    costoUnidad,
+                    costoTotal,
+                    fecha: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                const finanzasRef = db.collection('finanzas').doc('resumen');
+                await db.runTransaction(async (t) => {
+                    const doc = await t.get(finanzasRef);
+                    const gastos = (doc.data()?.gastos || 0) + costoTotal;
+                    const utilidad = (doc.data()?.utilidad || 0) - costoTotal;
+                    t.update(finanzasRef, { gastos, utilidad });
+                });
+                showMessage('Insumo registrado con éxito!');
+                getEl('add-supply-form').reset();
+            } catch (error) {
+                console.error("Error al registrar insumo:", error);
+                showMessage('Hubo un error al registrar el insumo.');
+            }
+        });
+
+        function loadSupplies() {
+            const tbody = getEl('supplies-table-body');
+            tbody.innerHTML = '<tr><td colspan="4">Cargando insumos...</td></tr>';
+            const unsub = db.collection('insumos').orderBy('fecha', 'desc').onSnapshot(snapshot => {
+                const supplies = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                tbody.innerHTML = supplies.length ? '' : '<tr><td colspan="4">No hay insumos registrados.</td></tr>';
+                supplies.forEach(s => {
+                    tbody.innerHTML += `
+                        <tr>
+                            <td>${s.descripcion}</td>
+                            <td>${s.cantidad}</td>
+                            <td>$${s.costoTotal.toFixed(2)}</td>
+                            <td>
+                                <button class="btn btn-delete" onclick="deleteSupply('${s.id}')">Eliminar</button>
+                            </td>
+                        </tr>
+                    `;
+                });
+            });
+            unsubscribes.push(unsub);
+        }
+
+        async function deleteSupply(id) {
+            if (!confirm("¿Estás seguro de que quieres eliminar este insumo? Esta acción no se puede deshacer.")) return;
+            try {
+                const doc = await db.collection('insumos').doc(id).get();
+                if (!doc.exists) { showMessage("Insumo no encontrado."); return; }
+                const costoTotal = doc.data().costoTotal;
+                
+                await db.collection('insumos').doc(id).delete();
+                
+                const finanzasRef = db.collection('finanzas').doc('resumen');
+                await db.runTransaction(async (t) => {
+                    const finanzasDoc = await t.get(finanzasRef);
+                    const gastos = (finanzasDoc.data()?.gastos || 0) - costoTotal;
+                    const utilidad = (finanzasDoc.data()?.utilidad || 0) + costoTotal;
+                    t.update(finanzasRef, { gastos, utilidad });
+                });
+                
+                showMessage('Insumo eliminado con éxito.');
+            } catch (error) {
+                console.error("Error al eliminar insumo: ", error);
+                showMessage('Hubo un error al eliminar el insumo.');
+            }
+        }
+        
+        async function loadProductModels() {
+            const snapshot = await db.collection('productos').orderBy('nombre').get();
+            productModels = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        }
+
+        function addRestockLine() {
+            const container = getEl('restock-items');
+            const newLine = document.createElement('div');
+            newLine.className = 'restock-line';
+            const options = productModels.map(p => `<option value="${p.id}" data-price="${p.precio}">${p.nombre} (${p.categoria})</option>`).join('');
+            newLine.innerHTML = `
+                <select class="restock-product-select" required>
+                    <option value="" disabled selected>Modelo</option>
+                    ${options}
+                </select>
+                <input type="number" class="restock-quantity-input" placeholder="Cantidad" min="1" value="1" required>
+                <input type="number" class="restock-cost-input" placeholder="Costo ($)" step="0.01" min="0" required>
+                <button type="button" class="btn btn-delete" onclick="this.parentNode.remove(); calculateRestockTotal()">-</button>
+            `;
+            container.appendChild(newLine);
+            newLine.querySelector('.restock-quantity-input').oninput = calculateRestockTotal;
+            newLine.querySelector('.restock-cost-input').oninput = calculateRestockTotal;
+        }
+        
+        function calculateRestockTotal() {
+            const lines = document.querySelectorAll('.restock-line');
+            let total = parseFloat(getEl('shipping-cost').value) || 0;
+            lines.forEach(line => {
+                const quantity = parseInt(line.querySelector('.restock-quantity-input').value) || 0;
+                const cost = parseFloat(line.querySelector('.restock-cost-input').value) || 0;
+                total += quantity * cost;
+            });
+            getEl('restock-total').textContent = `$${total.toFixed(2)}`;
+        }
+        
+        getEl('shipping-cost').addEventListener('input', calculateRestockTotal);
+
+        getEl('add-restock-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const lines = document.querySelectorAll('.restock-line');
+            const restockItems = [];
+            let totalCost = parseFloat(getEl('shipping-cost').value) || 0;
+            
+            lines.forEach(line => {
+                const productId = line.querySelector('.restock-product-select').value;
+                const quantity = parseInt(line.querySelector('.restock-quantity-input').value) || 0;
+                const cost = parseFloat(line.querySelector('.restock-cost-input').value) || 0;
+                if (!productId || quantity <= 0 || cost < 0) return;
+                const product = productModels.find(p => p.id === productId);
+                if (product) {
+                    restockItems.push({ id: productId, nombre: `${product.nombre} (${product.categoria})`, cantidad: quantity, costoUnidad: cost });
+                    totalCost += quantity * cost;
+                }
+            });
+
+            if (restockItems.length === 0) { showMessage("Debes agregar al menos un producto para el re-stock."); return; }
+
+            try {
+                const restockRef = await db.collection('restocks').add({
+                    items: restockItems,
+                    costoTotal: totalCost,
+                    costoEnvio: parseFloat(getEl('shipping-cost').value) || 0,
+                    fecha: firebase.firestore.FieldValue.serverTimestamp(),
+                    folio: `RS-${Date.now()}`
+                });
+
+                const batch = db.batch();
+                restockItems.forEach(item => {
+                    const productRef = db.collection('productos').doc(item.id);
+                    batch.update(productRef, { stock: firebase.firestore.FieldValue.increment(item.cantidad) });
+                });
+                
+                const finanzasRef = db.collection('finanzas').doc('resumen');
+                batch.update(finanzasRef, {
+                    capital: firebase.firestore.FieldValue.increment(-totalCost)
+                });
+                
+                await batch.commit();
+
+                showMessage('Pedido de re-stock registrado y stock actualizado con éxito!');
+                getEl('add-restock-form').reset();
+                getEl('restock-items').innerHTML = '';
+                addRestockLine();
+                calculateRestockTotal();
+                loadRestockHistory();
+            } catch (error) {
+                console.error("Error al registrar re-stock:", error);
+                showMessage('Hubo un error al registrar el re-stock.');
+            }
+        });
+
+        function loadRestockHistory() {
+            const list = getEl('restock-history-list');
+            list.innerHTML = '<p>Cargando historial...</p>';
+            const unsub = db.collection('restocks').orderBy('fecha', 'desc').onSnapshot(snapshot => {
+                const restocks = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                list.innerHTML = restocks.length ? '' : '<p>No hay re-stocks registrados.</p>';
+                restocks.forEach(r => {
+                    const itemsList = r.items.map(i => `<li>${i.nombre} (x${i.cantidad})</li>`).join('');
+                    const item = document.createElement('li');
+                    item.className = 'card-item';
+                    item.innerHTML = `
+                        <div class="card-header">
+                            <span>Re-Stock #${r.folio}</span>
+                            <span class="amount-negative">-$${r.costoTotal.toFixed(2)}</span>
+                        </div>
+                        <div class="card-content">
+                            <p><strong>Fecha:</strong> ${r.fecha?.toDate().toLocaleDateString() || 'N/A'}</p>
+                            <p><strong>Costo de Envío:</strong> $${(r.costoEnvio || 0).toFixed(2)}</p>
+                            <p><strong>Productos:</strong></p>
+                            <ul>${itemsList}</ul>
+                        </div>
+                        <div class="card-actions"><button class="btn btn-delete" onclick="deleteRestock('${r.id}')">Eliminar</button></div>
+                    `;
+                    list.appendChild(item);
+                });
+            });
+            unsubscribes.push(unsub);
+        }
+
+        async function deleteRestock(id) {
+            if (!confirm("¿Estás seguro de que quieres eliminar este re-stock? Esto revertirá los cambios en el inventario y las finanzas.")) return;
+            try {
+                const restockDoc = await db.collection('restocks').doc(id).get();
+                if (!restockDoc.exists) { showMessage("Re-stock no encontrado."); return; }
+                const restockData = restockDoc.data();
+                
+                const batch = db.batch();
+                
+                restockData.items.forEach(item => {
+                    const productRef = db.collection('productos').doc(item.id);
+                    batch.update(productRef, { stock: firebase.firestore.FieldValue.increment(-item.cantidad) });
+                });
+                
+                const finanzasRef = db.collection('finanzas').doc('resumen');
+                batch.update(finanzasRef, {
+                    capital: firebase.firestore.FieldValue.increment(restockData.costoTotal)
+                });
+                
+                batch.delete(db.collection('restocks').doc(id));
+                
+                await batch.commit();
+                
+                showMessage('Re-stock eliminado y movimientos revertidos con éxito.');
+                loadRestockHistory();
+            } catch (error) {
+                console.error("Error al eliminar re-stock: ", error);
+                showMessage('Hubo un error al eliminar el re-stock.');
+            }
+        }
+        
+        function loadSalesData() {
+            const list = getEl('sales-list');
+            list.innerHTML = '<p>Cargando datos de ventas...</p>';
+            const q = db.collection('pedidos').where('estado', '==', 'Entregado').orderBy('fechaActualizacion', 'desc');
+            const unsubscribe = q.onSnapshot(snapshot => {
+                const salesByDate = {};
+                list.innerHTML = snapshot.empty ? '<p>No hay ventas registradas.</p>' : '';
+                snapshot.forEach(doc => {
+                    const pedido = doc.data();
+                    const total = pedido.montoTotal || 0;
+                    const fecha = pedido.fechaActualizacion?.toDate().toISOString().split('T')[0];
+                    if (fecha) {
+                        salesByDate[fecha] = (salesByDate[fecha] || 0) + total;
+                    }
+                    const cliente = `${pedido.datosCliente?.nombre || ''} ${pedido.datosCliente?.apellido || ''}`.trim();
+                    list.innerHTML += `<li class="sales-history-item"><div class="sales-summary"><span>#${pedido.folio}</span><span>${cliente}</span><span>$${total.toFixed(2)}</span></div></li>`;
+                });
+                updateChart(salesByDate);
+            });
+            unsubscribes.push(unsubscribe);
+        }
+        
+        function updateChart(salesData) {
+            const ctx = getEl('sales-chart').getContext('2d');
+            if (salesChart) salesChart.destroy();
+            salesChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: Object.keys(salesData).sort(),
+                    datasets: [{ label: 'Ventas Diarias', data: Object.values(salesData), borderColor: '#48dbfb', tension: 0.1 }]
+                },
+                options: { responsive: true, maintainAspectRatio: false }
+            });
+        }
+        
+        function showSalesHistoryModal() {
+            const list = getEl('modal-sales-list');
+            list.innerHTML = '<p>Cargando ventas...</p>';
+            const unsub = db.collection('pedidos').where('estado', '==', 'Entregado').onSnapshot(snapshot => {
+                const sales = snapshot.docs.map(doc => doc.data()).sort((a,b) => b.fechaActualizacion.toDate() - a.fechaActualizacion.toDate());
+                list.innerHTML = sales.length ? '' : '<p>No hay ventas.</p>';
+                sales.forEach(p => {
+                    list.innerHTML += `<li class="sales-history-item"><div class="sales-summary"><span>#${p.folio} - ${p.fechaActualizacion.toDate().toLocaleDateString()}</span><span>$${(p.montoTotal || 0).toFixed(2)}</span></div></li>`;
+                });
+            });
+            unsubscribes.push(unsub);
+            getEl('sales-history-modal').style.display = 'flex';
+        }
+
+        function closeSalesHistoryModal() { getEl('sales-history-modal').style.display = 'none'; }
+        
+        function showMessage(text) { 
+            const msgBox = getEl('message-box');
+            if (!msgBox) {
+                alert(text);
+                return;
+            }
+            getEl('message-text').textContent = text;
+            msgBox.style.display = 'flex';
+        }
+        function closeMessage() { getEl('message-box').style.display = 'none'; }
+        function closeEditModal() { getEl('edit-modal').style.display = 'none'; }
+        function showConfirmModal(id) { productToDeleteId = id; getEl('confirm-modal').style.display = 'flex'; }
+        function cancelAction() { getEl('confirm-modal').style.display = 'none'; productToDeleteId = null; }
+        async function confirmAction() {
+            if (productToDeleteId) {
+                try {
+                    await db.collection('productos').doc(productToDeleteId).delete();
+                    showMessage('Producto eliminado.');
+                    cancelAction();
+                    loadInventory();
+                } catch (error) { showMessage('Error al eliminar.'); }
+            }
+        }
+    </script>
 </body>
 </html>
