@@ -199,7 +199,7 @@
             box-shadow: var(--shadow-md);
         }
 
-        /* --- NUEVO: Estilos para la pantalla de temas --- */
+        /* --- ESTILOS PARA LA PANTALLA DE TEMAS --- */
         .theme-buttons {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
@@ -210,6 +210,8 @@
         .theme-buttons button {
             background-color: var(--surface-color);
             padding: 20px;
+            font-size: 1.1em;
+            justify-content: center;
         }
         .theme-buttons button:hover {
             background-color: var(--primary-accent-hover);
@@ -224,10 +226,12 @@
             margin-left: 10px;
             text-transform: capitalize;
         }
-        #theme-screen p {
+        #theme-screen > p {
             font-size: 1.1em;
             color: var(--text-secondary);
+            margin-bottom: 10px;
         }
+        /* --- FIN DE ESTILOS PARA TEMAS --- */
 
         /* --- Estilos para tablas --- */
         .table-container { width: 100%; overflow-x: auto; margin-top: 20px; }
@@ -426,7 +430,8 @@
                 <button onclick="showScreen('orders-screen')">📬 Pedidos</button>
                 <button onclick="showScreen('sales-history-screen')">💰 Historial de Pedidos</button>
                 <button onclick="showScreen('finance-screen')">📈 Administración</button>
-                <button onclick="showScreen('theme-screen')">🎨 Tema de la Página</button>                 <button onclick="showScreen('sales-screen')">📊 Reporte de Ventas</button>
+                                <button onclick="showScreen('theme-screen')">🎨 Tema de la Página</button>
+                <button onclick="showScreen('sales-screen')">📊 Reporte de Ventas</button>
                 <button id="install-app-button">📲 Instalar App</button>
             </div>
         </section>
@@ -548,20 +553,19 @@
             <ul id="sales-list"></ul>
             <button class="close-button" onclick="showScreen('main-menu')">Volver al Menú</button>
         </section>
-
-        <section id="theme-screen" style="display: none;">
-            <h1>Gestionar Tema de la Tienda</h1>
-            <p>Selecciona el tema que se mostrará públicamente en la tienda en línea.</p>
-            <p style="margin-top: 15px;">Tema Actual: <strong id="current-theme-status">Cargando...</strong></p>
-            <div class="theme-buttons">
-                <button onclick="setTheme('default')">Default (Normal)</button>
-                <button onclick="setTheme('halloween')" style="background-color: #f9a03f; color: #0d0221;">Halloween 🎃</button>
-                <button onclick="setTheme('christmas')" style="background-color: #d94545;">Navidad 🎅</button>
-            </div>
-            <button class="close-button" onclick="showScreen('main-menu')">Volver al Menú</button>
-        </section>
-
-        <div id="edit-modal" class="edit-modal">
+        
+                <section id="theme-screen" style="display: none;">
+            <h1>Gestionar Tema de la Tienda</h1>
+            <p>Selecciona el tema que se mostrará públicamente en la tienda en línea.</p>
+            <p>Tema Actual: <strong id="current-theme-status">Cargando...</strong></p>
+            <div class="theme-buttons">
+                <button onclick="setTheme('default')">Default (Normal)</button>
+                <button onclick="setTheme('halloween')" style="background-color: #f9a03f; color: #0d0221;">Halloween 🎃</button>
+                <button onclick="setTheme('christmas')" style="background-color: #d94545;">Navidad 🎅</button>
+            </div>
+            <button class="close-button" onclick="showScreen('main-menu')">Volver al Menú</button>
+        </section>
+                <div id="edit-modal" class="edit-modal">
             <div class="modal-content">
                 <h2>Editar Producto</h2>
                 <form id="edit-product-form" class="edit-modal-form">
@@ -687,21 +691,22 @@
                     break;
                 case 'sales-screen': loadSalesData(); break;
                 case 'movements-history-screen': loadMovementCategories(); loadMovementsHistory(); break;
-                case 'theme-screen': loadCurrentTheme(); break; // CASO AÑADIDO
+                // CASO AÑADIDO PARA LA PANTALLA DE TEMAS
+                case 'theme-screen': loadCurrentTheme(); break; 
             }
         }
-
-        // --- NUEVAS FUNCIONES PARA GESTIONAR EL TEMA ---
+        
+        // --- FUNCIONES AÑADIDAS PARA GESTIONAR EL TEMA ---
         async function loadCurrentTheme() {
             const statusEl = getEl('current-theme-status');
             statusEl.textContent = 'Cargando...';
             try {
                 const configRef = db.collection('configuracion').doc('tienda');
                 const doc = await configRef.get();
-                if (doc.exists) {
-                    statusEl.textContent = doc.data().temaActual || 'default';
+                if (doc.exists && doc.data().temaActual) {
+                    statusEl.textContent = doc.data().temaActual;
                 } else {
-                    statusEl.textContent = 'default';
+                    statusEl.textContent = 'default'; // Si no existe, el tema es 'default'
                 }
             } catch (error) {
                 console.error("Error al cargar el tema actual:", error);
@@ -712,15 +717,16 @@
         async function setTheme(themeName) {
             try {
                 const configRef = db.collection('configuracion').doc('tienda');
+                // Usamos .set con merge:true para crear el documento si no existe, o actualizarlo si ya existe.
                 await configRef.set({ temaActual: themeName }, { merge: true });
                 showMessage(`¡Éxito! El tema de la tienda ahora es '${themeName}'.`);
-                loadCurrentTheme(); // Recargar el estado actual
+                loadCurrentTheme(); // Recargar el estado actual para que se vea reflejado en el panel
             } catch (error) {
                 console.error("Error al actualizar el tema:", error);
                 showMessage('Hubo un error al intentar cambiar el tema.');
             }
         }
-        // --- FIN DE NUEVAS FUNCIONES ---
+        // --- FIN DE FUNCIONES AÑADIDAS ---
 
         auth.onAuthStateChanged(user => {
             unsubscribes.forEach(unsub => unsub());
