@@ -446,7 +446,7 @@
         </div>
 
         <section id="login-screen" style="display: block;">
-            <div class="logo-container"><img src="/LOGO.png" alt="KalCTas Logo" class="logo"></div>
+            <div class="logo-container"><img src="LOGO.png" alt="KalCTas Logo" class="logo"></div>
             <h2>Iniciar Sesión</h2>
             <form id="login-form">
                 <input type="email" id="login-email" placeholder="Correo electrónico" required>
@@ -456,7 +456,7 @@
         </section>
 
         <section id="main-menu" style="display: none;">
-            <div class="logo-container"><img src="/LOGO.png" alt="KalCTas Logo" class="logo"></div>
+            <div class="logo-container"><img src="LOGO.png" alt="KalCTas Logo" class="logo"></div>
             <h2>Menú Principal</h2>
             <div class="main-menu-buttons">
                 <button onclick="showScreen('inventory-screen')">📦 Inventario</button>
@@ -941,10 +941,9 @@
                 if (!snapshot.empty) {
                     snapshot.forEach(doc => {
                         const product = { id: doc.id, ...doc.data() };
-                        if (!productsByCategory[product.categoria]) {
-                            productsByCategory[product.categoria] = [];
+                        if (productsByCategory[product.categoria]) {
+                            productsByCategory[product.categoria].push(product);
                         }
-                        productsByCategory[product.categoria].push(product);
                     });
                 }
 
@@ -999,15 +998,10 @@
                             const toggleBtnText = isVisible ? 'Ocultar' : 'Mostrar';
                             const toggleBtnColorClass = isVisible ? 'status-blue' : 'status-green';
 
-                            // CORRECCIÓN DE RUTA DE IMAGEN
-                            let imageUrl = product.imagenUrl;
-                            if (imageUrl && !imageUrl.startsWith('http') && !imageUrl.startsWith('/')) {
-                                imageUrl = '/' + imageUrl;
-                            }
-
+                            // CORRECCIÓN DE RUTA DE IMAGEN: Se usa la ruta relativa simple
                             detailsDiv.innerHTML = `
                                 <div class="product-image-container">
-                                    <img src="${imageUrl}" alt="${product.nombre}" onerror="this.onerror=null; this.src='https://via.placeholder.com/100?text=No+Img';">
+                                    <img src="${product.imagenUrl}" alt="${product.nombre}" onerror="this.onerror=null; this.src='https://via.placeholder.com/100?text=No+Img';">
                                 </div>
                                 <div class="product-info">
                                     <p><strong>Stock:</strong> ${product.stock}</p>
@@ -1677,7 +1671,7 @@
                 });
                 updateChart(salesByDate);
             });
-            unsubscribes.push(unsubscribe);
+            unsubscribes.push(unsub);
         }
         
         function updateChart(salesData) {
