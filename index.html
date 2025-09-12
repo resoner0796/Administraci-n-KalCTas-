@@ -446,7 +446,7 @@
         </div>
 
         <section id="login-screen" style="display: block;">
-            <div class="logo-container"><img src="../LOGO.png" alt="KalCTas Logo" class="logo"></div>
+            <div class="logo-container"><img src="/LOGO.png" alt="KalCTas Logo" class="logo"></div>
             <h2>Iniciar Sesión</h2>
             <form id="login-form">
                 <input type="email" id="login-email" placeholder="Correo electrónico" required>
@@ -456,7 +456,7 @@
         </section>
 
         <section id="main-menu" style="display: none;">
-            <div class="logo-container"><img src="../LOGO.png" alt="KalCTas Logo" class="logo"></div>
+            <div class="logo-container"><img src="/LOGO.png" alt="KalCTas Logo" class="logo"></div>
             <h2>Menú Principal</h2>
             <div class="main-menu-buttons">
                 <button onclick="showScreen('inventory-screen')">📦 Inventario</button>
@@ -473,7 +473,7 @@
             <h1>Inventario de Productos</h1>
             <div id="category-visibility-controls">
                 <h2>Visibilidad de Categorías</h2>
-                </div>
+            </div>
             <button onclick="showScreen('add-product-screen')">Agregar Nuevo Producto</button>
             <div id="inventory-accordion"></div> 
             <button class="close-button" onclick="showScreen('main-menu')">Volver al Menú</button>
@@ -664,7 +664,6 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <script>
-        // --- INICIO: CÓDIGO AÑADIDO PARA REGISTRAR EL SERVICE WORKER ---
         if ('serviceWorker' in navigator) {
           window.addEventListener('load', () => {
             navigator.serviceWorker.register('sw.js')
@@ -676,10 +675,7 @@
               });
           });
         }
-        // --- FIN: CÓDIGO AÑADIDO ---
 
-
-        // --- CONFIGURACIÓN INICIAL ---
         const firebaseConfig = {
           apiKey: "AIzaSyDuNHPsYnLD_qmbG2K9ieTIOCX6U4slD1E",
           authDomain: "tienda-kalctas.firebaseapp.com",
@@ -734,7 +730,6 @@
             }
         }
         
-        // --- FUNCIONES PARA GESTIONAR EL TEMA ---
         async function loadCurrentTheme() {
             const statusEl = getEl('current-theme-status');
             statusEl.textContent = 'Cargando...';
@@ -764,7 +759,6 @@
             }
         }
         
-        // --- NUEVAS FUNCIONES PARA VISIBILIDAD DE CATEGORÍAS ---
         async function getCategoryVisibility() {
             const visibility = {};
             const snapshot = await db.collection('categorias').get();
@@ -781,7 +775,7 @@
                     visible: newVisibility
                 }, { merge: true });
                 showMessage(`Categoría '${categoryName}' ahora está ${newVisibility ? 'VISIBLE' : 'OCULTA'}.`);
-                loadInventory(); // Recargar todo el inventario para reflejar el cambio
+                loadInventory();
             } catch (error) {
                 console.error("Error al cambiar visibilidad de categoría:", error);
                 showMessage("Error al actualizar la categoría.");
@@ -934,30 +928,33 @@
             categoryControlsContainer.innerHTML = '<h2>Visibilidad de Categorías</h2>';
             
             try {
-                // Obtenemos primero el estado de visibilidad de las categorías
                 const categoryVisibility = await getCategoryVisibility();
 
                 const snapshot = await db.collection('productos').orderBy('categoria').orderBy('nombre').get();
-                if (snapshot.empty) {
-                    accordionContainer.innerHTML = '<p>No hay productos en el inventario.</p>';
-                    return;
-                }
-
+                
                 const productsByCategory = {};
-                snapshot.forEach(doc => {
-                    const product = { id: doc.id, ...doc.data() };
-                    if (!productsByCategory[product.categoria]) {
-                        productsByCategory[product.categoria] = [];
-                    }
-                    productsByCategory[product.categoria].push(product);
+                const definedCategories = ['KalCTas2-4', 'KalCTas3-4', 'KalCTasLargas'];
+                
+                // Inicializar todas las categorías definidas para que aparezcan aunque no tengan productos
+                definedCategories.forEach(cat => {
+                    productsByCategory[cat] = [];
                 });
+
+                if (!snapshot.empty) {
+                    snapshot.forEach(doc => {
+                        const product = { id: doc.id, ...doc.data() };
+                        if (!productsByCategory[product.categoria]) {
+                            productsByCategory[product.categoria] = [];
+                        }
+                        productsByCategory[product.categoria].push(product);
+                    });
+                }
 
                 accordionContainer.innerHTML = '';
                 
                 // Llenamos los controles de visibilidad de categorías
-                const allCategories = Object.keys(productsByCategory);
-                allCategories.forEach(categoryName => {
-                    const isVisible = categoryVisibility[categoryName] !== false; // Visible por defecto si no está definido
+                definedCategories.forEach(categoryName => {
+                    const isVisible = categoryVisibility[categoryName] !== false; // Visible por defecto
                     const controlItem = document.createElement('div');
                     controlItem.className = 'category-visibility-item';
                     
@@ -981,52 +978,59 @@
                     }
                     groupDiv.innerHTML = `<h3 class="category-title">${category} ${!isCategoryVisible ? '(Oculta)' : ''}</h3>`;
 
-                    productsByCategory[category].forEach(product => {
-                        const isVisible = product.visible !== false; 
-                        
-                        const itemDiv = document.createElement('div');
-                        itemDiv.className = 'product-item';
-                        if (product.stock === 0) itemDiv.classList.add('agotado');
-                        if (!isVisible) itemDiv.classList.add('hidden'); 
-                        
-                        itemDiv.innerHTML = `
-                            <span>${product.nombre} ${!isVisible ? '<span style="color:var(--status-yellow); font-size:0.8em;">(Oculto)</span>' : ''}</span>
-                            <span style="font-size: 0.9em; font-weight: normal;">
-                                ${product.stock > 0 ? `Stock: ${product.stock}` : 'Agotado'}
-                            </span>`;
-                        
-                        itemDiv.onclick = (e) => e.currentTarget.nextElementSibling.classList.toggle('visible');
-                        
-                        const detailsDiv = document.createElement('div');
-                        detailsDiv.className = 'product-details';
-                        
-                        const toggleBtnText = isVisible ? 'Ocultar' : 'Mostrar';
-                        const toggleBtnColorClass = isVisible ? 'status-blue' : 'status-green';
+                    if (productsByCategory[category].length === 0) {
+                        groupDiv.innerHTML += '<div class="product-item" style="justify-content:center; color: var(--text-secondary);">No hay productos en esta categoría.</div>';
+                    } else {
+                        productsByCategory[category].forEach(product => {
+                            const isVisible = product.visible !== false; 
+                            
+                            const itemDiv = document.createElement('div');
+                            itemDiv.className = 'product-item';
+                            if (product.stock === 0) itemDiv.classList.add('agotado');
+                            if (!isVisible) itemDiv.classList.add('hidden'); 
+                            
+                            itemDiv.innerHTML = `
+                                <span>${product.nombre} ${!isVisible ? '<span style="color:var(--status-yellow); font-size:0.8em;">(Oculto)</span>' : ''}</span>
+                                <span style="font-size: 0.9em; font-weight: normal;">
+                                    ${product.stock > 0 ? `Stock: ${product.stock}` : 'Agotado'}
+                                </span>`;
+                            
+                            itemDiv.onclick = (e) => e.currentTarget.nextElementSibling.classList.toggle('visible');
+                            
+                            const detailsDiv = document.createElement('div');
+                            detailsDiv.className = 'product-details';
+                            
+                            const toggleBtnText = isVisible ? 'Ocultar' : 'Mostrar';
+                            const toggleBtnColorClass = isVisible ? 'status-blue' : 'status-green';
 
-                        // --- AJUSTE DE RUTA DE IMAGEN ---
-                        // Se asume que la app de admin está en una carpeta y las imágenes en la raíz. 
-                        // El `../` sube un nivel para encontrar la carpeta `assets`.
-                        detailsDiv.innerHTML = `
-                            <div class="product-image-container">
-                                <img src="../${product.imagenUrl}" alt="${product.nombre}" onerror="this.onerror=null; this.src='https://via.placeholder.com/100?text=No+Img';">
-                            </div>
-                            <div class="product-info">
-                                <p><strong>Stock:</strong> ${product.stock}</p>
-                                <p><strong>Vendidos:</strong> ${product.cantidadVendida || 0}</p>
-                                <p><strong>Precio:</strong> $${product.precio.toFixed(2)}</p>
-                            </div>
-                            <div class="product-actions">
-                                <button class="btn btn-edit">Editar</button>
-                                <button class="btn" style="background-color: var(--${toggleBtnColorClass});" onclick="toggleProductVisibility('${product.id}', ${isVisible})">${toggleBtnText}</button>
-                                <button class="btn btn-delete">Eliminar</button>
-                            </div>`;
-                        
-                        detailsDiv.querySelector('.btn-edit').onclick = () => editProduct(product.id);
-                        detailsDiv.querySelector('.btn-delete').onclick = () => showConfirmModal(product.id);
+                            // CORRECCIÓN DE RUTA DE IMAGEN: Añadimos una barra '/' al principio.
+                            let imageUrl = product.imagenUrl;
+                            if (imageUrl && !imageUrl.startsWith('http') && !imageUrl.startsWith('/')) {
+                                imageUrl = '/' + imageUrl;
+                            }
 
-                        groupDiv.appendChild(itemDiv);
-                        groupDiv.appendChild(detailsDiv);
-                    });
+                            detailsDiv.innerHTML = `
+                                <div class="product-image-container">
+                                    <img src="${imageUrl}" alt="${product.nombre}" onerror="this.onerror=null; this.src='https://via.placeholder.com/100?text=No+Img';">
+                                </div>
+                                <div class="product-info">
+                                    <p><strong>Stock:</strong> ${product.stock}</p>
+                                    <p><strong>Vendidos:</strong> ${product.cantidadVendida || 0}</p>
+                                    <p><strong>Precio:</strong> $${product.precio.toFixed(2)}</p>
+                                </div>
+                                <div class="product-actions">
+                                    <button class="btn btn-edit">Editar</button>
+                                    <button class="btn" style="background-color: var(--${toggleBtnColorClass});" onclick="toggleProductVisibility('${product.id}', ${isVisible})">${toggleBtnText}</button>
+                                    <button class="btn btn-delete">Eliminar</button>
+                                </div>`;
+                            
+                            detailsDiv.querySelector('.btn-edit').onclick = () => editProduct(product.id);
+                            detailsDiv.querySelector('.btn-delete').onclick = () => showConfirmModal(product.id);
+
+                            groupDiv.appendChild(itemDiv);
+                            groupDiv.appendChild(detailsDiv);
+                        });
+                    }
                     accordionContainer.appendChild(groupDiv);
                 }
             } catch (error) {
