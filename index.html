@@ -929,13 +929,11 @@
             
             try {
                 const categoryVisibility = await getCategoryVisibility();
-
                 const snapshot = await db.collection('productos').orderBy('categoria').orderBy('nombre').get();
                 
                 const productsByCategory = {};
                 const definedCategories = ['KalCTas2-4', 'KalCTas3-4', 'KalCTasLargas'];
                 
-                // Inicializar todas las categorías definidas para que aparezcan aunque no tengan productos
                 definedCategories.forEach(cat => {
                     productsByCategory[cat] = [];
                 });
@@ -952,9 +950,8 @@
 
                 accordionContainer.innerHTML = '';
                 
-                // Llenamos los controles de visibilidad de categorías
                 definedCategories.forEach(categoryName => {
-                    const isVisible = categoryVisibility[categoryName] !== false; // Visible por defecto
+                    const isVisible = categoryVisibility[categoryName] !== false;
                     const controlItem = document.createElement('div');
                     controlItem.className = 'category-visibility-item';
                     
@@ -968,7 +965,6 @@
                     categoryControlsContainer.appendChild(controlItem);
                 });
 
-                // Llenamos el acordeón de productos
                 for (const category in productsByCategory) {
                     const isCategoryVisible = categoryVisibility[category] !== false;
                     const groupDiv = document.createElement('div');
@@ -1003,7 +999,7 @@
                             const toggleBtnText = isVisible ? 'Ocultar' : 'Mostrar';
                             const toggleBtnColorClass = isVisible ? 'status-blue' : 'status-green';
 
-                            // CORRECCIÓN DE RUTA DE IMAGEN: Añadimos una barra '/' al principio.
+                            // CORRECCIÓN DE RUTA DE IMAGEN
                             let imageUrl = product.imagenUrl;
                             if (imageUrl && !imageUrl.startsWith('http') && !imageUrl.startsWith('/')) {
                                 imageUrl = '/' + imageUrl;
