@@ -57,7 +57,7 @@
             color: var(--text-primary);
             display: flex;
             justify-content: center;
-            align-items: flex-start; /* Alinea al inicio para pantallas largas */
+            align-items: flex-start;
             min-height: 100vh;
             padding: 20px;
         }
@@ -233,6 +233,34 @@
         }
         /* --- FIN DE ESTILOS PARA TEMAS --- */
 
+        /* --- ESTILOS VISIBILIDAD DE CATEGORÍAS --- */
+        #category-visibility-controls {
+            width: 100%;
+            background-color: var(--bg-dark-primary);
+            border-radius: var(--border-radius-md);
+            padding: 20px;
+            margin-bottom: 25px;
+            border: 1px solid var(--border-color);
+        }
+        .category-visibility-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+        }
+        .category-visibility-item:not(:last-child){
+            border-bottom: 1px solid var(--border-color);
+        }
+        .category-visibility-item span {
+            font-weight: 500;
+        }
+        .category-visibility-item button {
+            padding: 8px 16px;
+            font-size: 0.9em;
+            min-width: 90px;
+        }
+        /* --- FIN ESTILOS VISIBILIDAD DE CATEGORÍAS --- */
+
         /* --- Estilos para tablas --- */
         .table-container { width: 100%; overflow-x: auto; margin-top: 20px; }
         #supplies-table {
@@ -289,7 +317,7 @@
         /* Etiquetas de estado */
         .order-status { 
             font-size: 0.8em; font-weight: 500; 
-            padding: 4px 10px; border-radius: 99px; /* Pill shape */
+            padding: 4px 10px; border-radius: 99px;
         }
         .status-Confirmado { background-color: var(--status-blue); color: #fff; }
         .status-Entregado { background-color: var(--status-green); color: #fff; }
@@ -303,6 +331,11 @@
             border: 1px solid var(--border-color);
             border-radius: var(--border-radius-md); 
             margin-bottom: 15px; 
+            transition: opacity 0.3s ease;
+        }
+        .category-group.hidden-category {
+            opacity: 0.4;
+            border-style: dashed;
         }
         .category-title { 
             font-size: 1.2em; font-weight: 700; padding: 15px 20px; text-align: left;
@@ -329,7 +362,7 @@
             text-align: left; grid-template-columns: 100px 1fr; gap: 20px; align-items: center;
         }
         .product-details.visible { display: grid; }
-        .product-details img { max-width: 100%; height: auto; border-radius: var(--border-radius-sm); }
+        .product-details img { width: 100%; height: 100px; object-fit: cover; border-radius: var(--border-radius-sm); }
         .product-info p { margin: 0 0 8px 0; font-size: 0.95em; color: var(--text-secondary); }
         .product-info strong { color: var(--text-primary); display: inline-block; width: 100px; }
         .product-actions { 
@@ -413,7 +446,7 @@
         </div>
 
         <section id="login-screen" style="display: block;">
-            <div class="logo-container"><img src="LOGO.png" alt="KalCTas Logo" class="logo"></div>
+            <div class="logo-container"><img src="../LOGO.png" alt="KalCTas Logo" class="logo"></div>
             <h2>Iniciar Sesión</h2>
             <form id="login-form">
                 <input type="email" id="login-email" placeholder="Correo electrónico" required>
@@ -423,7 +456,7 @@
         </section>
 
         <section id="main-menu" style="display: none;">
-            <div class="logo-container"><img src="LOGO.png" alt="KalCTas Logo" class="logo"></div>
+            <div class="logo-container"><img src="../LOGO.png" alt="KalCTas Logo" class="logo"></div>
             <h2>Menú Principal</h2>
             <div class="main-menu-buttons">
                 <button onclick="showScreen('inventory-screen')">📦 Inventario</button>
@@ -438,6 +471,9 @@
 
         <section id="inventory-screen" style="display: none;">
             <h1>Inventario de Productos</h1>
+            <div id="category-visibility-controls">
+                <h2>Visibilidad de Categorías</h2>
+                </div>
             <button onclick="showScreen('add-product-screen')">Agregar Nuevo Producto</button>
             <div id="inventory-accordion"></div> 
             <button class="close-button" onclick="showScreen('main-menu')">Volver al Menú</button>
@@ -565,6 +601,7 @@
             </div>
             <button class="close-button" onclick="showScreen('main-menu')">Volver al Menú</button>
         </section>
+
         <div id="edit-modal" class="edit-modal">
             <div class="modal-content">
                 <h2>Editar Producto</h2>
@@ -676,7 +713,9 @@
             unsubscribes = [];
 
             switch (screenId) {
-                case 'inventory-screen': loadInventory(); break;
+                case 'inventory-screen': 
+                    loadInventory(); 
+                    break;
                 case 'orders-screen': loadOrders(); break;
                 case 'sales-history-screen': loadSalesHistory(); break;
                 case 'finance-screen': loadFinancialSummary(); loadExpenseConcepts(); break;
@@ -691,12 +730,11 @@
                     break;
                 case 'sales-screen': loadSalesData(); break;
                 case 'movements-history-screen': loadMovementCategories(); loadMovementsHistory(); break;
-                // CASO AÑADIDO PARA LA PANTALLA DE TEMAS
                 case 'theme-screen': loadCurrentTheme(); break;
             }
         }
         
-        // --- FUNCIONES AÑADIDAS PARA GESTIONAR EL TEMA ---
+        // --- FUNCIONES PARA GESTIONAR EL TEMA ---
         async function loadCurrentTheme() {
             const statusEl = getEl('current-theme-status');
             statusEl.textContent = 'Cargando...';
@@ -706,7 +744,7 @@
                 if (doc.exists && doc.data().temaActual) {
                     statusEl.textContent = doc.data().temaActual;
                 } else {
-                    statusEl.textContent = 'default'; // Si no existe, el tema es 'default'
+                    statusEl.textContent = 'default';
                 }
             } catch (error) {
                 console.error("Error al cargar el tema actual:", error);
@@ -717,17 +755,39 @@
         async function setTheme(themeName) {
             try {
                 const configRef = db.collection('configuracion').doc('tienda');
-                // Usamos .set con merge:true para crear el documento si no existe, o actualizarlo si ya existe.
                 await configRef.set({ temaActual: themeName }, { merge: true });
                 showMessage(`¡Éxito! El tema de la tienda ahora es '${themeName}'.`);
-                loadCurrentTheme(); // Recargar el estado actual para que se vea reflejado en el panel
+                loadCurrentTheme();
             } catch (error) {
                 console.error("Error al actualizar el tema:", error);
                 showMessage('Hubo un error al intentar cambiar el tema.');
             }
         }
-        // --- FIN DE FUNCIONES AÑADIDAS ---
+        
+        // --- NUEVAS FUNCIONES PARA VISIBILIDAD DE CATEGORÍAS ---
+        async function getCategoryVisibility() {
+            const visibility = {};
+            const snapshot = await db.collection('categorias').get();
+            snapshot.forEach(doc => {
+                visibility[doc.id] = doc.data().visible;
+            });
+            return visibility;
+        }
 
+        async function toggleCategoryVisibility(categoryName, isVisible) {
+            const newVisibility = !isVisible;
+            try {
+                await db.collection('categorias').doc(categoryName).set({
+                    visible: newVisibility
+                }, { merge: true });
+                showMessage(`Categoría '${categoryName}' ahora está ${newVisibility ? 'VISIBLE' : 'OCULTA'}.`);
+                loadInventory(); // Recargar todo el inventario para reflejar el cambio
+            } catch (error) {
+                console.error("Error al cambiar visibilidad de categoría:", error);
+                showMessage("Error al actualizar la categoría.");
+            }
+        }
+        
         auth.onAuthStateChanged(user => {
             unsubscribes.forEach(unsub => unsub());
             unsubscribes = [];
@@ -869,24 +929,58 @@
         
         async function loadInventory() {
             const accordionContainer = getEl('inventory-accordion');
+            const categoryControlsContainer = getEl('category-visibility-controls');
             accordionContainer.innerHTML = '<p>Cargando inventario...</p>';
+            categoryControlsContainer.innerHTML = '<h2>Visibilidad de Categorías</h2>';
+            
             try {
+                // Obtenemos primero el estado de visibilidad de las categorías
+                const categoryVisibility = await getCategoryVisibility();
+
                 const snapshot = await db.collection('productos').orderBy('categoria').orderBy('nombre').get();
                 if (snapshot.empty) {
                     accordionContainer.innerHTML = '<p>No hay productos en el inventario.</p>';
                     return;
                 }
+
                 const productsByCategory = {};
                 snapshot.forEach(doc => {
                     const product = { id: doc.id, ...doc.data() };
-                    if (!productsByCategory[product.categoria]) productsByCategory[product.categoria] = [];
+                    if (!productsByCategory[product.categoria]) {
+                        productsByCategory[product.categoria] = [];
+                    }
                     productsByCategory[product.categoria].push(product);
                 });
+
                 accordionContainer.innerHTML = '';
+                
+                // Llenamos los controles de visibilidad de categorías
+                const allCategories = Object.keys(productsByCategory);
+                allCategories.forEach(categoryName => {
+                    const isVisible = categoryVisibility[categoryName] !== false; // Visible por defecto si no está definido
+                    const controlItem = document.createElement('div');
+                    controlItem.className = 'category-visibility-item';
+                    
+                    const btnText = isVisible ? 'Ocultar' : 'Mostrar';
+                    const btnClass = isVisible ? 'status-blue' : 'status-green';
+
+                    controlItem.innerHTML = `
+                        <span>${categoryName}</span>
+                        <button class="btn" style="background-color: var(--${btnClass});" onclick="toggleCategoryVisibility('${categoryName}', ${isVisible})">${btnText}</button>
+                    `;
+                    categoryControlsContainer.appendChild(controlItem);
+                });
+
+                // Llenamos el acordeón de productos
                 for (const category in productsByCategory) {
+                    const isCategoryVisible = categoryVisibility[category] !== false;
                     const groupDiv = document.createElement('div');
                     groupDiv.className = 'category-group';
-                    groupDiv.innerHTML = `<h3 class="category-title">${category}</h3>`;
+                    if (!isCategoryVisible) {
+                        groupDiv.classList.add('hidden-category');
+                    }
+                    groupDiv.innerHTML = `<h3 class="category-title">${category} ${!isCategoryVisible ? '(Oculta)' : ''}</h3>`;
+
                     productsByCategory[category].forEach(product => {
                         const isVisible = product.visible !== false; 
                         
@@ -909,9 +1003,12 @@
                         const toggleBtnText = isVisible ? 'Ocultar' : 'Mostrar';
                         const toggleBtnColorClass = isVisible ? 'status-blue' : 'status-green';
 
+                        // --- AJUSTE DE RUTA DE IMAGEN ---
+                        // Se asume que la app de admin está en una carpeta y las imágenes en la raíz. 
+                        // El `../` sube un nivel para encontrar la carpeta `assets`.
                         detailsDiv.innerHTML = `
                             <div class="product-image-container">
-                                <img src="${product.imagenUrl}" alt="${product.nombre}" onerror="this.style.display='none';">
+                                <img src="../${product.imagenUrl}" alt="${product.nombre}" onerror="this.onerror=null; this.src='https://via.placeholder.com/100?text=No+Img';">
                             </div>
                             <div class="product-info">
                                 <p><strong>Stock:</strong> ${product.stock}</p>
@@ -934,7 +1031,7 @@
                 }
             } catch (error) {
                 console.error("Error al cargar inventario:", error);
-                accordionContainer.innerHTML = '<p>Error al cargar el inventario. Asegúrate de haber creado el índice en Firestore.</p>';
+                accordionContainer.innerHTML = '<p>Error al cargar el inventario.</p>';
             }
         }
         
