@@ -1004,6 +1004,7 @@
                 ordersList.innerHTML = snapshot.empty ? '<p>No hay pedidos pendientes.</p>' : '';
                 snapshot.forEach(doc => {
                     const pedido = doc.data();
+                    if (pedido.canalVenta) return; // Omitir pedidos manuales aquí
                     const total = pedido.montoTotal || 0;
                     const clienteNombre = `${pedido.datosCliente?.nombre || ''} ${pedido.datosCliente?.apellido || ''}`.trim() || 'N/A';
                     
@@ -1126,14 +1127,11 @@
                                     <p><strong>Precio:</strong> $${product.precio.toFixed(2)}</p>
                                 </div>
                                 <div class="product-actions">
-                                    <button class="btn btn-edit">Editar</button>
-                                    <button class="btn" style="background-color: var(--${toggleBtnColorClass});" onclick="toggleProductVisibility('${product.id}', ${isVisible})">${toggleBtnText}</button>
-                                    <button class="btn btn-delete">Eliminar</button>
+                                    <button class="btn btn-edit" onclick="event.stopPropagation(); editProduct('${product.id}')">Editar</button>
+                                    <button class="btn" style="background-color: var(--${toggleBtnColorClass});" onclick="event.stopPropagation(); toggleProductVisibility('${product.id}', ${isVisible})">${toggleBtnText}</button>
+                                    <button class="btn btn-delete" onclick="event.stopPropagation(); showConfirmModal('product', '${product.id}', '¿Eliminar producto \\'${product.nombre}\\'?')">Eliminar</button>
                                 </div>`;
                             
-                            detailsDiv.querySelector('.btn-edit').onclick = () => editProduct(product.id);
-                            detailsDiv.querySelector('.btn-delete').onclick = () => showConfirmModal('product', product.id, `¿Estás seguro de que quieres eliminar el producto "${product.nombre}"?`);
-
                             groupDiv.appendChild(itemDiv);
                             groupDiv.appendChild(detailsDiv);
                         });
@@ -1392,7 +1390,7 @@
                 ]);
                 
                 let movements = [];
-                salesSnapshot.forEach(doc => { const d = doc.data(); if (d.fechaActualizacion) movements.push({ id: doc.id, date: d.fechaActualizacion.toDate(), description: `Venta #${d.folio}`, type: 'Venta', amount: d.montoTotal || 0, category: 'Ventas' }); });
+                salesSnapshot.forEach(doc => { const d = doc.data(); if (d.fechaActualizacion) movements.push({ id: doc.id, date: d.fechaActualizacion.toDate(), description: `Venta #${d.folio || d.clienteManual}`, type: 'Venta', amount: d.montoTotal || 0, category: 'Ventas' }); });
                 generalExpensesSnapshot.forEach(doc => { const d = doc.data(); if (d.fecha) movements.push({ id: doc.id, date: d.fecha.toDate(), description: d.nota ? `${d.concepto} (${d.nota})` : d.concepto, type: 'Gasto General', amount: -d.monto, category: d.concepto }); });
                 suppliesSnapshot.forEach(doc => { const d = doc.data(); if(d.fecha) movements.push({ id: doc.id, date: d.fecha.toDate(), description: d.descripcion, type: 'Gasto Insumo', amount: -d.costoTotal, category: 'Insumos' }); });
                 restocksSnapshot.forEach(doc => { const d = doc.data(); if(d.fecha) movements.push({ id: doc.id, date: d.fecha.toDate(), description: `Re-Stock #${d.folio}`, type: 'Gasto Re-Stock', amount: -d.costoTotal, category: 'Re-Stock' }); });
