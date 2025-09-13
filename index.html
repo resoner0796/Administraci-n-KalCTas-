@@ -759,7 +759,7 @@
             <div id="packaging-visibility-controls">
                 <h2>Visibilidad de Empaques</h2>
             </div>
-
+            
             <button class="close-button" onclick="showScreen('main-menu')">Volver al Menú</button>
         </section>
 
@@ -867,6 +867,13 @@
         let CAPITAL_PER_PRODUCT = 42; // Valor por defecto, se actualizará desde la BD
         let SHIPPING_COST = 70; // Valor por defecto, se actualizará desde la BD
         let deferredInstallPrompt = null;
+    
+        // NUEVO: Mapa de empaques para descuento de inventario
+        const empaqueInsumoMap = {
+            'Frankie': 'Empaque frankie',
+            'Naranja': 'Empaque Halloween Naranja',
+            'Tradicional Gris': 'Empaque Tradicional Gris'
+        };
 
         const getEl = (id) => document.getElementById(id);
         
@@ -891,7 +898,7 @@
                     loadFinancialSummary(); 
                     loadExpenseConcepts(); 
                     loadProductCost();
-                    loadShippingCost(); // Cargar costo de envío
+                    loadShippingCost();
                     break;
                 case 'supplies-screen': loadSupplies(); break;
                 case 'restock-screen': 
@@ -904,9 +911,9 @@
                     break;
                 case 'sales-screen': loadSalesData(); break;
                 case 'movements-history-screen': loadMovementCategories(); loadMovementsHistory(); break;
-                case 'theme-screen':
+                case 'theme-screen': 
                     loadCurrentTheme();
-                    loadPackagingVisibility(); // NUEVO: Cargar visibilidad de empaques
+                    loadPackagingVisibility(); // NUEVO
                     break;
                 case 'manual-order-screen': 
                     await loadProductModels(); 
@@ -1151,7 +1158,7 @@
                 definedCategories.forEach(categoryName => {
                     const isVisible = categoryVisibility[categoryName] !== false;
                     const controlItem = document.createElement('div');
-                    controlItem.className = 'category-visibility-item';
+                    controlItem.className = 'visibility-item';
                     
                     const btnText = isVisible ? 'Ocultar' : 'Mostrar';
                     const btnClass = isVisible ? 'status-blue' : 'status-green';
@@ -1337,12 +1344,14 @@
                         const utilidadMonto = totalVenta - capitalMonto - gastoEnvio;
 
                         if (hasShipping) {
-                            const gastoEnvioRef = db.collection('gastosGenerales').doc();
-                            t.set(gastoEnvioRef, {
-                                monto: gastoEnvio,
-                                concepto: 'Envío',
+                            const gastoEnvioRef = db.collection('movimientos').doc();
+                             t.set(gastoEnvioRef, {
+                                monto: -gastoEnvio,
+                                concepto: 'Gasto de Envío',
+                                tipo: 'Gastos',
+                                fecha: firebase.firestore.FieldValue.serverTimestamp(),
                                 nota: `Gasto de envío para pedido ${pedidoData.folio}`,
-                                fecha: firebase.firestore.FieldValue.serverTimestamp()
+                                relatedOrderId: pedidoId
                             });
                         }
 
@@ -1379,6 +1388,22 @@
                         });
 
                         for (const producto of pedidoData.productos) if (producto.id) t.update(db.collection('productos').doc(producto.id), { cantidadVendida: firebase.firestore.FieldValue.increment(producto.cantidad || 1) });
+                        
+                        // NUEVO: Descontar empaque del inventario de insumos
+                        if (pedidoData.empaque && empaqueInsumoMap[pedidoData.empaque]) {
+                            const insumoName = empaqueInsumoMap[pedidoData.empaque];
+                            const insumosQueryRef = db.collection('inventarioInsumos').where('descripcion', '==', insumoName).limit(1);
+                            const insumoSnapshot = await t.get(insumosQueryRef);
+
+                            if (!insumoSnapshot.empty) {
+                                const insumoDocRef = insumoSnapshot.docs[0].ref;
+                                t.update(insumoDocRef, {
+                                    cantidad: firebase.firestore.FieldValue.increment(-1)
+                                });
+                            } else {
+                                console.warn(`Insumo de empaque "${insumoName}" no encontrado en inventarioInsumos.`);
+                            }
+                        }
                     }
                     
                     t.update(pedidoRef, updatesForOrder);
@@ -1406,7 +1431,7 @@
                 list.innerHTML = pedidos.length ? '' : '<p>No hay pedidos en el historial.</p>';
                 pedidos.forEach(pedido => {
                     const total = pedido.montoTotal || 0;
-                    const clienteNombre = pedido.datosCliente ? `${pedido.datosCliente.nombre || ''} ${pedido.datosCliente.apellido || ''}`.trim() : (pedido.clienteManual || 'N/A');
+                    const clienteNombre = (pedido.datosCliente?.nombre || '').trim() || pedido.clienteManual || 'N/A';
                     
                     const detallesEntrega = generarDetallesEntregaHTML(pedido);
 
@@ -1427,6 +1452,9 @@
                             <p><strong>Método de Pago:</strong> ${pedido.metodoPago || 'N/A'}</p>
                             <p><strong>Productos:</strong></p>
                             <ul>${(pedido.productos || []).map(p => `<li>${p.nombre} (x${p.cantidad || 1})</li>`).join('')}</ul>
+                            <div class="product-actions">
+                                <button class="btn btn-delete" onclick="event.stopPropagation(); showConfirmModal('order', '${pedido.id}', '¿Seguro que quieres eliminar el pedido ${pedido.folio}? Esta acción revertirá las finanzas asociadas y devolverá el stock. NO SE PUEDE DESHACER.')">Eliminar Pedido</button>
+                            </div>
                         </div>`;
                     item.querySelector('.sale-summary').onclick = (e) => e.currentTarget.nextElementSibling.style.display = e.currentTarget.nextElementSibling.style.display === 'block' ? 'none' : 'block';
                     list.appendChild(item);
@@ -1438,20 +1466,16 @@
         async function loadMovementCategories() {
             const select = getEl('movement-filter-category');
             select.innerHTML = '<option value="all">Todas las categorías</option>';
-            const categories = new Set();
+            const fixedCategories = ['Ventas', 'Gastos', 'Utilidad', 'Capital'];
+            const categories = new Set(fixedCategories);
             try {
-                const [gastosSnap, suppliesSnap, restocksSnap, movementsSnap] = await Promise.all([
-                    db.collection('gastosGenerales').get(),
-                    db.collection('insumos').get(),
-                    db.collection('restocks').get(),
-                    db.collection('movimientos').get()
+                const [gastosSnap] = await Promise.all([
+                    db.collection('movimientos').where('tipo', '==', 'Gastos').get()
                 ]);
                 gastosSnap.forEach(doc => categories.add(doc.data().concepto));
-                suppliesSnap.forEach(doc => categories.add('Insumos'));
-                restocksSnap.forEach(doc => categories.add('Re-Stock'));
-                movementsSnap.forEach(doc => categories.add(doc.data().tipo));
 
                 const orderedCategories = Array.from(categories).sort();
+                select.innerHTML = '<option value="all">Todas las categorías</option>'; // Reset
                 orderedCategories.forEach(cat => {
                     if (cat) select.innerHTML += `<option value="${cat}">${cat}</option>`;
                 });
@@ -1463,46 +1487,62 @@
             list.innerHTML = '<p>Cargando historial...</p>';
             const selectedCategory = getEl('movement-filter-category').value;
             try {
-                const [salesSnapshot, generalExpensesSnapshot, suppliesSnapshot, restocksSnapshot, capitalMovesSnapshot, utilityMovesSnapshot] = await Promise.all([
-                    db.collection('pedidos').where('estado', '==', 'Entregado').get(),
-                    db.collection('gastosGenerales').get(),
-                    db.collection('insumos').get(),
-                    db.collection('restocks').get(),
-                    db.collection('movimientos').where('tipo', '==', 'Capital').get(),
-                    db.collection('movimientos').where('tipo', '==', 'Utilidad').get()
-                ]);
-                
-                let movements = [];
-                salesSnapshot.forEach(doc => { const d = doc.data(); if (d.fechaActualizacion) movements.push({ id: doc.id, date: d.fechaActualizacion.toDate(), description: `Venta #${d.folio || d.clienteManual}`, type: 'Venta', amount: d.montoTotal || 0, category: 'Ventas' }); });
-                generalExpensesSnapshot.forEach(doc => { const d = doc.data(); if (d.fecha) movements.push({ id: doc.id, date: d.fecha.toDate(), description: d.nota ? `${d.concepto} (${d.nota})` : d.concepto, type: 'Gasto General', amount: -d.monto, category: d.concepto }); });
-                suppliesSnapshot.forEach(doc => { const d = doc.data(); if(d.fecha) movements.push({ id: doc.id, date: d.fecha.toDate(), description: d.descripcion, type: 'Gasto Insumo', amount: -d.costoTotal, category: 'Insumos' }); });
-                restocksSnapshot.forEach(doc => { const d = doc.data(); if(d.fecha) movements.push({ id: doc.id, date: d.fecha.toDate(), description: `Re-Stock #${d.folio}`, type: 'Gasto Re-Stock', amount: -d.costoTotal, category: 'Re-Stock' }); });
-                capitalMovesSnapshot.forEach(doc => { const d = doc.data(); if (d.fecha) movements.push({ id: doc.id, date: d.fecha.toDate(), description: d.nota, type: d.tipo, amount: d.monto, category: d.tipo, docRef: db.collection('movimientos').doc(doc.id) }); });
-                utilityMovesSnapshot.forEach(doc => { const d = doc.data(); if (d.fecha) movements.push({ id: doc.id, date: d.fecha.toDate(), description: d.nota, type: d.tipo, amount: d.monto, category: d.tipo, docRef: db.collection('movimientos').doc(doc.id) }); });
+                let allMovements = [];
 
-                const filteredMovements = selectedCategory === 'all' ? movements : movements.filter(m => m.category === selectedCategory);
+                // Cargar todos los movimientos
+                const movementsSnap = await db.collection('movimientos').get();
+                movementsSnap.forEach(doc => {
+                    const d = doc.data();
+                    if (d.fecha) {
+                        allMovements.push({
+                            id: doc.id,
+                            date: d.fecha.toDate(),
+                            description: d.nota || d.concepto,
+                            type: d.tipo,
+                            amount: d.monto,
+                            category: d.tipo === 'Gastos' ? d.concepto : d.tipo // Usar concepto para gastos
+                        });
+                    }
+                });
+
+                // Cargar ventas (son un tipo de movimiento especial)
+                const salesSnapshot = await db.collection('pedidos').where('estado', '==', 'Entregado').get();
+                salesSnapshot.forEach(doc => {
+                    const d = doc.data();
+                    if (d.fechaActualizacion) {
+                        allMovements.push({ id: doc.id, date: d.fechaActualizacion.toDate(), description: `Venta #${d.folio || d.clienteManual}`, type: 'Venta', amount: d.montoTotal || 0, category: 'Ventas' });
+                    }
+                });
+                
+                const filteredMovements = selectedCategory === 'all' 
+                    ? allMovements 
+                    : allMovements.filter(m => m.category === selectedCategory);
+
                 filteredMovements.sort((a, b) => b.date - a.date);
                 
                 list.innerHTML = filteredMovements.length ? '' : '<p>No hay movimientos en esta categoría.</p>';
                 filteredMovements.forEach(m => {
                     const amountClass = m.amount >= 0 ? 'amount-positive' : 'amount-negative';
                     const amountSign = m.amount >= 0 ? '+' : '';
+                    const description = m.description || m.type;
                     list.innerHTML += `
                         <li class="card-item">
-                            <div class="card-header">
-                                <span>${m.description}</span>
-                                <span class="${amountClass}">${amountSign}$${Math.abs(m.amount).toFixed(2)}</span>
+                            <div class="card-header" style="display: block; text-align: left;">
+                                <p style="display:flex; justify-content: space-between;">
+                                    <span>${description}</span>
+                                    <span class="${amountClass}">${amountSign}$${Math.abs(m.amount).toFixed(2)}</span>
+                                </p>
+                                <p style="font-size: 0.8em; color: var(--text-secondary); margin-top: 5px;">
+                                    ${m.date.toLocaleDateString()} - ${m.category}
+                                </p>
                             </div>
-                            <div class="card-content">
-                                <p><strong>Fecha:</strong> ${m.date.toLocaleDateString()}</p>
-                                <p><strong>Tipo:</strong> ${m.type}</p>
-                                <p><strong>Categoría:</strong> ${m.category}</p>
-                            </div>
-                            ${m.type !== 'Venta' ? `<div class="card-actions"><button class="btn btn-delete" onclick="deleteMovement('${m.id}', '${m.type}', ${m.amount}, '${m.category}')">Eliminar</button></div>` : ''}
                         </li>
                     `;
                 });
-            } catch (error) { console.error("Error al cargar movimientos:", error); list.innerHTML = '<p>Error al cargar movimientos.</p>'; }
+            } catch (error) { 
+                console.error("Error al cargar movimientos:", error); 
+                list.innerHTML = '<p>Error al cargar movimientos.</p>'; 
+            }
         }
 
         async function deleteMovement(id, type, amount, category) {
@@ -1606,22 +1646,32 @@
             const nota = getEl('expense-note').value;
             if (!monto || !concepto) { showMessage("Por favor, completa todos los campos."); return; }
             try {
-                await db.collection('gastosGenerales').add({
-                    monto,
-                    concepto,
-                    nota,
+                const finanzasRef = db.collection('finanzas').doc('resumen');
+                const gastoRef = db.collection('movimientos').doc();
+                
+                const batch = db.batch();
+                
+                batch.set(gastoRef, {
+                    monto: -monto,
+                    concepto: concepto,
+                    tipo: 'Gastos',
+                    nota: nota,
                     fecha: firebase.firestore.FieldValue.serverTimestamp()
                 });
-                const finanzasRef = db.collection('finanzas').doc('resumen');
-                await db.runTransaction(async (t) => {
-                    const doc = await t.get(finanzasRef);
-                    const gastos = (doc.data()?.gastos || 0) + monto;
-                    const utilidad = (doc.data()?.utilidad || 0) - monto;
-                    t.update(finanzasRef, { gastos, utilidad });
+
+                batch.update(finanzasRef, {
+                    gastos: firebase.firestore.FieldValue.increment(monto),
+                    utilidad: firebase.firestore.FieldValue.increment(-monto)
                 });
+                
+                await batch.commit();
+
                 showMessage('Gasto registrado con éxito!');
                 getEl('add-expense-form').reset();
-            } catch (error) { showMessage('Error al registrar el gasto.'); }
+            } catch (error) { 
+                console.error(error);
+                showMessage('Error al registrar el gasto.'); 
+            }
         });
         
         getEl('add-supply-form').addEventListener('submit', async (e) => {
@@ -1635,20 +1685,35 @@
             }
             const costoTotal = cantidad * costoUnidad;
             try {
-                await db.collection('insumos').add({
+                const finanzasRef = db.collection('finanzas').doc('resumen');
+                const insumoRef = db.collection('insumos').doc();
+                const movimientoRef = db.collection('movimientos').doc();
+
+                const batch = db.batch();
+
+                batch.set(insumoRef, {
                     descripcion,
                     cantidad,
                     costoUnidad,
                     costoTotal,
                     fecha: firebase.firestore.FieldValue.serverTimestamp()
                 });
-                const finanzasRef = db.collection('finanzas').doc('resumen');
-                await db.runTransaction(async (t) => {
-                    const doc = await t.get(finanzasRef);
-                    const gastos = (doc.data()?.gastos || 0) + costoTotal;
-                    const utilidad = (doc.data()?.utilidad || 0) - costoTotal;
-                    t.update(finanzasRef, { gastos, utilidad });
+
+                batch.set(movimientoRef, {
+                    monto: -costoTotal,
+                    concepto: 'Compra de Insumos',
+                    tipo: 'Gastos',
+                    nota: `${cantidad} x ${descripcion}`,
+                    fecha: firebase.firestore.FieldValue.serverTimestamp()
                 });
+
+                batch.update(finanzasRef, { 
+                    gastos: firebase.firestore.FieldValue.increment(costoTotal),
+                    utilidad: firebase.firestore.FieldValue.increment(-costoTotal)
+                });
+                
+                await batch.commit();
+
                 showMessage('Insumo registrado con éxito!');
                 getEl('add-supply-form').reset();
             } catch (error) {
@@ -1942,8 +2007,8 @@
                     deleteProduct(id);
                 } else if (type === 'raw-material') {
                     deleteRawMaterial(id);
-                } else if (type === 'order') {
-                    deleteOrder(id, extraData);
+                } else if (type === 'order') { // NUEVO
+                    deleteOrder(id);
                 }
             };
             getEl('confirm-modal').style.display = 'flex';
