@@ -57,7 +57,7 @@
             color: var(--text-primary);
             display: flex;
             justify-content: center;
-            align-items: flex-start;
+            align-items: flex-start; /* Alinea al inicio para pantallas largas */
             min-height: 100vh;
             padding: 20px;
         }
@@ -998,7 +998,8 @@
                             const toggleBtnText = isVisible ? 'Ocultar' : 'Mostrar';
                             const toggleBtnColorClass = isVisible ? 'status-blue' : 'status-green';
 
-                            // CORRECCIÓN DE RUTA DE IMAGEN: Se usa la ruta relativa simple
+                            // CORRECCIÓN DE RUTA DE IMAGEN:
+                            // Se usa la ruta relativa simple, ya que ambos HTML están en la raíz.
                             detailsDiv.innerHTML = `
                                 <div class="product-image-container">
                                     <img src="${product.imagenUrl}" alt="${product.nombre}" onerror="this.onerror=null; this.src='https://via.placeholder.com/100?text=No+Img';">
