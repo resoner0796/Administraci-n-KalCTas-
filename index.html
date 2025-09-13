@@ -1889,6 +1889,242 @@
                 showMessage('Error al eliminar el producto.'); 
             }
         }
+// =============================================================
+// --- BLOQUE DE NUEVAS FUNCIONES Y CORRECCIONES ---
+// =============================================================
+
+// --- CORRECCIÓN 1: LÓGICA PARA EL COSTO DE PRODUCTO ---
+
+// Carga el costo del producto desde Firebase
+async function loadProductCost() {
+    try {
+        const configRef = db.collection('configuracion').doc('tienda');
+        const doc = await configRef.get();
+        if (doc.exists && doc.data().costoPorProducto) {
+            const cost = doc.data().costoPorProducto;
+            CAPITAL_PER_PRODUCT = cost; // Actualiza la variable global
+            getEl('product-cost-input').value = cost;
+        } else {
+            getEl('product-cost-input').value = CAPITAL_PER_PRODUCT; // Muestra el valor por defecto si no hay nada en la BD
+        }
+    } catch (error) {
+        console.error("Error al cargar costo del producto:", error);
+        showMessage("Error al cargar el costo del producto.");
+    }
+}
+
+// Maneja el guardado del nuevo costo sin recargar la página
+getEl('cost-config-form').addEventListener('submit', async (e) => {
+    e.preventDefault(); // ¡Esto evita que la página se recargue!
+    const newCost = parseFloat(getEl('product-cost-input').value);
+
+    if (isNaN(newCost) || newCost < 0) {
+        showMessage("Por favor, introduce un costo válido.");
+        return;
+    }
+
+    try {
+        const configRef = db.collection('configuracion').doc('tienda');
+        await configRef.set({ costoPorProducto: newCost }, { merge: true });
+        CAPITAL_PER_PRODUCT = newCost; // Actualiza la variable global en tiempo real
+        showMessage('Costo por producto actualizado con éxito.');
+    } catch (error) {
+        console.error("Error al guardar el costo del producto:", error);
+        showMessage('Error al guardar el costo.');
+    }
+});
+
+
+// --- CORRECCIÓN 2: LÓGICA PARA INVENTARIO DE INSUMOS (CRUD) ---
+
+function loadRawMaterials() {
+    const tbody = getEl('raw-materials-table-body');
+    tbody.innerHTML = '<tr><td colspan="3">Cargando insumos...</td></tr>';
+    
+    const unsub = db.collection('inventarioInsumos').orderBy('descripcion').onSnapshot(snapshot => {
+        const materials = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        tbody.innerHTML = materials.length ? '' : '<tr><td colspan="3">No hay insumos registrados.</td></tr>';
+        
+        materials.forEach(material => {
+            tbody.innerHTML += `
+                <tr>
+                    <td>${material.descripcion}</td>
+                    <td>${material.cantidad}</td>
+                    <td class="actions-cell">
+                        <button class="btn btn-edit" onclick="editRawMaterial('${material.id}', '${material.descripcion}', ${material.cantidad})">Editar</button>
+                        <button class="btn btn-delete" onclick="showConfirmModal('raw-material', '${material.id}', '¿Eliminar insumo \\'${material.descripcion}\\'?')">Eliminar</button>
+                    </td>
+                </tr>
+            `;
+        });
+    });
+    unsubscribes.push(unsub);
+}
+
+getEl('add-raw-material-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const id = getEl('raw-material-id').value;
+    const description = getEl('raw-material-description').value;
+    const quantity = parseInt(getEl('raw-material-quantity').value);
+
+    try {
+        if (id) { // Estamos editando
+            await db.collection('inventarioInsumos').doc(id).update({
+                descripcion: description,
+                cantidad: quantity
+            });
+            showMessage("Insumo actualizado correctamente.");
+        } else { // Estamos creando uno nuevo
+            await db.collection('inventarioInsumos').add({
+                descripcion: description,
+                cantidad: quantity
+            });
+            showMessage("Insumo agregado correctamente.");
+        }
+        cancelEditRawMaterial();
+    } catch (error) {
+        console.error("Error al guardar insumo:", error);
+        showMessage("Error al guardar el insumo.");
+    }
+});
+
+function editRawMaterial(id, description, quantity) {
+    getEl('raw-material-id').value = id;
+    getEl('raw-material-description').value = description;
+    getEl('raw-material-quantity').value = quantity;
+    getEl('add-raw-material-btn').textContent = "Guardar Cambios";
+    getEl('cancel-edit-raw-material-btn').style.display = 'block';
+}
+
+function cancelEditRawMaterial() {
+    getEl('add-raw-material-form').reset();
+    getEl('raw-material-id').value = '';
+    getEl('add-raw-material-btn').textContent = "Agregar Insumo";
+    getEl('cancel-edit-raw-material-btn').style.display = 'none';
+}
+
+async function deleteRawMaterial(id) {
+    try {
+        await db.collection('inventarioInsumos').doc(id).delete();
+        showMessage('Insumo eliminado.');
+        // No es necesario llamar a loadRawMaterials() aquí porque el listener onSnapshot lo hará automáticamente.
+    } catch (error) {
+        showMessage('Error al eliminar el insumo.');
+    }
+}
+
+
+// --- CORRECCIÓN 3: LÓGICA PARA PEDIDO MANUAL ---
+
+function addManualOrderLine() {
+    const container = getEl('manual-order-items');
+    const newLine = document.createElement('div');
+    newLine.className = 'manual-order-line';
+    
+    const options = productModels.map(p => `<option value="${p.id}">${p.nombre} (Stock: ${p.stock})</option>`).join('');
+    
+    newLine.innerHTML = `
+        <select class="manual-order-product" required>
+            <option value="" disabled selected>Selecciona un modelo</option>
+            ${options}
+        </select>
+        <input type="number" class="manual-order-quantity" placeholder="Cant." min="1" value="1" required>
+        <button type="button" class="btn btn-delete" onclick="this.parentNode.remove()">-</button>
+    `;
+    container.appendChild(newLine);
+}
+
+getEl('manual-order-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const submitButton = e.target.querySelector('button[type="submit"]');
+    submitButton.disabled = true;
+    submitButton.textContent = "Procesando...";
+
+    const clienteManual = getEl('manual-order-client').value;
+    const canalVenta = getEl('manual-order-channel').value;
+    const montoTotal = parseFloat(getEl('manual-order-total').value);
+    
+    const items = [];
+    document.querySelectorAll('.manual-order-line').forEach(line => {
+        const productId = line.querySelector('.manual-order-product').value;
+        const quantity = parseInt(line.querySelector('.manual-order-quantity').value);
+        if (productId && quantity > 0) {
+            const productData = productModels.find(p => p.id === productId);
+            items.push({
+                id: productId,
+                nombre: productData.nombre,
+                precio: productData.precio,
+                cantidad: quantity
+            });
+        }
+    });
+
+    if (items.length === 0) {
+        showMessage("Debes agregar al menos un producto.");
+        submitButton.disabled = false;
+        submitButton.textContent = "Registrar Venta";
+        return;
+    }
+
+    try {
+        const configDoc = await db.collection('configuracion').doc('tienda').get();
+        const costPerProduct = configDoc.exists && configDoc.data().costoPorProducto ? configDoc.data().costoPorProducto : CAPITAL_PER_PRODUCT;
+
+        await db.runTransaction(async (transaction) => {
+            const counterRef = db.collection('contadores').doc('pedidos');
+            const counterDoc = await transaction.get(counterRef);
+            const nuevoFolioNum = (counterDoc.exists ? counterDoc.data().ultimoFolio : 0) + 1;
+            const folioFormateado = `MANUAL-${String(nuevoFolioNum).padStart(3, '0')}`;
+            
+            transaction.set(counterRef, { ultimoFolio: nuevoFolioNum }, { merge: true });
+
+            const nuevoPedidoRef = db.collection('pedidos').doc();
+            transaction.set(nuevoPedidoRef, {
+                folio: folioFormateado,
+                clienteManual: clienteManual,
+                canalVenta: canalVenta,
+                productos: items,
+                montoTotal: montoTotal,
+                estado: 'Entregado', // Los pedidos manuales se marcan como entregados
+                metodoPago: 'Manual',
+                fechaCreacion: firebase.firestore.FieldValue.serverTimestamp(),
+                fechaActualizacion: firebase.firestore.FieldValue.serverTimestamp()
+            });
+
+            const numeroProductosTotal = items.reduce((sum, item) => sum + item.cantidad, 0);
+            const capitalMonto = numeroProductosTotal * costPerProduct;
+            const utilidadMonto = montoTotal - capitalMonto;
+
+            const finanzasRef = db.collection('finanzas').doc('resumen');
+            transaction.update(finanzasRef, {
+                ventas: firebase.firestore.FieldValue.increment(montoTotal),
+                utilidad: firebase.firestore.FieldValue.increment(utilidadMonto),
+                capital: firebase.firestore.FieldValue.increment(capitalMonto)
+            });
+
+            for (const item of items) {
+                const productRef = db.collection('productos').doc(item.id);
+                transaction.update(productRef, { 
+                    stock: firebase.firestore.FieldValue.increment(-item.cantidad),
+                    cantidadVendida: firebase.firestore.FieldValue.increment(item.cantidad)
+                });
+            }
+        });
+
+        showMessage('Venta manual registrada con éxito.');
+        getEl('manual-order-form').reset();
+        getEl('manual-order-items').innerHTML = '';
+        addManualOrderLine();
+
+    } catch (error) {
+        console.error("Error al registrar venta manual:", error);
+        showMessage("Error al registrar la venta: " + error.message);
+    } finally {
+        submitButton.disabled = false;
+        submitButton.textContent = "Registrar Venta";
+    }
+});
+
     </script>
 </body>
 </html>
