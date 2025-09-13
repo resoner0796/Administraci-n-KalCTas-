@@ -788,7 +788,6 @@
         const vapidKey = "BCI7mLN5SS6nZLTIC4BZNusMu2TCEYs_-XBvVrqQahBscDElMQBcfBU0lcnSPQDRItA-3g-3cbdATal2jywf1os"; 
         
         // --- URL BASE DEFINITIVA PARA IMÁGENES ---
-        // Apunta al repositorio de la Tienda donde están alojados los assets.
         const IMAGES_BASE_URL = 'https://resoner0796.github.io/Tienda-KalCTas/';
         
         let productToDeleteId = null, supplyToDeleteId = null, expenseToDeleteId = null, restockToDeleteId = null;
@@ -797,7 +796,7 @@
         let unsubscribes = [];
         let productModels = [], expenseConcepts = [];
         let salesChart;
-        let CAPITAL_PER_PRODUCT = 42; // Valor por defecto
+        let CAPITAL_PER_PRODUCT = 42; // Valor por defecto, se sobreescribe desde DB
         let deferredInstallPrompt = null;
 
         const getEl = (id) => document.getElementById(id);
@@ -806,7 +805,6 @@
             document.querySelectorAll('section').forEach(screen => screen.style.display = 'none');
             getEl(screenId).style.display = 'block';
 
-            // Cargar logos dinámicamente cada vez que se muestra una pantalla
             document.querySelectorAll('.logo-img').forEach(img => {
                 img.src = IMAGES_BASE_URL + 'LOGO.png';
             });
@@ -823,7 +821,7 @@
                 case 'finance-screen': 
                     loadFinancialSummary(); 
                     loadExpenseConcepts(); 
-                    loadProductCost(); // Cargar costo de producto
+                    loadProductCost();
                     break;
                 case 'supplies-screen': loadSupplies(); break;
                 case 'restock-screen': 
@@ -1001,10 +999,18 @@
             ordersList.innerHTML = '<p>Cargando pedidos...</p>';
             const q = db.collection('pedidos').where('estado', 'in', ['Pendiente', 'Confirmado']).orderBy('fechaCreacion', 'desc');
             const unsubscribe = q.onSnapshot((snapshot) => {
-                ordersList.innerHTML = snapshot.empty ? '<p>No hay pedidos pendientes.</p>' : '';
+                const pedidosTienda = [];
                 snapshot.forEach(doc => {
                     const pedido = doc.data();
-                    if (pedido.canalVenta) return; // Omitir pedidos manuales aquí
+                    if (!pedido.canalVenta) { // Solo mostrar pedidos de la tienda
+                        pedidosTienda.push(doc);
+                    }
+                });
+
+                ordersList.innerHTML = pedidosTienda.length === 0 ? '<p>No hay pedidos de la tienda pendientes.</p>' : '';
+                
+                pedidosTienda.forEach(doc => {
+                    const pedido = doc.data();
                     const total = pedido.montoTotal || 0;
                     const clienteNombre = `${pedido.datosCliente?.nombre || ''} ${pedido.datosCliente?.apellido || ''}`.trim() || 'N/A';
                     
@@ -1246,7 +1252,7 @@
 
                     if (newStatus === 'Entregado' && pedidoData.estado !== 'Entregado') {
                         const totalVenta = pedidoData.montoTotal || 0;
-                        const numeroProductos = pedidoData.productos?.length || 0;
+                        const numeroProductos = pedidoData.productos?.reduce((sum, p) => sum + (p.cantidad || 1), 0) || 0;
                         const capitalMonto = numeroProductos * costPerProduct; 
                         const utilidadMonto = totalVenta - capitalMonto;
 
@@ -1281,10 +1287,10 @@
                             capital: firebase.firestore.FieldValue.increment(capitalMonto)
                         });
 
-                        for (const producto of pedidoData.productos) if (producto.id) t.update(db.collection('productos').doc(producto.id), { cantidadVendida: firebase.firestore.FieldValue.increment(1) });
+                        for (const producto of pedidoData.productos) if (producto.id) t.update(db.collection('productos').doc(producto.id), { cantidadVendida: firebase.firestore.FieldValue.increment(producto.cantidad || 1) });
                     } else if (newStatus === 'Cancelado' && pedidoData.estado === 'Entregado') {
                         const totalVenta = pedidoData.montoTotal || 0;
-                        const numeroProductos = pedidoData.productos?.length || 0;
+                        const numeroProductos = pedidoData.productos?.reduce((sum, p) => sum + (p.cantidad || 1), 0) || 0;
                         const capitalMonto = numeroProductos * costPerProduct;
                         const utilidadMonto = totalVenta - capitalMonto;
 
@@ -1295,7 +1301,7 @@
                             capital: firebase.firestore.FieldValue.increment(-capitalMonto)
                         });
                         
-                        for (const producto of pedidoData.productos) if (producto.id) t.update(db.collection('productos').doc(producto.id), { cantidadVendida: firebase.firestore.FieldValue.increment(-1) });
+                        for (const producto of pedidoData.productos) if (producto.id) t.update(db.collection('productos').doc(producto.id), { cantidadVendida: firebase.firestore.FieldValue.increment(-(producto.cantidad || 1)) });
                     }
                     
                     t.update(pedidoRef, updatesForOrder);
@@ -1850,16 +1856,38 @@
         }
         function closeMessage() { getEl('message-box').style.display = 'none'; }
         function closeEditModal() { getEl('edit-modal').style.display = 'none'; }
-        function showConfirmModal(id) { productToDeleteId = id; getEl('confirm-modal').style.display = 'flex'; }
-        function cancelAction() { getEl('confirm-modal').style.display = 'none'; productToDeleteId = null; }
+        
+        function showConfirmModal(type, id, text) {
+            getEl('confirm-text').textContent = text;
+            actionToConfirm = () => {
+                if (type === 'product') {
+                    deleteProduct(id);
+                } else if (type === 'raw-material') {
+                    deleteRawMaterial(id);
+                }
+            };
+            getEl('confirm-modal').style.display = 'flex';
+        }
+
+        function cancelAction() { 
+            getEl('confirm-modal').style.display = 'none'; 
+            actionToConfirm = null;
+        }
+
         async function confirmAction() {
-            if (productToDeleteId) {
-                try {
-                    await db.collection('productos').doc(productToDeleteId).delete();
-                    showMessage('Producto eliminado.');
-                    cancelAction();
-                    loadInventory();
-                } catch (error) { showMessage('Error al eliminar.'); }
+            if (actionToConfirm) {
+                await actionToConfirm();
+            }
+            cancelAction();
+        }
+
+        async function deleteProduct(id) {
+            try {
+                await db.collection('productos').doc(id).delete();
+                showMessage('Producto eliminado.');
+                loadInventory();
+            } catch (error) { 
+                showMessage('Error al eliminar el producto.'); 
             }
         }
     </script>
