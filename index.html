@@ -787,6 +787,7 @@
 
         const vapidKey = "BCI7mLN5SS6nZLTIC4BZNusMu2TCEYs_-XBvVrqQahBscDElMQBcfBU0lcnSPQDRItA-3g-3cbdATal2jywf1os"; 
         
+        // --- URL BASE DEFINITIVA PARA IMÁGENES ---
         const IMAGES_BASE_URL = 'https://resoner0796.github.io/Tienda-KalCTas/';
         
         let actionToConfirm = null;
@@ -1166,7 +1167,7 @@
             try {
                 const imageUrl = getEl('product-image-url').value;
                 if (!imageUrl) { 
-                    showMessage('Por favor, ingresa la URL de la imagen.'); 
+                    showMessage('Por favor, ingresa la ruta de la imagen.'); 
                     return; 
                 }
 
