@@ -443,6 +443,14 @@
         .amount-positive { color: var(--status-green); }
         .amount-negative { color: var(--status-red); }
 
+        .manual-order-line {
+            display: grid;
+            grid-template-columns: 1fr 80px 40px;
+            gap: 10px;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
         /* Responsividad */
         @media (max-width: 768px) {
             body { padding: 10px; }
@@ -451,8 +459,8 @@
             .main-menu-buttons { grid-template-columns: 1fr; }
             .finance-panel { grid-template-columns: 1fr; }
             .product-details { grid-template-columns: 80px 1fr; }
-            .restock-line { grid-template-columns: 1fr; gap: 8px; padding-bottom: 15px; border-bottom: 1px solid var(--border-color); }
-            .restock-line button { width: 100%; background-color: var(--status-red); }
+            .restock-line, .manual-order-line { grid-template-columns: 1fr; gap: 8px; padding-bottom: 15px; border-bottom: 1px solid var(--border-color); }
+            .restock-line button, .manual-order-line button { width: 100%; background-color: var(--status-red); }
         }
     </style>
 </head>
@@ -486,7 +494,7 @@
                 <button onclick="showScreen('inventory-screen')">📦 Inventario de Productos</button>
                 <button onclick="showScreen('raw-materials-screen')">🏷️ Inventario de Insumos</button>
                 <button onclick="showScreen('orders-screen')">📬 Pedidos de la Tienda</button>
-                <button onclick="showScreen('manual-order-screen')">📝 Registrar Pedido Manual</button>
+                <button onclick="showScreen('manual-order-screen')">📝 Registrar Venta Manual</button>
                 <button onclick="showScreen('sales-history-screen')">💰 Historial de Pedidos</button>
                 <button onclick="showScreen('finance-screen')">📈 Administración</button>
                 <button onclick="showScreen('theme-screen')">🎨 Tema de la Página</button>
@@ -515,7 +523,7 @@
                     <option value="KalCTas3-4">KalCTas 3/4</option>
                     <option value="KalCTasLargas">KalCTas Largas</option>
                 </select>
-                <label for="product-image-url" style="text-align: left; margin-top: 10px;">URL de la imagen:</label>
+                <label for="product-image-url" style="text-align: left; margin-top: 10px;">Ruta de la imagen:</label>
                 <input type="text" id="product-image-url" placeholder="Ej: assets/KalCTas2-4/modelo.png" required>
                 <input type="number" id="product-stock" placeholder="Inventario" required>
                 <input type="number" id="product-price" placeholder="Precio" step="0.01" required>
@@ -525,7 +533,7 @@
         </section>
 
         <section id="manual-order-screen" style="display: none;">
-            <h1>Registrar Pedido Manual</h1>
+            <h1>Registrar Venta Manual</h1>
             <form id="manual-order-form">
                 <input type="text" id="manual-order-client" placeholder="Nombre del Cliente" required>
                 <select id="manual-order-channel" required>
@@ -552,11 +560,13 @@
 
         <section id="raw-materials-screen" style="display: none;">
             <h1>Inventario de Insumos</h1>
-            <h2>Agregar Nuevo Insumo</h2>
+            <h2>Agregar/Editar Insumo</h2>
             <form id="add-raw-material-form">
+                <input type="hidden" id="raw-material-id">
                 <input type="text" id="raw-material-description" placeholder="Descripción (Ej: Etiquetas Halloween)" required>
                 <input type="number" id="raw-material-quantity" placeholder="Cantidad" min="0" required>
-                <button type="submit">Agregar/Actualizar Insumo</button>
+                <button type="submit" id="add-raw-material-btn">Agregar Insumo</button>
+                <button type="button" id="cancel-edit-raw-material-btn" class="close-button" style="display: none;" onclick="cancelEditRawMaterial()">Cancelar Edición</button>
             </form>
             <div class="table-container">
                 <h2>Insumos Actuales</h2>
@@ -796,6 +806,7 @@
             document.querySelectorAll('section').forEach(screen => screen.style.display = 'none');
             getEl(screenId).style.display = 'block';
 
+            // Cargar logos dinámicamente cada vez que se muestra una pantalla
             document.querySelectorAll('.logo-img').forEach(img => {
                 img.src = IMAGES_BASE_URL + 'LOGO.png';
             });
@@ -1224,7 +1235,6 @@
             event.stopPropagation();
             const pedidoRef = db.collection('pedidos').doc(pedidoId);
             try {
-                // Primero, obtenemos el costo por producto actual
                 const configDoc = await db.collection('configuracion').doc('tienda').get();
                 const costPerProduct = configDoc.exists && configDoc.data().costoPorProducto ? configDoc.data().costoPorProducto : CAPITAL_PER_PRODUCT;
 
@@ -1239,7 +1249,7 @@
                     if (newStatus === 'Entregado' && pedidoData.estado !== 'Entregado') {
                         const totalVenta = pedidoData.montoTotal || 0;
                         const numeroProductos = pedidoData.productos?.length || 0;
-                        const capitalMonto = numeroProductos * costPerProduct; // Usamos el costo configurable
+                        const capitalMonto = numeroProductos * costPerProduct; 
                         const utilidadMonto = totalVenta - capitalMonto;
 
                         if (capitalMonto > 0) {
@@ -1254,7 +1264,7 @@
                             });
                         }
 
-                        if (utilidadMonto !== 0) { // La utilidad puede ser negativa
+                        if (utilidadMonto !== 0) {
                             const utilidadMovRef = db.collection('movimientos').doc();
                             t.set(utilidadMovRef, {
                                 monto: utilidadMonto,
@@ -1842,41 +1852,18 @@
         }
         function closeMessage() { getEl('message-box').style.display = 'none'; }
         function closeEditModal() { getEl('edit-modal').style.display = 'none'; }
-        
-        function showConfirmModal(type, id, text) {
-            getEl('confirm-text').textContent = text;
-            actionToConfirm = () => {
-                if (type === 'product') {
-                    deleteProduct(id);
-                } else if (type === 'raw-material') {
-                    deleteRawMaterial(id);
-                }
-            };
-            getEl('confirm-modal').style.display = 'flex';
-        }
-
-        function cancelAction() { 
-            getEl('confirm-modal').style.display = 'none'; 
-            actionToConfirm = null;
-        }
-
+        function showConfirmModal(id) { productToDeleteId = id; getEl('confirm-modal').style.display = 'flex'; }
+        function cancelAction() { getEl('confirm-modal').style.display = 'none'; productToDeleteId = null; }
         async function confirmAction() {
-            if (actionToConfirm) {
-                await actionToConfirm();
-            }
-            cancelAction();
-        }
-
-        async function deleteProduct(id) {
-            try {
-                await db.collection('productos').doc(id).delete();
-                showMessage('Producto eliminado.');
-                loadInventory();
-            } catch (error) { 
-                showMessage('Error al eliminar el producto.'); 
+            if (productToDeleteId) {
+                try {
+                    await db.collection('productos').doc(productToDeleteId).delete();
+                    showMessage('Producto eliminado.');
+                    cancelAction();
+                    loadInventory();
+                } catch (error) { showMessage('Error al eliminar.'); }
             }
         }
-
     </script>
 </body>
 </html>
