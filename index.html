@@ -263,22 +263,22 @@
 
         /* --- Estilos para tablas --- */
         .table-container { width: 100%; overflow-x: auto; margin-top: 20px; }
-        #supplies-table {
+        #supplies-table, #raw-materials-table {
             width: 100%;
             border-collapse: collapse;
             font-size: 0.95em;
         }
-        #supplies-table th, #supplies-table td {
+        #supplies-table th, #supplies-table td, #raw-materials-table th, #raw-materials-table td {
             padding: 12px 15px;
             text-align: left;
             border-bottom: 1px solid var(--border-color);
         }
-        #supplies-table th {
+        #supplies-table th, #raw-materials-table th {
             background-color: var(--bg-dark-primary);
             font-weight: 500;
             color: var(--text-secondary);
         }
-        #supplies-table tbody tr:hover { background-color: var(--bg-dark-primary); }
+        #supplies-table tbody tr:hover, #raw-materials-table tbody tr:hover { background-color: var(--bg-dark-primary); }
 
         /* Botones de acción (Editar/Eliminar) */
         .btn-edit { background-color: var(--status-yellow); }
@@ -483,8 +483,10 @@
             <div class="logo-container"><img src="" class="logo logo-img" alt="KalCTas Logo"></div>
             <h2>Menú Principal</h2>
             <div class="main-menu-buttons">
-                <button onclick="showScreen('inventory-screen')">📦 Inventario</button>
-                <button onclick="showScreen('orders-screen')">📬 Pedidos</button>
+                <button onclick="showScreen('inventory-screen')">📦 Inventario de Productos</button>
+                <button onclick="showScreen('raw-materials-screen')">🏷️ Inventario de Insumos</button>
+                <button onclick="showScreen('orders-screen')">📬 Pedidos de la Tienda</button>
+                <button onclick="showScreen('manual-order-screen')">📝 Registrar Pedido Manual</button>
                 <button onclick="showScreen('sales-history-screen')">💰 Historial de Pedidos</button>
                 <button onclick="showScreen('finance-screen')">📈 Administración</button>
                 <button onclick="showScreen('theme-screen')">🎨 Tema de la Página</button>
@@ -522,8 +524,52 @@
             <button class="close-button" onclick="showScreen('inventory-screen')">Volver al Inventario</button>
         </section>
 
+        <section id="manual-order-screen" style="display: none;">
+            <h1>Registrar Pedido Manual</h1>
+            <form id="manual-order-form">
+                <input type="text" id="manual-order-client" placeholder="Nombre del Cliente" required>
+                <select id="manual-order-channel" required>
+                    <option value="" disabled selected>Seleccionar Canal de Venta</option>
+                    <option value="Facebook">Facebook</option>
+                    <option value="Venta Personal">Venta Personal</option>
+                    <option value="Otro">Otro</option>
+                </select>
+                <hr style="width:100%; border-color:var(--border-color)">
+                
+                <h3>Productos Vendidos</h3>
+                <div id="manual-order-items"></div>
+                <button type="button" class="btn" style="background-color: var(--status-blue);" onclick="addManualOrderLine()">+ Agregar Producto</button>
+                
+                <hr style="width:100%; border-color:var(--border-color)">
+                
+                <label for="manual-order-total" style="text-align:left; font-weight: bold;">Monto Total de la Venta ($)</label>
+                <input type="number" id="manual-order-total" placeholder="Ej: 150.00" step="0.01" required>
+                
+                <button type="submit">Registrar Venta</button>
+            </form>
+            <button class="close-button" onclick="showScreen('main-menu')">Volver al Menú</button>
+        </section>
+
+        <section id="raw-materials-screen" style="display: none;">
+            <h1>Inventario de Insumos</h1>
+            <h2>Agregar Nuevo Insumo</h2>
+            <form id="add-raw-material-form">
+                <input type="text" id="raw-material-description" placeholder="Descripción (Ej: Etiquetas Halloween)" required>
+                <input type="number" id="raw-material-quantity" placeholder="Cantidad" min="0" required>
+                <button type="submit">Agregar/Actualizar Insumo</button>
+            </form>
+            <div class="table-container">
+                <h2>Insumos Actuales</h2>
+                <table id="raw-materials-table">
+                    <thead><tr><th>Descripción</th><th>Cantidad</th><th>Acciones</th></tr></thead>
+                    <tbody id="raw-materials-table-body"></tbody>
+                </table>
+            </div>
+            <button class="close-button" onclick="showScreen('main-menu')">Volver al Menú</button>
+        </section>
+        
         <section id="orders-screen" style="display: none;">
-            <h1>Pedidos Pendientes</h1>
+            <h1>Pedidos de la Tienda</h1>
             <ul id="orders-list"></ul>
             <button class="close-button" onclick="showScreen('main-menu')">Volver al Menú</button>
         </section>
@@ -553,6 +599,17 @@
                 <div class="finance-card"><h3>Utilidad</h3><p id="total-profit">$0.00</p></div>
                 <div class="finance-card"><h3>Capital</h3><p id="total-capital">$0.00</p></div>
             </div>
+
+            <h2>Configuración de Costos</h2>
+            <form id="cost-config-form" style="margin-bottom: 20px;">
+                <label for="product-cost-input" style="text-align: left;">Costo por Producto ($)</label>
+                <div style="display: flex; gap: 10px;">
+                    <input type="number" id="product-cost-input" placeholder="Ej: 42" step="0.01" required>
+                    <button type="submit" style="width: 150px;">Guardar</button>
+                </div>
+            </form>
+            <hr style="width: 100%; border-color: rgba(255, 255, 255, 0.3);">
+
             <h2>Registrar Gasto General</h2>
             <form id="add-expense-form">
                 <input type="number" id="expense-amount" placeholder="Monto del Gasto ($)" step="0.01" required>
@@ -564,7 +621,7 @@
             <hr style="width: 100%; border-color: rgba(255, 255, 255, 0.3);">
             <h2>Gestión</h2>
             <div class="main-menu-buttons">
-                <button onclick="showScreen('supplies-screen')">Insumos</button>
+                <button onclick="showScreen('supplies-screen')">Insumos (Gastos)</button>
                 <button onclick="showScreen('restock-screen')">Re-Stock de Inventario</button>
                 <button onclick="showScreen('movements-history-screen')">Historial de Movimientos 🧾</button>
             </div>
@@ -572,7 +629,7 @@
         </section>
 
         <section id="supplies-screen" style="display: none;">
-            <h1>Gestión de Insumos</h1>
+            <h1>Gestión de Insumos (Gastos)</h1>
             <h2>Registrar Insumo</h2>
             <form id="add-supply-form">
                 <input type="text" id="supply-description" placeholder="Descripción del insumo" required>
@@ -664,9 +721,9 @@
         </div>
         <div id="confirm-modal" class="confirm-modal">
             <div class="modal-content">
-                <p>¿Estás seguro de que quieres eliminar este producto?</p>
+                <p id="confirm-text">¿Estás seguro?</p>
                 <div class="confirm-buttons">
-                    <button class="btn btn-yes" onclick="confirmAction()">Sí, eliminar</button>
+                    <button class="btn btn-yes" onclick="confirmAction()">Sí</button>
                     <button class="btn btn-no" onclick="cancelAction()">Cancelar</button>
                 </div>
             </div>
@@ -720,15 +777,17 @@
 
         const vapidKey = "BCI7mLN5SS6nZLTIC4BZNusMu2TCEYs_-XBvVrqQahBscDElMQBcfBU0lcnSPQDRItA-3g-3cbdATal2jywf1os"; 
         
-        // --- CORRECCIÓN DEFINITIVA DE RUTA ---
-        // Esta es la URL base del repositorio donde están alojadas tus imágenes (la tienda).
+        // --- URL BASE DEFINITIVA PARA IMÁGENES ---
+        // Apunta al repositorio de la Tienda donde están alojados los assets.
         const IMAGES_BASE_URL = 'https://resoner0796.github.io/Tienda-KalCTas/';
         
         let productToDeleteId = null, supplyToDeleteId = null, expenseToDeleteId = null, restockToDeleteId = null;
+        let rawMaterialToDeleteId = null;
+        let actionToConfirm = null;
         let unsubscribes = [];
         let productModels = [], expenseConcepts = [];
         let salesChart;
-        const CAPITAL_PER_PRODUCT = 42;
+        let CAPITAL_PER_PRODUCT = 42; // Valor por defecto
         let deferredInstallPrompt = null;
 
         const getEl = (id) => document.getElementById(id);
@@ -737,7 +796,6 @@
             document.querySelectorAll('section').forEach(screen => screen.style.display = 'none');
             getEl(screenId).style.display = 'block';
 
-            // Cargar logos dinámicamente cada vez que se muestra una pantalla
             document.querySelectorAll('.logo-img').forEach(img => {
                 img.src = IMAGES_BASE_URL + 'LOGO.png';
             });
@@ -751,7 +809,11 @@
                     break;
                 case 'orders-screen': loadOrders(); break;
                 case 'sales-history-screen': loadSalesHistory(); break;
-                case 'finance-screen': loadFinancialSummary(); loadExpenseConcepts(); break;
+                case 'finance-screen': 
+                    loadFinancialSummary(); 
+                    loadExpenseConcepts(); 
+                    loadProductCost(); // Cargar costo de producto
+                    break;
                 case 'supplies-screen': loadSupplies(); break;
                 case 'restock-screen': 
                     await loadProductModels();
@@ -764,6 +826,12 @@
                 case 'sales-screen': loadSalesData(); break;
                 case 'movements-history-screen': loadMovementCategories(); loadMovementsHistory(); break;
                 case 'theme-screen': loadCurrentTheme(); break;
+                case 'manual-order-screen': 
+                    await loadProductModels(); 
+                    getEl('manual-order-items').innerHTML = '';
+                    addManualOrderLine();
+                    break;
+                case 'raw-materials-screen': loadRawMaterials(); break;
             }
         }
         
@@ -1035,7 +1103,6 @@
                             const toggleBtnText = isVisible ? 'Ocultar' : 'Mostrar';
                             const toggleBtnColorClass = isVisible ? 'status-blue' : 'status-green';
 
-                            // CONSTRUCCIÓN DE LA URL ABSOLUTA PARA LA IMAGEN
                             const imageUrl = IMAGES_BASE_URL + product.imagenUrl;
 
                             detailsDiv.innerHTML = `
@@ -1054,7 +1121,7 @@
                                 </div>`;
                             
                             detailsDiv.querySelector('.btn-edit').onclick = () => editProduct(product.id);
-                            detailsDiv.querySelector('.btn-delete').onclick = () => showConfirmModal(product.id);
+                            detailsDiv.querySelector('.btn-delete').onclick = () => showConfirmModal('product', product.id, `¿Estás seguro de que quieres eliminar el producto "${product.nombre}"?`);
 
                             groupDiv.appendChild(itemDiv);
                             groupDiv.appendChild(detailsDiv);
@@ -1157,6 +1224,10 @@
             event.stopPropagation();
             const pedidoRef = db.collection('pedidos').doc(pedidoId);
             try {
+                // Primero, obtenemos el costo por producto actual
+                const configDoc = await db.collection('configuracion').doc('tienda').get();
+                const costPerProduct = configDoc.exists && configDoc.data().costoPorProducto ? configDoc.data().costoPorProducto : CAPITAL_PER_PRODUCT;
+
                 await db.runTransaction(async (t) => {
                     const pedidoDoc = await t.get(pedidoRef);
                     if (!pedidoDoc.exists) throw new Error("Pedido no encontrado");
@@ -1168,7 +1239,7 @@
                     if (newStatus === 'Entregado' && pedidoData.estado !== 'Entregado') {
                         const totalVenta = pedidoData.montoTotal || 0;
                         const numeroProductos = pedidoData.productos?.length || 0;
-                        const capitalMonto = numeroProductos * CAPITAL_PER_PRODUCT;
+                        const capitalMonto = numeroProductos * costPerProduct; // Usamos el costo configurable
                         const utilidadMonto = totalVenta - capitalMonto;
 
                         if (capitalMonto > 0) {
@@ -1183,7 +1254,7 @@
                             });
                         }
 
-                        if (utilidadMonto > 0) {
+                        if (utilidadMonto !== 0) { // La utilidad puede ser negativa
                             const utilidadMovRef = db.collection('movimientos').doc();
                             t.set(utilidadMovRef, {
                                 monto: utilidadMonto,
@@ -1206,7 +1277,7 @@
                     } else if (newStatus === 'Cancelado' && pedidoData.estado === 'Entregado') {
                         const totalVenta = pedidoData.montoTotal || 0;
                         const numeroProductos = pedidoData.productos?.length || 0;
-                        const capitalMonto = numeroProductos * CAPITAL_PER_PRODUCT;
+                        const capitalMonto = numeroProductos * costPerProduct;
                         const utilidadMonto = totalVenta - capitalMonto;
 
                         const finanzasRef = db.collection('finanzas').doc('resumen');
@@ -1238,13 +1309,13 @@
         function loadSalesHistory() {
             const list = getEl('sales-history-list');
             list.innerHTML = '<p>Cargando historial...</p>';
-            const q = db.collection('pedidos').where('estado', 'in', ['Entregado', 'Cancelado']);
+            const q = db.collection('pedidos').orderBy('fechaCreacion', 'desc');
             const unsubscribe = q.onSnapshot((snapshot) => {
-                const pedidos = snapshot.docs.map(doc => ({id: doc.id, ...doc.data()})).sort((a,b) => (b.fechaActualizacion?.toDate() || 0) - (a.fechaActualizacion?.toDate() || 0));
+                const pedidos = snapshot.docs.map(doc => ({id: doc.id, ...doc.data()}));
                 list.innerHTML = pedidos.length ? '' : '<p>No hay pedidos en el historial.</p>';
                 pedidos.forEach(pedido => {
                     const total = pedido.montoTotal || 0;
-                    const clienteNombre = `${pedido.datosCliente?.nombre || ''} ${pedido.datosCliente?.apellido || ''}`.trim() || 'N/A';
+                    const clienteNombre = pedido.datosCliente ? `${pedido.datosCliente.nombre || ''} ${pedido.datosCliente.apellido || ''}`.trim() : (pedido.clienteManual || 'N/A');
                     
                     const detallesEntrega = generarDetallesEntregaHTML(pedido);
 
@@ -1252,18 +1323,19 @@
                     item.className = 'sale-item';
                     item.innerHTML = `
                         <div class="sale-summary">
-                            <span>#${pedido.folio}</span>
+                            <span>${pedido.folio || 'Venta Manual'} - ${clienteNombre}</span>
                             <span class="order-status status-${pedido.estado}">${pedido.estado}</span>
                             <span>$${total.toFixed(2)}</span>
                         </div>
                         <div class="sale-details">
                             <p><strong>Cliente:</strong> ${clienteNombre}</p>
+                            <p><strong>Canal de Venta:</strong> ${pedido.canalVenta || 'Tienda en línea'}</p>
                             <p><strong>Teléfono:</strong> ${pedido.datosCliente?.telefono || 'N/A'}</p>
                             <p><strong>Fecha de Finalización:</strong> ${pedido.fechaActualizacion?.toDate().toLocaleDateString() || 'N/A'}</p>
                             ${detallesEntrega}
                             <p><strong>Método de Pago:</strong> ${pedido.metodoPago || 'N/A'}</p>
                             <p><strong>Productos:</strong></p>
-                            <ul>${(pedido.productos || []).map(p => `<li>${p.nombre}</li>`).join('')}</ul>
+                            <ul>${(pedido.productos || []).map(p => `<li>${p.nombre} (x${p.cantidad || 1})</li>`).join('')}</ul>
                         </div>`;
                     item.querySelector('.sale-summary').onclick = (e) => e.currentTarget.nextElementSibling.style.display = e.currentTarget.nextElementSibling.style.display === 'block' ? 'none' : 'block';
                     list.appendChild(item);
@@ -1770,18 +1842,41 @@
         }
         function closeMessage() { getEl('message-box').style.display = 'none'; }
         function closeEditModal() { getEl('edit-modal').style.display = 'none'; }
-        function showConfirmModal(id) { productToDeleteId = id; getEl('confirm-modal').style.display = 'flex'; }
-        function cancelAction() { getEl('confirm-modal').style.display = 'none'; productToDeleteId = null; }
+        
+        function showConfirmModal(type, id, text) {
+            getEl('confirm-text').textContent = text;
+            actionToConfirm = () => {
+                if (type === 'product') {
+                    deleteProduct(id);
+                } else if (type === 'raw-material') {
+                    deleteRawMaterial(id);
+                }
+            };
+            getEl('confirm-modal').style.display = 'flex';
+        }
+
+        function cancelAction() { 
+            getEl('confirm-modal').style.display = 'none'; 
+            actionToConfirm = null;
+        }
+
         async function confirmAction() {
-            if (productToDeleteId) {
-                try {
-                    await db.collection('productos').doc(productToDeleteId).delete();
-                    showMessage('Producto eliminado.');
-                    cancelAction();
-                    loadInventory();
-                } catch (error) { showMessage('Error al eliminar.'); }
+            if (actionToConfirm) {
+                await actionToConfirm();
+            }
+            cancelAction();
+        }
+
+        async function deleteProduct(id) {
+            try {
+                await db.collection('productos').doc(id).delete();
+                showMessage('Producto eliminado.');
+                loadInventory();
+            } catch (error) { 
+                showMessage('Error al eliminar el producto.'); 
             }
         }
+
     </script>
 </body>
 </html>
