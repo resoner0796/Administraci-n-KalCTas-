@@ -133,7 +133,12 @@
             margin-top: 10px;
         }
         
-        .logo-container { margin-bottom: 20px; }
+        /* CORRECCIÓN: Centrado del logo */
+        .logo-container {
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: center;
+        }
         .logo { max-width: 200px; height: auto; }
 
         form {
@@ -240,8 +245,8 @@
         }
         /* --- FIN DE ESTILOS PARA TEMAS --- */
 
-        /* --- ESTILOS VISIBILIDAD DE CATEGORÍAS --- */
-        #category-visibility-controls {
+        /* --- ESTILOS VISIBILIDAD DE CATEGORÍAS Y EMPAQUES --- */
+        #category-visibility-controls, #packaging-visibility-controls {
             width: 100%;
             background-color: var(--bg-dark-primary);
             border-radius: var(--border-radius-md);
@@ -249,24 +254,25 @@
             margin-bottom: 25px;
             border: 1px solid var(--border-color);
         }
-        .category-visibility-item {
+        .visibility-item {
             display: flex;
             justify-content: space-between;
             align-items: center;
             padding: 10px 0;
         }
-        .category-visibility-item:not(:last-child){
+        .visibility-item:not(:last-child){
             border-bottom: 1px solid var(--border-color);
         }
-        .category-visibility-item span {
+        .visibility-item span {
             font-weight: 500;
         }
-        .category-visibility-item button {
+        .visibility-item button {
             padding: 8px 16px;
             font-size: 0.9em;
             min-width: 90px;
         }
-        /* --- FIN ESTILOS VISIBILIDAD DE CATEGORÍAS --- */
+        /* --- FIN ESTILOS VISIBILIDAD --- */
+
 
         /* --- Estilos para tablas --- */
         .table-container { width: 100%; overflow-x: auto; margin-top: 20px; }
@@ -655,10 +661,10 @@
         <section id="finance-screen" style="display: none;">
             <h1>Administración Financiera</h1>
             <div class="finance-panel">
-                <div class="finance-card" onclick="showSalesHistoryModal()"><h3>Ventas Totales</h3><p id="total-sales">$0.00</p></div>
-                <div class="finance-card"><h3>Gastos</h3><p id="total-expenses">$0.00</p></div>
-                <div class="finance-card"><h3>Utilidad</h3><p id="total-profit">$0.00</p></div>
-                <div class="finance-card"><h3>Capital</h3><p id="total-capital">$0.00</p></div>
+                <div class="finance-card" onclick="showMovementsHistory('Ventas')"><h3>Ventas Totales</h3><p id="total-sales">$0.00</p></div>
+                <div class="finance-card" onclick="showMovementsHistory('Gastos')"><h3>Gastos</h3><p id="total-expenses">$0.00</p></div>
+                <div class="finance-card" onclick="showMovementsHistory('Utilidad')"><h3>Utilidad</h3><p id="total-profit">$0.00</p></div>
+                <div class="finance-card" onclick="showMovementsHistory('Capital')"><h3>Capital</h3><p id="total-capital">$0.00</p></div>
             </div>
 
             <h2>Configuración de Costos</h2>
@@ -749,6 +755,11 @@
                 <button onclick="setTheme('halloween')" style="background-color: #f9a03f; color: #0d0221;">Halloween 🎃</button>
                 <button onclick="setTheme('christmas')" style="background-color: #d94545;">Navidad 🎅</button>
             </div>
+            
+            <div id="packaging-visibility-controls">
+                <h2>Visibilidad de Empaques</h2>
+            </div>
+
             <button class="close-button" onclick="showScreen('main-menu')">Volver al Menú</button>
         </section>
 
@@ -799,8 +810,8 @@
         </div>
         <div id="sales-history-modal" class="sales-history-modal">
             <div class="modal-content">
-                <h2>Historial de Ventas</h2>
-                <ul id="modal-sales-list" style="max-height: 400px; overflow-y: auto;"></ul>
+                <h2 id="modal-history-title">Historial</h2>
+                <ul id="modal-sales-list" style="max-height: 400px; overflow-y: auto; text-align:left;"></ul>
                 <button class="close-button" onclick="closeSalesHistoryModal()">Cerrar</button>
             </div>
         </div>
@@ -893,7 +904,10 @@
                     break;
                 case 'sales-screen': loadSalesData(); break;
                 case 'movements-history-screen': loadMovementCategories(); loadMovementsHistory(); break;
-                case 'theme-screen': loadCurrentTheme(); break;
+                case 'theme-screen':
+                    loadCurrentTheme();
+                    loadPackagingVisibility(); // NUEVO: Cargar visibilidad de empaques
+                    break;
                 case 'manual-order-screen': 
                     await loadProductModels(); 
                     getEl('manual-order-items').innerHTML = '';
@@ -1876,10 +1890,12 @@
         }
         
         function showSalesHistoryModal() {
+            getEl('modal-history-title').textContent = "Historial de Ventas";
             const list = getEl('modal-sales-list');
             list.innerHTML = '<p>Cargando ventas...</p>';
-            const unsub = db.collection('pedidos').where('estado', '==', 'Entregado').onSnapshot(snapshot => {
-                const sales = snapshot.docs.map(doc => doc.data()).sort((a,b) => b.fechaActualizacion.toDate() - a.fechaActualizacion.toDate());
+            const q = db.collection('pedidos').where('estado', '==', 'Entregado').orderBy('fechaActualizacion', 'desc');
+            const unsub = q.onSnapshot(snapshot => {
+                const sales = snapshot.docs.map(doc => doc.data());
                 list.innerHTML = sales.length ? '' : '<p>No hay ventas.</p>';
                 sales.forEach(p => {
                     list.innerHTML += `<li class="sales-history-item"><div class="sales-summary"><span>#${p.folio || 'Manual'} - ${p.fechaActualizacion.toDate().toLocaleDateString()}</span><span>$${(p.montoTotal || 0).toFixed(2)}</span></div></li>`;
@@ -1919,13 +1935,15 @@
         function closeMessage() { getEl('message-box').style.display = 'none'; }
         function closeEditModal() { getEl('edit-modal').style.display = 'none'; }
         
-        function showConfirmModal(type, id, text) {
+        function showConfirmModal(type, id, text, extraData = null) {
             getEl('confirm-text').textContent = text;
             actionToConfirm = () => {
                 if (type === 'product') {
                     deleteProduct(id);
                 } else if (type === 'raw-material') {
                     deleteRawMaterial(id);
+                } else if (type === 'order') {
+                    deleteOrder(id, extraData);
                 }
             };
             getEl('confirm-modal').style.display = 'flex';
@@ -2239,8 +2257,8 @@ getEl('manual-order-form').addEventListener('submit', async (e) => {
             const nuevoPedidoRef = db.collection('pedidos').doc();
             transaction.set(nuevoPedidoRef, {
                 folio: folioFormateado,
-                clienteManual: clienteManual,
-                datosCliente: { telefono: telefonoCliente },
+                clienteManual: clienteManual, // Guardado para referencia
+                datosCliente: { nombre: clienteManual, apellido: '', telefono: telefonoCliente }, // CORREGIDO
                 canalVenta: canalVenta,
                 productos: items,
                 montoTotal: montoTotal,
@@ -2259,12 +2277,14 @@ getEl('manual-order-form').addEventListener('submit', async (e) => {
             const utilidadMonto = montoTotal - capitalMonto - gastoEnvio;
 
             if (hasShipping) {
-                const gastoEnvioRef = db.collection('gastosGenerales').doc();
+                const gastoEnvioRef = db.collection('movimientos').doc();
                 transaction.set(gastoEnvioRef, {
-                    monto: gastoEnvio,
-                    concepto: 'Envío',
+                    monto: -gastoEnvio,
+                    concepto: 'Gasto de Envío',
+                    tipo: 'Gastos',
+                    fecha: firebase.firestore.FieldValue.serverTimestamp(),
                     nota: `Gasto de envío para venta manual ${folioFormateado}`,
-                    fecha: firebase.firestore.FieldValue.serverTimestamp()
+                    relatedOrderId: nuevoPedidoRef.id
                 });
             }
 
