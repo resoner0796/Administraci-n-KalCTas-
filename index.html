@@ -436,7 +436,7 @@
             border: 1px solid var(--border-color);
         }
         .finance-card:hover { transform: translateY(-5px); box-shadow: var(--shadow-md); border-color: var(--primary-accent); }
-        .finance-card h3 { margin-top: 0; font-size: 1em; color: var(--text-secondary); }
+        .finance-card h3 { margin-top: 0; font-size: 1em; color: var(--text-secondary); text-align: center; }
         .finance-card p { margin: 5px 0 0; font-size: 1.8em; font-weight: 700; color: var(--text-primary); }
 
         /* --- Botón Instalar PWA --- */
@@ -653,7 +653,7 @@
         </section>
 
         <section id="finance-screen" style="display: none;">
-             <h1>Administración Financiera</h1>
+            <h1>Administración Financiera</h1>
             <div class="finance-panel">
                 <div class="finance-card" onclick="showSalesHistoryModal()"><h3>Ventas Totales</h3><p id="total-sales">$0.00</p></div>
                 <div class="finance-card"><h3>Gastos</h3><p id="total-expenses">$0.00</p></div>
@@ -662,10 +662,18 @@
             </div>
 
             <h2>Configuración de Costos</h2>
-            <form id="cost-config-form" style="margin-bottom: 20px;">
+            <form id="cost-config-form">
                 <label for="product-cost-input" style="text-align: left;">Costo por Producto ($)</label>
                 <div style="display: flex; gap: 10px;">
                     <input type="number" id="product-cost-input" placeholder="Ej: 42" step="0.01" required>
+                    <button type="submit" style="width: 150px;">Guardar</button>
+                </div>
+            </form>
+
+            <form id="shipping-cost-config-form" style="margin-bottom: 20px;">
+                <label for="shipping-cost-input" style="text-align: left;">Costo de Envío a Domicilio ($)</label>
+                <div style="display: flex; gap: 10px;">
+                    <input type="number" id="shipping-cost-input" placeholder="Ej: 70" step="0.01" required>
                     <button type="submit" style="width: 150px;">Guardar</button>
                 </div>
             </form>
@@ -846,6 +854,7 @@
         let productModels = [], expenseConcepts = [];
         let salesChart;
         let CAPITAL_PER_PRODUCT = 42; // Valor por defecto, se actualizará desde la BD
+        let SHIPPING_COST = 70; // Valor por defecto, se actualizará desde la BD
         let deferredInstallPrompt = null;
 
         const getEl = (id) => document.getElementById(id);
@@ -871,6 +880,7 @@
                     loadFinancialSummary(); 
                     loadExpenseConcepts(); 
                     loadProductCost();
+                    loadShippingCost(); // Cargar costo de envío
                     break;
                 case 'supplies-screen': loadSupplies(); break;
                 case 'restock-screen': 
@@ -888,10 +898,9 @@
                     await loadProductModels(); 
                     getEl('manual-order-items').innerHTML = '';
                     addManualOrderLine();
-                    // Resetear el formulario y la visibilidad de los campos
                     getEl('manual-order-form').reset();
-                    toggleManualDeliveryFields(); // Asegura el estado visual por defecto
-                    calculateManualOrderTotal(); // Asegura que el total inicie en 0
+                    toggleManualDeliveryFields(); 
+                    calculateManualOrderTotal();
                     break;
                 case 'raw-materials-screen': loadRawMaterials(); break;
             }
@@ -1292,10 +1301,11 @@
             event.stopPropagation();
             const pedidoRef = db.collection('pedidos').doc(pedidoId);
             try {
-                const configDoc = await db.collection('configuracion').doc('tienda').get();
-                const costPerProduct = configDoc.exists && configDoc.data().costoPorProducto ? configDoc.data().costoPorProducto : CAPITAL_PER_PRODUCT;
-
                 await db.runTransaction(async (t) => {
+                    const configDoc = await t.get(db.collection('configuracion').doc('tienda'));
+                    const costPerProduct = configDoc.exists && configDoc.data().costoPorProducto ? configDoc.data().costoPorProducto : CAPITAL_PER_PRODUCT;
+                    const shippingCost = configDoc.exists && configDoc.data().costoEnvio ? configDoc.data().costoEnvio : SHIPPING_COST;
+
                     const pedidoDoc = await t.get(pedidoRef);
                     if (!pedidoDoc.exists) throw new Error("Pedido no encontrado");
                     const pedidoData = pedidoDoc.data();
@@ -1306,8 +1316,21 @@
                     if (newStatus === 'Entregado' && pedidoData.estado !== 'Entregado') {
                         const totalVenta = pedidoData.montoTotal || 0;
                         const numeroProductos = pedidoData.productos?.reduce((sum, p) => sum + (p.cantidad || 1), 0) || 0;
+                        const hasShipping = pedidoData.datosEntrega?.tipo === 'Envío a domicilio';
+                        const gastoEnvio = hasShipping ? shippingCost : 0;
+                        
                         const capitalMonto = numeroProductos * costPerProduct; 
-                        const utilidadMonto = totalVenta - capitalMonto;
+                        const utilidadMonto = totalVenta - capitalMonto - gastoEnvio;
+
+                        if (hasShipping) {
+                            const gastoEnvioRef = db.collection('gastosGenerales').doc();
+                            t.set(gastoEnvioRef, {
+                                monto: gastoEnvio,
+                                concepto: 'Envío',
+                                nota: `Gasto de envío para pedido ${pedidoData.folio}`,
+                                fecha: firebase.firestore.FieldValue.serverTimestamp()
+                            });
+                        }
 
                         if (capitalMonto > 0) {
                             const capitalMovRef = db.collection('movimientos').doc();
@@ -1336,25 +1359,12 @@
                         const finanzasRef = db.collection('finanzas').doc('resumen');
                         t.update(finanzasRef, {
                             ventas: firebase.firestore.FieldValue.increment(totalVenta),
+                            gastos: firebase.firestore.FieldValue.increment(gastoEnvio),
                             utilidad: firebase.firestore.FieldValue.increment(utilidadMonto),
                             capital: firebase.firestore.FieldValue.increment(capitalMonto)
                         });
 
                         for (const producto of pedidoData.productos) if (producto.id) t.update(db.collection('productos').doc(producto.id), { cantidadVendida: firebase.firestore.FieldValue.increment(producto.cantidad || 1) });
-                    } else if (newStatus === 'Cancelado' && pedidoData.estado === 'Entregado') {
-                        const totalVenta = pedidoData.montoTotal || 0;
-                        const numeroProductos = pedidoData.productos?.reduce((sum, p) => sum + (p.cantidad || 1), 0) || 0;
-                        const capitalMonto = numeroProductos * costPerProduct;
-                        const utilidadMonto = totalVenta - capitalMonto;
-
-                        const finanzasRef = db.collection('finanzas').doc('resumen');
-                        t.update(finanzasRef, {
-                            ventas: firebase.firestore.FieldValue.increment(-totalVenta),
-                            utilidad: firebase.firestore.FieldValue.increment(-utilidadMonto),
-                            capital: firebase.firestore.FieldValue.increment(-capitalMonto)
-                        });
-                        
-                        for (const producto of pedidoData.productos) if (producto.id) t.update(db.collection('productos').doc(producto.id), { cantidadVendida: firebase.firestore.FieldValue.increment(-(producto.cantidad || 1)) });
                     }
                     
                     t.update(pedidoRef, updatesForOrder);
@@ -1849,7 +1859,7 @@
                 });
                 updateChart(salesByDate);
             });
-            unsubscribes.push(unsubscribe);
+            unsubscribes.push(unsub);
         }
         
         function updateChart(salesData) {
@@ -1881,7 +1891,6 @@
 
         function closeSalesHistoryModal() { getEl('sales-history-modal').style.display = 'none'; }
         
-        // --- FUNCIONES PARA MODAL DE IMAGEN ---
         const imageModal = getEl('image-modal');
         const modalImg = getEl('modal-image');
 
@@ -1897,7 +1906,6 @@
                 imageModal.style.display = 'none';
             }
         }
-        // --- FIN DE FUNCIONES MODAL ---
 
         function showMessage(text) { 
             const msgBox = getEl('message-box');
@@ -1944,11 +1952,12 @@
                 showMessage('Error al eliminar el producto.'); 
             }
         }
+
 // ====================================================================================
 // --- NUEVAS FUNCIONES Y CORRECCIONES INTEGRADAS ---
 // ====================================================================================
 
-// --- 1. LÓGICA PARA EL COSTO DE PRODUCTO ---
+// --- 1. LÓGICA PARA COSTOS DE PRODUCTO Y ENVÍO ---
 async function loadProductCost() {
     try {
         const configRef = db.collection('configuracion').doc('tienda');
@@ -1962,27 +1971,54 @@ async function loadProductCost() {
         }
     } catch (error) {
         console.error("Error al cargar costo del producto:", error);
-        showMessage("Error al cargar el costo del producto.");
+    }
+}
+
+async function loadShippingCost() {
+    try {
+        const configRef = db.collection('configuracion').doc('tienda');
+        const doc = await configRef.get();
+        if (doc.exists && doc.data().costoEnvio) {
+            const cost = doc.data().costoEnvio;
+            SHIPPING_COST = cost;
+            getEl('shipping-cost-input').value = cost;
+        } else {
+            getEl('shipping-cost-input').value = SHIPPING_COST;
+        }
+    } catch (error) {
+        console.error("Error al cargar costo de envío:", error);
     }
 }
 
 getEl('cost-config-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     const newCost = parseFloat(getEl('product-cost-input').value);
-
     if (isNaN(newCost) || newCost < 0) {
-        showMessage("Por favor, introduce un costo válido.");
+        showMessage("Por favor, introduce un costo de producto válido.");
         return;
     }
-
     try {
-        const configRef = db.collection('configuracion').doc('tienda');
-        await configRef.set({ costoPorProducto: newCost }, { merge: true });
+        await db.collection('configuracion').doc('tienda').set({ costoPorProducto: newCost }, { merge: true });
         CAPITAL_PER_PRODUCT = newCost;
         showMessage('Costo por producto actualizado con éxito.');
     } catch (error) {
-        console.error("Error al guardar el costo del producto:", error);
-        showMessage('Error al guardar el costo.');
+        showMessage('Error al guardar el costo del producto.');
+    }
+});
+
+getEl('shipping-cost-config-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const newCost = parseFloat(getEl('shipping-cost-input').value);
+    if (isNaN(newCost) || newCost < 0) {
+        showMessage("Por favor, introduce un costo de envío válido.");
+        return;
+    }
+    try {
+        await db.collection('configuracion').doc('tienda').set({ costoEnvio: newCost }, { merge: true });
+        SHIPPING_COST = newCost;
+        showMessage('Costo de envío actualizado con éxito.');
+    } catch (error) {
+        showMessage('Error al guardar el costo de envío.');
     }
 });
 
@@ -2107,7 +2143,7 @@ function calculateManualOrderTotal() {
 
     const deliveryMethod = getEl('manual-delivery-method').value;
     if (deliveryMethod === 'domicilio') {
-        total += 70.00;
+        total += SHIPPING_COST;
     }
 
     getEl('manual-order-total').value = total.toFixed(2);
@@ -2192,6 +2228,7 @@ getEl('manual-order-form').addEventListener('submit', async (e) => {
             const configRef = db.collection('configuracion').doc('tienda');
             const configDoc = await transaction.get(configRef);
             const costPerProduct = configDoc.exists && configDoc.data().costoPorProducto ? configDoc.data().costoPorProducto : CAPITAL_PER_PRODUCT;
+            const shippingCost = configDoc.exists && configDoc.data().costoEnvio ? configDoc.data().costoEnvio : SHIPPING_COST;
 
             const counterRef = db.collection('contadores').doc('pedidos');
             const counterDoc = await transaction.get(counterRef);
@@ -2215,13 +2252,26 @@ getEl('manual-order-form').addEventListener('submit', async (e) => {
                 comentarios: comentarios || null
             });
 
+            const hasShipping = datosEntrega.tipo === 'Envío a domicilio';
+            const gastoEnvio = hasShipping ? shippingCost : 0;
             const numeroProductosTotal = items.reduce((sum, item) => sum + item.cantidad, 0);
             const capitalMonto = numeroProductosTotal * costPerProduct;
-            const utilidadMonto = montoTotal - capitalMonto;
+            const utilidadMonto = montoTotal - capitalMonto - gastoEnvio;
+
+            if (hasShipping) {
+                const gastoEnvioRef = db.collection('gastosGenerales').doc();
+                transaction.set(gastoEnvioRef, {
+                    monto: gastoEnvio,
+                    concepto: 'Envío',
+                    nota: `Gasto de envío para venta manual ${folioFormateado}`,
+                    fecha: firebase.firestore.FieldValue.serverTimestamp()
+                });
+            }
 
             const finanzasRef = db.collection('finanzas').doc('resumen');
             transaction.update(finanzasRef, {
                 ventas: firebase.firestore.FieldValue.increment(montoTotal),
+                gastos: firebase.firestore.FieldValue.increment(gastoEnvio),
                 utilidad: firebase.firestore.FieldValue.increment(utilidadMonto),
                 capital: firebase.firestore.FieldValue.increment(capitalMonto)
             });
@@ -2273,7 +2323,6 @@ getEl('manual-order-form').addEventListener('submit', async (e) => {
         submitButton.textContent = "Registrar Venta";
     }
 });
-
     </script>
 </body>
 </html>
