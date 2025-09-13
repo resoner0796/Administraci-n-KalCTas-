@@ -787,16 +787,13 @@
 
         const vapidKey = "BCI7mLN5SS6nZLTIC4BZNusMu2TCEYs_-XBvVrqQahBscDElMQBcfBU0lcnSPQDRItA-3g-3cbdATal2jywf1os"; 
         
-        // --- URL BASE DEFINITIVA PARA IMÁGENES ---
         const IMAGES_BASE_URL = 'https://resoner0796.github.io/Tienda-KalCTas/';
         
-        let productToDeleteId = null, supplyToDeleteId = null, expenseToDeleteId = null, restockToDeleteId = null;
-        let rawMaterialToDeleteId = null;
         let actionToConfirm = null;
         let unsubscribes = [];
         let productModels = [], expenseConcepts = [];
         let salesChart;
-        let CAPITAL_PER_PRODUCT = 42; // Valor por defecto, se sobreescribe desde DB
+        let CAPITAL_PER_PRODUCT = 42; // Valor por defecto
         let deferredInstallPrompt = null;
 
         const getEl = (id) => document.getElementById(id);
@@ -1002,7 +999,7 @@
                 const pedidosTienda = [];
                 snapshot.forEach(doc => {
                     const pedido = doc.data();
-                    if (!pedido.canalVenta) { // Solo mostrar pedidos de la tienda
+                    if (!pedido.canalVenta) {
                         pedidosTienda.push(doc);
                     }
                 });
@@ -1791,8 +1788,8 @@
                     if (fecha) {
                         salesByDate[fecha] = (salesByDate[fecha] || 0) + total;
                     }
-                    const cliente = `${pedido.datosCliente?.nombre || ''} ${pedido.datosCliente?.apellido || ''}`.trim();
-                    list.innerHTML += `<li class="sales-history-item"><div class="sales-summary"><span>#${pedido.folio}</span><span>${cliente}</span><span>$${total.toFixed(2)}</span></div></li>`;
+                    const cliente = `${pedido.datosCliente?.nombre || ''} ${pedido.datosCliente?.apellido || ''}`.trim() || pedido.clienteManual;
+                    list.innerHTML += `<li class="sales-history-item"><div class="sales-summary"><span>#${pedido.folio || 'Manual'}</span><span>${cliente}</span><span>$${total.toFixed(2)}</span></div></li>`;
                 });
                 updateChart(salesByDate);
             });
@@ -1819,10 +1816,11 @@
                 const sales = snapshot.docs.map(doc => doc.data()).sort((a,b) => b.fechaActualizacion.toDate() - a.fechaActualizacion.toDate());
                 list.innerHTML = sales.length ? '' : '<p>No hay ventas.</p>';
                 sales.forEach(p => {
-                    list.innerHTML += `<li class="sales-history-item"><div class="sales-summary"><span>#${p.folio} - ${p.fechaActualizacion.toDate().toLocaleDateString()}</span><span>$${(p.montoTotal || 0).toFixed(2)}</span></div></li>`;
+                    list.innerHTML += `<li class="sales-history-item"><div class="sales-summary"><span>#${p.folio || 'Manual'} - ${p.fechaActualizacion.toDate().toLocaleDateString()}</span><span>$${(p.montoTotal || 0).toFixed(2)}</span></div></li>`;
                 });
             });
             unsubscribes.push(unsub);
+            getEl('sales-history-modal').style.display = 'flex';
         }
 
         function closeSalesHistoryModal() { getEl('sales-history-modal').style.display = 'none'; }
