@@ -393,7 +393,7 @@
         .btn-no { background-color: var(--status-red); }
         .btn-no:hover { background-color: #b91c1c; }
         
-        /* --- ESTILOS PARA MODAL DE IMAGEN (NUEVO) --- */
+        /* --- ESTILOS PARA MODAL DE IMAGEN --- */
         .image-modal {
             z-index: 2000;
             background-color: rgba(0, 0, 0, 0.8);
@@ -470,7 +470,7 @@
         </div>
 
         <section id="login-screen" style="display: block;">
-            <div class="logo-container"><img src="LOGO.png" alt="KalCTas Logo" class="logo"></div>
+            <div class="logo-container"><img src="" class="logo logo-img" alt="KalCTas Logo"></div>
             <h2>Iniciar Sesión</h2>
             <form id="login-form">
                 <input type="email" id="login-email" placeholder="Correo electrónico" required>
@@ -480,7 +480,7 @@
         </section>
 
         <section id="main-menu" style="display: none;">
-            <div class="logo-container"><img src="LOGO.png" alt="KalCTas Logo" class="logo"></div>
+            <div class="logo-container"><img src="" class="logo logo-img" alt="KalCTas Logo"></div>
             <h2>Menú Principal</h2>
             <div class="main-menu-buttons">
                 <button onclick="showScreen('inventory-screen')">📦 Inventario</button>
@@ -720,6 +720,11 @@
 
         const vapidKey = "BCI7mLN5SS6nZLTIC4BZNusMu2TCEYs_-XBvVrqQahBscDElMQBcfBU0lcnSPQDRItA-3g-3cbdATal2jywf1os"; 
         
+        // --- CONSTANTE AÑADIDA PARA LA RUTA BASE DE IMÁGENES ---
+        // ¡IMPORTANTE! VERIFICA QUE ESTA URL SEA CORRECTA.
+        // Es la URL base de tu repositorio de administración donde están las imágenes.
+        const IMAGES_BASE_URL = 'https://resoner0796.github.io/Administraci-n-KalCTas-/';
+        
         let productToDeleteId = null, supplyToDeleteId = null, expenseToDeleteId = null, restockToDeleteId = null;
         let unsubscribes = [];
         let productModels = [], expenseConcepts = [];
@@ -732,6 +737,11 @@
         async function showScreen(screenId) {
             document.querySelectorAll('section').forEach(screen => screen.style.display = 'none');
             getEl(screenId).style.display = 'block';
+
+            // Cargar logos dinámicamente cada vez que se muestra una pantalla
+            document.querySelectorAll('.logo-img').forEach(img => {
+                img.src = IMAGES_BASE_URL + 'LOGO.png';
+            });
 
             unsubscribes.forEach(unsub => unsub());
             unsubscribes = [];
@@ -1026,10 +1036,12 @@
                             const toggleBtnText = isVisible ? 'Ocultar' : 'Mostrar';
                             const toggleBtnColorClass = isVisible ? 'status-blue' : 'status-green';
 
-                            // La ruta de la imagen se usa directamente como está en la base de datos
+                            // CORRECCIÓN DE RUTA DE IMAGEN: Se construye la URL absoluta
+                            const imageUrl = IMAGES_BASE_URL + product.imagenUrl;
+
                             detailsDiv.innerHTML = `
-                                <div class="product-image-container" onclick="verImagen('${product.imagenUrl}')" style="cursor: pointer;">
-                                    <img src="${product.imagenUrl}" alt="${product.nombre}" onerror="this.onerror=null; this.src='https://via.placeholder.com/100?text=No+Img';">
+                                <div class="product-image-container" onclick="verImagen('${imageUrl}')" style="cursor: pointer;">
+                                    <img src="${imageUrl}" alt="${product.nombre}" onerror="this.onerror=null; this.src='https://via.placeholder.com/100?text=No+Img';">
                                 </div>
                                 <div class="product-info">
                                     <p><strong>Stock:</strong> ${product.stock}</p>
@@ -1726,18 +1738,18 @@
                 });
             });
             unsubscribes.push(unsub);
-            getEl('sales-history-modal').style.display = 'flex';
         }
 
         function closeSalesHistoryModal() { getEl('sales-history-modal').style.display = 'none'; }
         
-        // --- FUNCIONES PARA MODAL DE IMAGEN (NUEVO) ---
+        // --- FUNCIONES PARA MODAL DE IMAGEN ---
         const imageModal = getEl('image-modal');
         const modalImg = getEl('modal-image');
 
         function verImagen(imagenSrc) {
             if (imageModal && modalImg) {
                 imageModal.style.display = 'flex';
+                // La ruta ya viene construida de forma absoluta desde loadInventory
                 modalImg.src = imagenSrc;
             }
         }
