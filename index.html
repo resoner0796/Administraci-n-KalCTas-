@@ -57,7 +57,7 @@
             color: var(--text-primary);
             display: flex;
             justify-content: center;
-            align-items: flex-start; /* Alinea al inicio para pantallas largas */
+            align-items: flex-start;
             min-height: 100vh;
             padding: 20px;
         }
@@ -372,7 +372,7 @@
         .product-actions button { padding: 8px 15px; font-size: 0.9em; }
 
         /* --- Modales --- */
-        .message-box, .edit-modal, .confirm-modal, .sales-history-modal { 
+        .message-box, .edit-modal, .confirm-modal, .sales-history-modal, .image-modal { 
             display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; 
             background-color: rgba(10, 10, 20, 0.5);
             backdrop-filter: blur(8px);
@@ -392,6 +392,30 @@
         .btn-yes:hover { background-color: #15803d; }
         .btn-no { background-color: var(--status-red); }
         .btn-no:hover { background-color: #b91c1c; }
+        
+        /* --- ESTILOS PARA MODAL DE IMAGEN (NUEVO) --- */
+        .image-modal {
+            z-index: 2000;
+            background-color: rgba(0, 0, 0, 0.8);
+        }
+        .modal-content-img {
+            max-width: 90%;
+            max-height: 90%;
+            display: block;
+            margin: auto;
+            border-radius: var(--border-radius-md);
+        }
+        .image-modal .close-modal {
+            position: absolute;
+            top: 20px;
+            right: 35px;
+            color: #f1f1f1;
+            font-size: 40px;
+            font-weight: bold;
+            transition: 0.3s;
+            cursor: pointer;
+        }
+        /* --- FIN ESTILOS MODAL --- */
 
         /* --- Panel Financiero --- */
         .finance-panel { 
@@ -653,6 +677,10 @@
                 <ul id="modal-sales-list" style="max-height: 400px; overflow-y: auto;"></ul>
                 <button class="close-button" onclick="closeSalesHistoryModal()">Cerrar</button>
             </div>
+        </div>
+        <div id="image-modal" class="image-modal" onclick="cerrarModal()">
+            <span class="close-modal">&times;</span>
+            <img class="modal-content-img" id="modal-image">
         </div>
     </div>
     
@@ -998,10 +1026,9 @@
                             const toggleBtnText = isVisible ? 'Ocultar' : 'Mostrar';
                             const toggleBtnColorClass = isVisible ? 'status-blue' : 'status-green';
 
-                            // CORRECCIÓN DE RUTA DE IMAGEN:
-                            // Se usa la ruta relativa simple, ya que ambos HTML están en la raíz.
+                            // La ruta de la imagen se usa directamente como está en la base de datos
                             detailsDiv.innerHTML = `
-                                <div class="product-image-container">
+                                <div class="product-image-container" onclick="verImagen('${product.imagenUrl}')" style="cursor: pointer;">
                                     <img src="${product.imagenUrl}" alt="${product.nombre}" onerror="this.onerror=null; this.src='https://via.placeholder.com/100?text=No+Img';">
                                 </div>
                                 <div class="product-info">
@@ -1704,6 +1731,24 @@
 
         function closeSalesHistoryModal() { getEl('sales-history-modal').style.display = 'none'; }
         
+        // --- FUNCIONES PARA MODAL DE IMAGEN (NUEVO) ---
+        const imageModal = getEl('image-modal');
+        const modalImg = getEl('modal-image');
+
+        function verImagen(imagenSrc) {
+            if (imageModal && modalImg) {
+                imageModal.style.display = 'flex';
+                modalImg.src = imagenSrc;
+            }
+        }
+        
+        function cerrarModal() {
+            if (imageModal) {
+                imageModal.style.display = 'none';
+            }
+        }
+        // --- FIN DE FUNCIONES MODAL ---
+
         function showMessage(text) { 
             const msgBox = getEl('message-box');
             if (!msgBox) {
