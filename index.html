@@ -112,7 +112,7 @@
             color: var(--text-primary);
         }
 
-        h1, h2 {
+        h1, h2, h3 {
             color: var(--text-primary);
             text-align: center;
             margin-bottom: 25px;
@@ -124,6 +124,13 @@
             border-bottom: 1px solid var(--border-color);
             padding-bottom: 15px;
             width: 100%;
+        }
+        h3 {
+            font-size: 1.3em;
+            color: var(--text-secondary);
+            text-align: left;
+            margin-bottom: 15px;
+            margin-top: 10px;
         }
         
         .logo-container { margin-bottom: 20px; }
@@ -445,11 +452,19 @@
 
         .manual-order-line {
             display: grid;
-            grid-template-columns: 1fr 80px 40px;
+            grid-template-columns: 1fr 100px 60px;
             gap: 10px;
             align-items: center;
             margin-bottom: 10px;
         }
+
+        #manual-order-form label {
+            text-align: left;
+            font-weight: 500;
+            margin-bottom: -5px;
+            color: var(--text-secondary);
+        }
+
 
         /* Responsividad */
         @media (max-width: 768px) {
@@ -535,23 +550,59 @@
         <section id="manual-order-screen" style="display: none;">
             <h1>Registrar Venta Manual</h1>
             <form id="manual-order-form">
+                <h3>Datos del Cliente</h3>
                 <input type="text" id="manual-order-client" placeholder="Nombre del Cliente" required>
+                <input type="tel" id="manual-order-phone" placeholder="Teléfono del Cliente (Opcional)">
                 <select id="manual-order-channel" required>
                     <option value="" disabled selected>Seleccionar Canal de Venta</option>
                     <option value="Facebook">Facebook</option>
                     <option value="Venta Personal">Venta Personal</option>
                     <option value="Otro">Otro</option>
                 </select>
-                <hr style="width:100%; border-color:var(--border-color)">
-                
+                <hr style="width:100%; border-color:var(--border-color); margin-top: 15px;">
+
                 <h3>Productos Vendidos</h3>
                 <div id="manual-order-items"></div>
                 <button type="button" class="btn" style="background-color: var(--status-blue);" onclick="addManualOrderLine()">+ Agregar Producto</button>
+                <hr style="width:100%; border-color:var(--border-color); margin-top: 15px;">
                 
-                <hr style="width:100%; border-color:var(--border-color)">
+                <h3>Detalles de Entrega</h3>
+                <select id="manual-delivery-method" onchange="toggleManualDeliveryFields()">
+                    <option value="punto-medio">Punto medio</option>
+                    <option value="domicilio">Entrega a domicilio</option>
+                </select>
+        
+                <div id="manual-home-delivery-fields" style="display:none; flex-direction: column; gap: 15px;">
+                    <label for="manual-delivery-street">Calle y número:</label>
+                    <input type="text" id="manual-delivery-street">
+                    <label for="manual-delivery-neighborhood">Colonia:</label>
+                    <input type="text" id="manual-delivery-neighborhood">
+                    <label for="manual-delivery-description">Descripción (opcional):</label>
+                    <textarea id="manual-delivery-description" placeholder="Ej: Casa color azul, portón negro..."></textarea>
+                </div>
                 
-                <label for="manual-order-total" style="text-align:left; font-weight: bold;">Monto Total de la Venta ($)</label>
-                <input type="number" id="manual-order-total" placeholder="Ej: 150.00" step="0.01" required>
+                <div id="manual-pickup-location-fields" style="display:flex; flex-direction: column; gap: 15px;">
+                    <label for="manual-delivery-date">Fecha de entrega:</label>
+                    <input type="date" id="manual-delivery-date" required>
+                    <label for="manual-delivery-location">Lugar de entrega:</label>
+                    <select id="manual-delivery-location" onchange="toggleOtherManualLocation()">
+                        <option value="Mi tienda Jarachina">Mi tienda Jarachina</option>
+                        <option value="La Portillo">La Portillo</option>
+                        <option value="Periférico">Periférico</option>
+                        <option value="Smart periférico">Smart periférico</option>
+                        <option value="Soriana Hidalgo">Soriana Hidalgo</option>
+                        <option value="HEB Morelos">HEB Morelos</option>
+                        <option value="Otro">Otro</option>
+                    </select>
+                    <textarea id="manual-other-location-note" placeholder="Escribe el lugar de entrega (punto medio)" style="display:none;"></textarea>
+                </div>
+        
+                <label for="manual-delivery-comments">Comentarios (opcional):</label>
+                <textarea id="manual-delivery-comments" placeholder="Ej: Entregar en la entrada principal, tocar el claxon, etc."></textarea>
+                <hr style="width:100%; border-color:var(--border-color); margin-top: 15px;">
+        
+                <label for="manual-order-total" style="text-align:left; font-weight: bold; font-size: 1.2em;">Monto Total de la Venta ($)</label>
+                <input type="number" id="manual-order-total" placeholder="0.00" step="0.01" required readonly style="font-size: 1.2em; font-weight: bold; color: var(--status-green); background-color: transparent; border: none; padding-left: 0;">
                 
                 <button type="submit">Registrar Venta</button>
             </form>
@@ -794,7 +845,7 @@
         let unsubscribes = [];
         let productModels = [], expenseConcepts = [];
         let salesChart;
-        let CAPITAL_PER_PRODUCT = 42; // Valor por defecto
+        let CAPITAL_PER_PRODUCT = 42; // Valor por defecto, se actualizará desde la BD
         let deferredInstallPrompt = null;
 
         const getEl = (id) => document.getElementById(id);
@@ -837,6 +888,10 @@
                     await loadProductModels(); 
                     getEl('manual-order-items').innerHTML = '';
                     addManualOrderLine();
+                    // Resetear el formulario y la visibilidad de los campos
+                    getEl('manual-order-form').reset();
+                    toggleManualDeliveryFields(); // Asegura el estado visual por defecto
+                    calculateManualOrderTotal(); // Asegura que el total inicie en 0
                     break;
                 case 'raw-materials-screen': loadRawMaterials(); break;
             }
@@ -1794,7 +1849,7 @@
                 });
                 updateChart(salesByDate);
             });
-            unsubscribes.push(unsub);
+            unsubscribes.push(unsubscribe);
         }
         
         function updateChart(salesData) {
@@ -1889,23 +1944,21 @@
                 showMessage('Error al eliminar el producto.'); 
             }
         }
-// =============================================================
-// --- BLOQUE DE NUEVAS FUNCIONES Y CORRECCIONES ---
-// =============================================================
+// ====================================================================================
+// --- NUEVAS FUNCIONES Y CORRECCIONES INTEGRADAS ---
+// ====================================================================================
 
-// --- CORRECCIÓN 1: LÓGICA PARA EL COSTO DE PRODUCTO ---
-
-// Carga el costo del producto desde Firebase
+// --- 1. LÓGICA PARA EL COSTO DE PRODUCTO ---
 async function loadProductCost() {
     try {
         const configRef = db.collection('configuracion').doc('tienda');
         const doc = await configRef.get();
         if (doc.exists && doc.data().costoPorProducto) {
             const cost = doc.data().costoPorProducto;
-            CAPITAL_PER_PRODUCT = cost; // Actualiza la variable global
+            CAPITAL_PER_PRODUCT = cost;
             getEl('product-cost-input').value = cost;
         } else {
-            getEl('product-cost-input').value = CAPITAL_PER_PRODUCT; // Muestra el valor por defecto si no hay nada en la BD
+            getEl('product-cost-input').value = CAPITAL_PER_PRODUCT;
         }
     } catch (error) {
         console.error("Error al cargar costo del producto:", error);
@@ -1913,9 +1966,8 @@ async function loadProductCost() {
     }
 }
 
-// Maneja el guardado del nuevo costo sin recargar la página
 getEl('cost-config-form').addEventListener('submit', async (e) => {
-    e.preventDefault(); // ¡Esto evita que la página se recargue!
+    e.preventDefault();
     const newCost = parseFloat(getEl('product-cost-input').value);
 
     if (isNaN(newCost) || newCost < 0) {
@@ -1926,7 +1978,7 @@ getEl('cost-config-form').addEventListener('submit', async (e) => {
     try {
         const configRef = db.collection('configuracion').doc('tienda');
         await configRef.set({ costoPorProducto: newCost }, { merge: true });
-        CAPITAL_PER_PRODUCT = newCost; // Actualiza la variable global en tiempo real
+        CAPITAL_PER_PRODUCT = newCost;
         showMessage('Costo por producto actualizado con éxito.');
     } catch (error) {
         console.error("Error al guardar el costo del producto:", error);
@@ -1935,8 +1987,7 @@ getEl('cost-config-form').addEventListener('submit', async (e) => {
 });
 
 
-// --- CORRECCIÓN 2: LÓGICA PARA INVENTARIO DE INSUMOS (CRUD) ---
-
+// --- 2. LÓGICA PARA INVENTARIO DE INSUMOS (CRUD) ---
 function loadRawMaterials() {
     const tbody = getEl('raw-materials-table-body');
     tbody.innerHTML = '<tr><td colspan="3">Cargando insumos...</td></tr>';
@@ -1968,13 +2019,13 @@ getEl('add-raw-material-form').addEventListener('submit', async (e) => {
     const quantity = parseInt(getEl('raw-material-quantity').value);
 
     try {
-        if (id) { // Estamos editando
+        if (id) {
             await db.collection('inventarioInsumos').doc(id).update({
                 descripcion: description,
                 cantidad: quantity
             });
             showMessage("Insumo actualizado correctamente.");
-        } else { // Estamos creando uno nuevo
+        } else {
             await db.collection('inventarioInsumos').add({
                 descripcion: description,
                 cantidad: quantity
@@ -2007,31 +2058,78 @@ async function deleteRawMaterial(id) {
     try {
         await db.collection('inventarioInsumos').doc(id).delete();
         showMessage('Insumo eliminado.');
-        // No es necesario llamar a loadRawMaterials() aquí porque el listener onSnapshot lo hará automáticamente.
     } catch (error) {
         showMessage('Error al eliminar el insumo.');
     }
 }
 
 
-// --- CORRECCIÓN 3: LÓGICA PARA PEDIDO MANUAL ---
+// --- 3. LÓGICA MEJORADA PARA PEDIDO MANUAL ---
+
+function toggleManualDeliveryFields() {
+    const deliveryMethod = getEl('manual-delivery-method').value;
+    const homeFields = getEl('manual-home-delivery-fields');
+    const pickupFields = getEl('manual-pickup-location-fields');
+
+    if (deliveryMethod === 'domicilio') {
+        homeFields.style.display = 'flex';
+        pickupFields.style.display = 'none';
+        getEl('manual-delivery-street').required = true;
+        getEl('manual-delivery-neighborhood').required = true;
+        getEl('manual-delivery-date').required = false;
+    } else { // punto-medio
+        homeFields.style.display = 'none';
+        pickupFields.style.display = 'flex';
+        getEl('manual-delivery-street').required = false;
+        getEl('manual-delivery-neighborhood').required = false;
+        getEl('manual-delivery-date').required = true;
+    }
+    calculateManualOrderTotal();
+}
+
+function toggleOtherManualLocation() {
+    const locationSelect = getEl('manual-delivery-location');
+    const otherNote = getEl('manual-other-location-note');
+    const isOther = locationSelect.value === 'Otro';
+    otherNote.style.display = isOther ? 'block' : 'none';
+    otherNote.required = isOther;
+}
+
+function calculateManualOrderTotal() {
+    let total = 0;
+    document.querySelectorAll('.manual-order-line').forEach(line => {
+        const productSelect = line.querySelector('.manual-order-product');
+        const selectedOption = productSelect.options[productSelect.selectedIndex];
+        const price = parseFloat(selectedOption.dataset.price) || 0;
+        const quantity = parseInt(line.querySelector('.manual-order-quantity').value) || 0;
+        total += price * quantity;
+    });
+
+    const deliveryMethod = getEl('manual-delivery-method').value;
+    if (deliveryMethod === 'domicilio') {
+        total += 70.00;
+    }
+
+    getEl('manual-order-total').value = total.toFixed(2);
+}
 
 function addManualOrderLine() {
     const container = getEl('manual-order-items');
     const newLine = document.createElement('div');
     newLine.className = 'manual-order-line';
     
-    const options = productModels.map(p => `<option value="${p.id}">${p.nombre} (Stock: ${p.stock})</option>`).join('');
+    const options = productModels.map(p => `<option value="${p.id}" data-price="${p.precio}">${p.nombre} (Stock: ${p.stock})</option>`).join('');
     
     newLine.innerHTML = `
-        <select class="manual-order-product" required>
-            <option value="" disabled selected>Selecciona un modelo</option>
+        <select class="manual-order-product" onchange="calculateManualOrderTotal()" required>
+            <option value="" data-price="0" disabled selected>Selecciona un modelo</option>
             ${options}
         </select>
-        <input type="number" class="manual-order-quantity" placeholder="Cant." min="1" value="1" required>
-        <button type="button" class="btn btn-delete" onclick="this.parentNode.remove()">-</button>
+        <input type="number" class="manual-order-quantity" placeholder="Cant." min="1" value="1" oninput="calculateManualOrderTotal()" required>
+        <button type="button" class="btn btn-delete" onclick="this.parentNode.remove(); calculateManualOrderTotal()">-</button>
     `;
     container.appendChild(newLine);
+    calculateManualOrderTotal();
 }
 
 getEl('manual-order-form').addEventListener('submit', async (e) => {
@@ -2041,8 +2139,29 @@ getEl('manual-order-form').addEventListener('submit', async (e) => {
     submitButton.textContent = "Procesando...";
 
     const clienteManual = getEl('manual-order-client').value;
+    const telefonoCliente = getEl('manual-order-phone').value;
     const canalVenta = getEl('manual-order-channel').value;
     const montoTotal = parseFloat(getEl('manual-order-total').value);
+    const comentarios = getEl('manual-delivery-comments').value;
+    
+    const deliveryMethod = getEl('manual-delivery-method').value;
+    let datosEntrega = {};
+    if (deliveryMethod === 'domicilio') {
+        datosEntrega = {
+            tipo: 'Envío a domicilio',
+            calle: getEl('manual-delivery-street').value,
+            colonia: getEl('manual-delivery-neighborhood').value,
+            descripcion: getEl('manual-delivery-description').value || null
+        };
+    } else {
+        const lugarSelect = getEl('manual-delivery-location').value;
+        const lugar = (lugarSelect === 'Otro') ? getEl('manual-other-location-note').value : lugarSelect;
+        datosEntrega = {
+            tipo: 'Punto medio',
+            lugar: lugar,
+            fecha: getEl('manual-delivery-date').value
+        };
+    }
     
     const items = [];
     document.querySelectorAll('.manual-order-line').forEach(line => {
@@ -2050,12 +2169,14 @@ getEl('manual-order-form').addEventListener('submit', async (e) => {
         const quantity = parseInt(line.querySelector('.manual-order-quantity').value);
         if (productId && quantity > 0) {
             const productData = productModels.find(p => p.id === productId);
-            items.push({
-                id: productId,
-                nombre: productData.nombre,
-                precio: productData.precio,
-                cantidad: quantity
-            });
+            if(productData) {
+                items.push({
+                    id: productId,
+                    nombre: productData.nombre,
+                    precio: productData.precio,
+                    cantidad: quantity
+                });
+            }
         }
     });
 
@@ -2067,28 +2188,31 @@ getEl('manual-order-form').addEventListener('submit', async (e) => {
     }
 
     try {
-        const configDoc = await db.collection('configuracion').doc('tienda').get();
-        const costPerProduct = configDoc.exists && configDoc.data().costoPorProducto ? configDoc.data().costoPorProducto : CAPITAL_PER_PRODUCT;
-
         await db.runTransaction(async (transaction) => {
+            const configRef = db.collection('configuracion').doc('tienda');
+            const configDoc = await transaction.get(configRef);
+            const costPerProduct = configDoc.exists && configDoc.data().costoPorProducto ? configDoc.data().costoPorProducto : CAPITAL_PER_PRODUCT;
+
             const counterRef = db.collection('contadores').doc('pedidos');
             const counterDoc = await transaction.get(counterRef);
             const nuevoFolioNum = (counterDoc.exists ? counterDoc.data().ultimoFolio : 0) + 1;
-            const folioFormateado = `MANUAL-${String(nuevoFolioNum).padStart(3, '0')}`;
-            
+            const folioFormateado = `MANUAL-${String(nuevoFolioNum).padStart(4, '0')}`;
             transaction.set(counterRef, { ultimoFolio: nuevoFolioNum }, { merge: true });
 
             const nuevoPedidoRef = db.collection('pedidos').doc();
             transaction.set(nuevoPedidoRef, {
                 folio: folioFormateado,
                 clienteManual: clienteManual,
+                datosCliente: { telefono: telefonoCliente },
                 canalVenta: canalVenta,
                 productos: items,
                 montoTotal: montoTotal,
-                estado: 'Entregado', // Los pedidos manuales se marcan como entregados
+                estado: 'Entregado',
                 metodoPago: 'Manual',
                 fechaCreacion: firebase.firestore.FieldValue.serverTimestamp(),
-                fechaActualizacion: firebase.firestore.FieldValue.serverTimestamp()
+                fechaActualizacion: firebase.firestore.FieldValue.serverTimestamp(),
+                datosEntrega: datosEntrega,
+                comentarios: comentarios || null
             });
 
             const numeroProductosTotal = items.reduce((sum, item) => sum + item.cantidad, 0);
@@ -2101,6 +2225,29 @@ getEl('manual-order-form').addEventListener('submit', async (e) => {
                 utilidad: firebase.firestore.FieldValue.increment(utilidadMonto),
                 capital: firebase.firestore.FieldValue.increment(capitalMonto)
             });
+            
+             if (capitalMonto > 0) {
+                const capitalMovRef = db.collection('movimientos').doc();
+                transaction.set(capitalMovRef, {
+                    monto: capitalMonto,
+                    concepto: 'Ingreso a Capital',
+                    tipo: 'Capital',
+                    fecha: firebase.firestore.FieldValue.serverTimestamp(),
+                    nota: `Apartado de capital de venta manual ${folioFormateado}`,
+                    relatedOrderId: nuevoPedidoRef.id
+                });
+            }
+            if (utilidadMonto !== 0) {
+                const utilidadMovRef = db.collection('movimientos').doc();
+                transaction.set(utilidadMovRef, {
+                    monto: utilidadMonto,
+                    concepto: 'Ingreso a Utilidad',
+                    tipo: 'Utilidad',
+                    fecha: firebase.firestore.FieldValue.serverTimestamp(),
+                    nota: `Utilidad generada por venta manual ${folioFormateado}`,
+                    relatedOrderId: nuevoPedidoRef.id
+                });
+            }
 
             for (const item of items) {
                 const productRef = db.collection('productos').doc(item.id);
@@ -2115,6 +2262,8 @@ getEl('manual-order-form').addEventListener('submit', async (e) => {
         getEl('manual-order-form').reset();
         getEl('manual-order-items').innerHTML = '';
         addManualOrderLine();
+        toggleManualDeliveryFields();
+        calculateManualOrderTotal();
 
     } catch (error) {
         console.error("Error al registrar venta manual:", error);
