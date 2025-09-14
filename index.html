@@ -1404,7 +1404,6 @@
 
                         for (const producto of pedidoData.productos) if (producto.id) t.update(db.collection('productos').doc(producto.id), { cantidadVendida: firebase.firestore.FieldValue.increment(producto.cantidad || 1) });
                         
-                        // NUEVO: Descontar empaque del inventario de insumos
                         if (pedidoData.empaque && empaqueInsumoMap[pedidoData.empaque]) {
                             const insumoName = empaqueInsumoMap[pedidoData.empaque];
                             const insumosQueryRef = db.collection('inventarioInsumos').where('descripcion', '==', insumoName).limit(1);
@@ -2426,6 +2425,8 @@ getEl('manual-order-form').addEventListener('submit', async (e) => {
         submitButton.textContent = "Registrar Venta";
     }
 });
+
+        // --- FINAL DEL CÓDIGO ORIGINAL ---
     </script>
 </body>
 </html>
