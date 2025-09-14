@@ -272,11 +272,19 @@
             display: flex;
             gap: 10px;
             flex-shrink: 0;
+            align-items: center; /* Alinear checkbox y botones */
         }
         .visibility-item .actions button {
             padding: 8px 12px;
             font-size: 0.9em;
             min-width: 90px;
+        }
+        /* Estilos para el checkbox de playlist */
+        .playlist-checkbox {
+            width: 22px;
+            height: 22px;
+            cursor: pointer;
+            accent-color: var(--primary-accent);
         }
         /* --- FIN ESTILOS VISIBILIDAD --- */
 
@@ -767,18 +775,20 @@
             <button class="close-button" onclick="showScreen('main-menu')">Volver al Menú</button>
         </section>
 
+        <!-- PANTALLA DE EMPAQUES ACTUALIZADA -->
         <section id="packaging-screen" style="display: none;">
             <h1>Gestionar Empaques y Video</h1>
             
             <div id="video-management-controls">
-                <h2>Gestionar Video de la Tienda</h2>
+                <h2>Gestionar Playlist de Videos</h2>
                 <form id="add-video-form" style="margin-bottom: 20px;">
                     <input type="text" id="video-name" placeholder="Nombre del video (ej. Video Navidad)" required>
                     <input type="text" id="video-url" placeholder="Ruta del video (ej. video_navidad.mp4)" required>
                     <button type="submit">Agregar Video</button>
                 </form>
                 <div id="video-list">
-                    </div>
+                    <!-- La lista de videos se cargará aquí -->
+                </div>
             </div>
 
             <div id="packaging-visibility-controls">
@@ -789,7 +799,8 @@
                     <button type="submit">Agregar Empaque</button>
                 </form>
                 <div id="packaging-list">
-                    </div>
+                    <!-- La lista de empaques se cargará aquí -->
+                </div>
             </div>
 
             <button class="close-button" onclick="showScreen('main-menu')">Volver al Menú</button>
@@ -951,7 +962,7 @@
                     break;
                 case 'packaging-screen': 
                     loadPackagingVisibility();
-                    loadVideoManagement(); // ACTUALIZADO
+                    loadVideoManagement(); 
                     break;
                 case 'manual-order-screen': 
                     await loadProductModels(); 
@@ -2051,9 +2062,9 @@
                     deleteRawMaterial(id);
                 } else if (type === 'order') {
                     deleteOrder(id);
-                } else if (type === 'packaging') { // AÑADIDO
+                } else if (type === 'packaging') {
                     deletePackaging(id);
-                } else if (type === 'video') { // AÑADIDO
+                } else if (type === 'video') {
                     deleteVideo(id);
                 }
             };
@@ -2679,7 +2690,7 @@ getEl('add-video-form').addEventListener('submit', async (e) => {
         await db.collection('videos').add({
             nombre,
             videoUrl,
-            activo: false,
+            enPlaylist: false, // Inicia como no incluido en la playlist
             fechaCreacion: firebase.firestore.FieldValue.serverTimestamp()
         });
         showMessage('Video agregado con éxito.');
@@ -2705,13 +2716,14 @@ async function loadVideoManagement() {
             const video = { id: doc.id, ...doc.data() };
             const itemDiv = document.createElement('div');
             itemDiv.className = 'visibility-item';
-            const isActive = video.activo === true;
+            const isInPlaylist = video.enPlaylist === true;
             itemDiv.innerHTML = `
                 <span>${video.nombre} <br><small style="color: var(--text-secondary);">${video.videoUrl}</small></span>
                 <div class="actions">
-                    <button class="btn" style="background-color: var(--status-green);" onclick="activateVideo('${video.id}')" ${isActive ? 'disabled' : ''}>
-                        ${isActive ? '✔ Activo' : 'Activar'}
-                    </button>
+                    <label for="video-${video.id}" style="cursor: pointer; display: flex; align-items: center; gap: 8px;">
+                        <input type="checkbox" id="video-${video.id}" class="playlist-checkbox" onchange="toggleVideoInPlaylist('${video.id}', this.checked)" ${isInPlaylist ? 'checked' : ''}>
+                        En Playlist
+                    </label>
                     <button class="btn btn-delete" onclick="showConfirmModal('video', '${video.id}', '¿Seguro que quieres eliminar el video \\'${video.nombre}\\'?')">
                         Eliminar
                     </button>
@@ -2725,27 +2737,20 @@ async function loadVideoManagement() {
     }
 }
 
-async function activateVideo(videoIdToActivate) {
-    const batch = db.batch();
+async function toggleVideoInPlaylist(videoId, isInPlaylist) {
     try {
-        // Poner todos los videos como inactivos
-        const snapshot = await db.collection('videos').get();
-        snapshot.forEach(doc => {
-            batch.update(doc.ref, { activo: false });
+        await db.collection('videos').doc(videoId).update({
+            enPlaylist: isInPlaylist
         });
-        
-        // Activar el video seleccionado
-        const videoRef = db.collection('videos').doc(videoIdToActivate);
-        batch.update(videoRef, { activo: true });
-
-        await batch.commit();
-        showMessage('Video activado con éxito en la tienda.');
-        loadVideoManagement();
+        showMessage(`Video ${isInPlaylist ? 'añadido a la' : 'quitado de la'} playlist.`);
     } catch (error) {
-        showMessage('Error al activar el video.');
+        showMessage('Error al actualizar el estado del video.');
         console.error(error);
+        // Opcional: recargar la lista para revertir visualmente el checkbox si falla la actualización
+        loadVideoManagement();
     }
 }
+
 
 async function deleteVideo(id) {
     try {
