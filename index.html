@@ -246,7 +246,7 @@
         /* --- FIN DE ESTILOS PARA TEMAS --- */
 
         /* --- ESTILOS VISIBILIDAD DE CATEGORÍAS Y EMPAQUES --- */
-        #category-visibility-controls, #packaging-visibility-controls {
+        #category-visibility-controls, #packaging-visibility-controls, #video-visibility-controls {
             width: 100%;
             background-color: var(--bg-dark-primary);
             border-radius: var(--border-radius-md);
@@ -269,7 +269,7 @@
         .visibility-item button {
             padding: 8px 16px;
             font-size: 0.9em;
-            min-width: 90px;
+            min-width: 130px; /* Aumentado para que quepa "Mostrar Video" */
         }
         /* --- FIN ESTILOS VISIBILIDAD --- */
 
@@ -298,7 +298,6 @@
         .btn-edit:hover { background-color: #d97706; }
         .btn-delete { background-color: var(--status-red); }
         .btn-delete:hover { background-color: #dc2626; }
-        .actions-cell { display: flex; gap: 8px; }
         .actions-cell button { padding: 6px 12px; font-size: 0.85em; margin-right: 5px; }
 
         /* --- Estilos para listas (Pedidos, Ventas) --- */
@@ -386,7 +385,7 @@
         .product-actions button { padding: 8px 15px; font-size: 0.9em; }
 
         /* --- Modales --- */
-        .message-box, .edit-modal, .confirm-modal, .detail-modal, .image-modal { 
+        .message-box, .edit-modal, .confirm-modal, .sales-history-modal, .image-modal { 
             display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; 
             background-color: rgba(10, 10, 20, 0.5);
             backdrop-filter: blur(8px);
@@ -741,7 +740,7 @@
         </section>
 
         <section id="sales-screen" style="display: none;">
-            <h1>Reporte de Ventas</h1>
+             <h1>Reporte de Ventas</h1>
             <div class="chart-container" style="position: relative; height:40vh; width:80vw; background: #fff; border-radius: 12px; padding: 10px;"><canvas id="sales-chart"></canvas></div>
             <h2>Detalle de Ventas</h2>
             <ul id="sales-list"></ul>
@@ -769,8 +768,17 @@
                 <input type="text" id="packaging-image-url" placeholder="Ruta de la imagen (Ej: Frankie.jpg)" required>
                 <button type="submit">Agregar Empaque</button>
             </form>
-            <div id="packaging-visibility-controls">
+
+            <div id="video-visibility-controls">
+                <h2>Visibilidad del Video de Empaques</h2>
+                <div class="visibility-item">
+                    <span>Video de Presentación</span>
+                    <button id="toggle-video-btn" class="btn">Cargando...</button>
                 </div>
+            </div>
+            <div id="packaging-visibility-controls">
+                <h2>Visibilidad de Empaques</h2>
+            </div>
             <button class="close-button" onclick="showScreen('main-menu')">Volver al Menú</button>
         </section>
 
@@ -819,11 +827,11 @@
                 </div>
             </div>
         </div>
-        <div id="detail-modal" class="detail-modal">
-            <div class="modal-content" style="max-width: 650px;">
+        <div id="sales-history-modal" class="sales-history-modal">
+            <div class="modal-content">
                 <h2 id="modal-history-title">Historial</h2>
-                <ul id="modal-history-list" class="card-list" style="max-height: 60vh; overflow-y: auto; text-align:left; padding: 10px;"></ul>
-                <button class="close-button" onclick="closeDetailModal()">Cerrar</button>
+                <ul id="modal-sales-list" style="max-height: 400px; overflow-y: auto; text-align:left;"></ul>
+                <button class="close-button" onclick="closeSalesHistoryModal()">Cerrar</button>
             </div>
         </div>
         <div id="image-modal" class="image-modal" onclick="cerrarModal()">
@@ -929,6 +937,7 @@
                     break;
                 case 'packaging-screen': // NUEVO
                     loadPackagingVisibility();
+                    loadVideoVisibility(); // AÑADIDO
                     break;
                 case 'manual-order-screen': 
                     await loadProductModels(); 
@@ -1561,6 +1570,69 @@
                 list.innerHTML = '<p>Error al cargar movimientos.</p>'; 
             }
         }
+
+        async function deleteMovement(id, type, amount, category) {
+            if (!confirm("¿Estás seguro de que quieres eliminar este movimiento? Esta acción no se puede deshacer.")) return;
+            try {
+                let collectionRef, originalDoc;
+
+                if (type === 'Gasto General') {
+                    collectionRef = db.collection('gastosGenerales');
+                    originalDoc = await collectionRef.doc(id).get();
+                    if (!originalDoc.exists) { showMessage("Movimiento no encontrado."); return; }
+                    const monto = originalDoc.data().monto;
+                    await db.runTransaction(async (t) => {
+                        t.delete(collectionRef.doc(id));
+                        const finanzasRef = db.collection('finanzas').doc('resumen');
+                        t.update(finanzasRef, {
+                            gastos: firebase.firestore.FieldValue.increment(-monto),
+                            utilidad: firebase.firestore.FieldValue.increment(monto)
+                        });
+                    });
+                } else if (type === 'Gasto Insumo') {
+                    collectionRef = db.collection('insumos');
+                    originalDoc = await collectionRef.doc(id).get();
+                    if (!originalDoc.exists) { showMessage("Movimiento no encontrado."); return; }
+                    const costoTotal = originalDoc.data().costoTotal;
+                    await db.runTransaction(async (t) => {
+                        t.delete(collectionRef.doc(id));
+                        const finanzasRef = db.collection('finanzas').doc('resumen');
+                        t.update(finanzasRef, {
+                            gastos: firebase.firestore.FieldValue.increment(-costoTotal),
+                            utilidad: firebase.firestore.FieldValue.increment(costoTotal)
+                        });
+                    });
+                } else if (type === 'Gasto Re-Stock') {
+                    collectionRef = db.collection('restocks');
+                    originalDoc = await collectionRef.doc(id).get();
+                    if (!originalDoc.exists) { showMessage("Movimiento no encontrado."); return; }
+                    const restockData = originalDoc.data();
+                    const batch = db.batch();
+                    
+                    restockData.items.forEach(item => {
+                        const productRef = db.collection('productos').doc(item.id);
+                        batch.update(productRef, { stock: firebase.firestore.FieldValue.increment(-item.cantidad) });
+                    });
+                    
+                    const finanzasRef = db.collection('finanzas').doc('resumen');
+                    batch.update(finanzasRef, {
+                        capital: firebase.firestore.FieldValue.increment(restockData.costoTotal)
+                    });
+                    
+                    batch.delete(collectionRef.doc(id));
+                    await batch.commit();
+                } else {
+                    showMessage("No se puede eliminar este tipo de movimiento.");
+                    return;
+                }
+                
+                showMessage('Movimiento eliminado con éxito.');
+                loadMovementsHistory();
+            } catch (error) {
+                console.error("Error al eliminar movimiento: ", error);
+                showMessage('Hubo un error al eliminar el movimiento.');
+            }
+        }
         
         function loadFinancialSummary() {
             const unsub = db.collection('finanzas').doc('resumen').onSnapshot(doc => {
@@ -1688,7 +1760,7 @@
                             <td>${s.descripcion}</td>
                             <td>${s.cantidad}</td>
                             <td>$${s.costoTotal.toFixed(2)}</td>
-                            <td class="actions-cell">
+                            <td>
                                 <button class="btn btn-delete" onclick="deleteSupply('${s.id}')">Eliminar</button>
                             </td>
                         </tr>
@@ -1908,6 +1980,24 @@
             });
         }
         
+        function showSalesHistoryModal() {
+            getEl('modal-history-title').textContent = "Historial de Ventas";
+            const list = getEl('modal-sales-list');
+            list.innerHTML = '<p>Cargando ventas...</p>';
+            const q = db.collection('pedidos').where('estado', '==', 'Entregado').orderBy('fechaActualizacion', 'desc');
+            const unsub = q.onSnapshot(snapshot => {
+                const sales = snapshot.docs.map(doc => doc.data());
+                list.innerHTML = sales.length ? '' : '<p>No hay ventas.</p>';
+                sales.forEach(p => {
+                    list.innerHTML += `<li class="sales-history-item"><div class="sales-summary"><span>#${p.folio || 'Manual'} - ${p.fechaActualizacion.toDate().toLocaleDateString()}</span><span>$${(p.montoTotal || 0).toFixed(2)}</span></div></li>`;
+                });
+            });
+            unsubscribes.push(unsub);
+            getEl('sales-history-modal').style.display = 'flex';
+        }
+
+        function closeSalesHistoryModal() { getEl('sales-history-modal').style.display = 'none'; }
+        
         const imageModal = getEl('image-modal');
         const modalImg = getEl('modal-image');
 
@@ -1976,76 +2066,94 @@
 // --- NUEVAS FUNCIONES Y CORRECCIONES INTEGRADAS ---
 // ====================================================================================
 
-// --- LÓGICA PARA ELIMINAR PEDIDOS CON REVERSIÓN DE FINANZAS ---
+// --- CORRECCIÓN 1: LÓGICA PARA ELIMINAR PEDIDOS ---
 async function deleteOrder(pedidoId) {
     try {
-        await db.runTransaction(async (t) => {
-            const pedidoRef = db.collection('pedidos').doc(pedidoId);
-            const pedidoDoc = await t.get(pedidoRef);
+        const pedidoRef = db.collection('pedidos').doc(pedidoId);
+        const pedidoDoc = await pedidoRef.get();
 
-            if (!pedidoDoc.exists) {
-                throw new Error("El pedido que intentas eliminar no existe.");
-            }
-            
-            const pedidoData = pedidoDoc.data();
+        if (!pedidoDoc.exists) {
+            throw new Error("El pedido que intentas eliminar no existe.");
+        }
+        
+        const pedidoData = pedidoDoc.data();
 
-            // Solo revertir finanzas si el pedido fue 'Entregado'
-            if (pedidoData.estado === 'Entregado') {
-                const configRef = db.collection('configuracion').doc('tienda');
-                const configDoc = await t.get(configRef);
-                const currentShippingCost = configDoc.data()?.costoEnvio || SHIPPING_COST;
-                const currentCapitalPerProduct = configDoc.data()?.costoPorProducto || CAPITAL_PER_PRODUCT;
-                
-                const finanzasRef = db.collection('finanzas').doc('resumen');
+        // Solo se revierten las finanzas si el pedido fue 'Entregado'
+        if (pedidoData.estado === 'Entregado') {
+            const batch = db.batch();
+            const finanzasRef = db.collection('finanzas').doc('resumen');
 
-                const totalVenta = pedidoData.montoTotal || 0;
-                const numeroProductos = pedidoData.productos?.reduce((sum, p) => sum + (p.cantidad || 1), 0) || 0;
-                const hasShipping = pedidoData.datosEntrega?.tipo === 'Envío a domicilio';
-                const gastoEnvio = hasShipping ? currentShippingCost : 0;
-                const capitalMonto = numeroProductos * currentCapitalPerProduct;
-                const utilidadMonto = totalVenta - capitalMonto - gastoEnvio;
+            // 1. Calcular los montos a revertir
+            const totalVenta = pedidoData.montoTotal || 0;
+            const numeroProductos = pedidoData.productos?.reduce((sum, p) => sum + (p.cantidad || 1), 0) || 0;
+            const hasShipping = pedidoData.datosEntrega?.tipo === 'Envío a domicilio';
+            const gastoEnvio = hasShipping ? SHIPPING_COST : 0;
+            const capitalMonto = numeroProductos * CAPITAL_PER_PRODUCT;
+            const utilidadMonto = totalVenta - capitalMonto - gastoEnvio;
 
-                t.update(finanzasRef, {
-                    ventas: firebase.firestore.FieldValue.increment(-totalVenta),
-                    gastos: firebase.firestore.FieldValue.increment(-gastoEnvio),
-                    utilidad: firebase.firestore.FieldValue.increment(-utilidadMonto),
-                    capital: firebase.firestore.FieldValue.increment(-capitalMonto)
-                });
+            // 2. Revertir finanzas
+            batch.update(finanzasRef, {
+                ventas: firebase.firestore.FieldValue.increment(-totalVenta),
+                gastos: firebase.firestore.FieldValue.increment(-gastoEnvio),
+                utilidad: firebase.firestore.FieldValue.increment(-utilidadMonto),
+                capital: firebase.firestore.FieldValue.increment(-capitalMonto)
+            });
 
-                for (const producto of pedidoData.productos) {
-                    if (producto.id) {
-                        const productoRef = db.collection('productos').doc(producto.id);
-                        t.update(productoRef, {
-                            stock: firebase.firestore.FieldValue.increment(producto.cantidad || 1),
-                            cantidadVendida: firebase.firestore.FieldValue.increment(-(producto.cantidad || 1))
-                        });
-                    }
+            // 3. Devolver stock y revertir contador de vendidos
+            for (const producto of pedidoData.productos) {
+                if (producto.id) {
+                    const productoRef = db.collection('productos').doc(producto.id);
+                    batch.update(productoRef, {
+                        stock: firebase.firestore.FieldValue.increment(producto.cantidad || 1),
+                        cantidadVendida: firebase.firestore.FieldValue.increment(-(producto.cantidad || 1))
+                    });
                 }
-
-                const movimientosQuery = db.collection('movimientos').where('relatedOrderId', '==', pedidoId);
-                const movimientosSnapshot = await t.get(movimientosQuery);
-                movimientosSnapshot.forEach(doc => t.delete(doc.ref));
             }
+
+            // 4. Eliminar los movimientos asociados
+            const movimientosQuery = await db.collection('movimientos').where('relatedOrderId', '==', pedidoId).get();
+            movimientosQuery.forEach(doc => {
+                batch.delete(doc.ref);
+            });
             
-            t.delete(pedidoRef);
-        });
+            // 5. Eliminar el pedido y ejecutar todo
+            batch.delete(pedidoRef);
+            await batch.commit();
+
+        } else {
+            // Si el pedido no estaba 'Entregado', no impactó las finanzas, solo se elimina.
+            await pedidoRef.delete();
+        }
 
         showMessage('Pedido eliminado y todas las operaciones revertidas con éxito.');
-        loadSalesHistory(); 
+        loadSalesHistory(); // Recargar la lista
     } catch (error) {
         console.error("Error al eliminar el pedido:", error);
         showMessage('Hubo un error al eliminar el pedido: ' + error.message);
     }
 }
 
-// --- **NUEVA LÓGICA MODAL PARA HISTORIAL DE FINANZAS** ---
+// --- CORRECCIÓN 2: LÓGICA PARA MOSTRAR HISTORIAL DESDE TARJETAS ---
 async function showMovementsHistory(category) {
-    const modal = getEl('detail-modal');
-    const titleEl = getEl('modal-history-title');
-    const listEl = getEl('modal-history-list');
+    const modal = getEl('sales-history-modal');
+    const modalTitle = getEl('modal-history-title');
+    const modalList = getEl('modal-sales-list');
+    
+    // Si la pantalla de historial completo está activa, no hacemos nada para evitar conflictos
+    if (getEl('movements-history-screen').style.display === 'block') {
+        showScreen('movements-history-screen');
+        setTimeout(() => {
+            const filterSelect = getEl('movement-filter-category');
+            if (filterSelect) {
+                filterSelect.value = category;
+                loadMovementsHistory();
+            }
+        }, 100);
+        return;
+    }
 
-    titleEl.textContent = `Historial de ${category}`;
-    listEl.innerHTML = '<p style="text-align:center; padding: 20px;">Cargando movimientos...</p>';
+    modalTitle.textContent = `Historial de ${category}`;
+    modalList.innerHTML = '<p>Cargando movimientos...</p>';
     modal.style.display = 'flex';
 
     try {
@@ -2055,12 +2163,8 @@ async function showMovementsHistory(category) {
             const d = doc.data();
             if (d.fecha) {
                 allMovements.push({
-                    id: doc.id,
-                    date: d.fecha.toDate(),
-                    description: d.nota || d.concepto,
-                    type: d.tipo,
-                    amount: d.monto,
-                    category: d.tipo === 'Gastos' ? d.concepto : d.tipo
+                    id: doc.id, date: d.fecha.toDate(), description: d.nota || d.concepto,
+                    type: d.tipo, amount: d.monto, category: d.tipo === 'Gastos' ? d.concepto : d.tipo
                 });
             }
         });
@@ -2075,37 +2179,31 @@ async function showMovementsHistory(category) {
 
         const filteredMovements = allMovements.filter(m => {
             if (category === 'Gastos') return m.type.includes('Gasto') || m.type === 'Gastos';
+            if (category === 'Ventas') return m.type === 'Venta';
             return m.category === category;
         });
 
         filteredMovements.sort((a, b) => b.date - a.date);
 
-        listEl.innerHTML = filteredMovements.length ? '' : '<p style="text-align:center; padding: 20px;">No hay movimientos en esta categoría.</p>';
+        modalList.innerHTML = filteredMovements.length ? '' : `<p>No hay movimientos en la categoría ${category}.</p>`;
         filteredMovements.forEach(m => {
             const amountClass = m.amount >= 0 ? 'amount-positive' : 'amount-negative';
-            const amountSign = m.amount >= 0 ? '+' : '';
-            const description = m.description || m.type;
-            const itemHTML = `
-                <li class="card-item" style="padding: 15px 20px;">
-                    <p style="display:flex; justify-content: space-between; font-weight: 500;">
-                        <span>${description}</span>
-                        <span class="${amountClass}">${amountSign}$${Math.abs(m.amount).toFixed(2)}</span>
-                    </p>
-                    <p style="font-size: 0.8em; color: var(--text-secondary); margin-top: 5px;">
-                        ${m.date.toLocaleString()} - ${m.category}
-                    </p>
+            const amountSign = m.amount >= 0 ? '+' : '-';
+            modalList.innerHTML += `
+                <li class="card-item" style="padding: 15px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; text-align: left;">
+                        <div>
+                            <p style="font-weight: 500;">${m.description}</p>
+                            <p style="font-size: 0.8em; color: var(--text-secondary); margin-top: 5px;">${m.date.toLocaleDateString()}</p>
+                        </div>
+                        <span class="${amountClass}" style="font-weight: 700;">${amountSign}$${Math.abs(m.amount).toFixed(2)}</span>
+                    </div>
                 </li>`;
-            listEl.innerHTML += itemHTML;
         });
-
     } catch (error) {
-        console.error("Error al cargar movimientos para el modal:", error);
-        listEl.innerHTML = '<p style="text-align:center; padding: 20px;">Error al cargar los movimientos.</p>';
+        console.error("Error al cargar movimientos en el modal:", error);
+        modalList.innerHTML = '<p>Error al cargar los movimientos.</p>';
     }
-}
-
-function closeDetailModal() {
-    getEl('detail-modal').style.display = 'none';
 }
 
 
@@ -2391,8 +2489,8 @@ getEl('manual-order-form').addEventListener('submit', async (e) => {
             const nuevoPedidoRef = db.collection('pedidos').doc();
             transaction.set(nuevoPedidoRef, {
                 folio: folioFormateado,
-                clienteManual: clienteManual,
-                datosCliente: { nombre: clienteManual, apellido: '', telefono: telefonoCliente },
+                clienteManual: clienteManual, // Guardado para referencia
+                datosCliente: { nombre: clienteManual, apellido: '', telefono: telefonoCliente }, // CORREGIDO
                 canalVenta: canalVenta,
                 productos: items,
                 montoTotal: montoTotal,
@@ -2478,81 +2576,114 @@ getEl('manual-order-form').addEventListener('submit', async (e) => {
     }
 });
 
-// --- LÓGICA PARA GESTIONAR EMPAQUES ---
+// --- NUEVAS FUNCIONES PARA GESTIÓN DE EMPAQUES ---
 getEl('add-packaging-form').addEventListener('submit', async (e) => {
     e.preventDefault();
-    const name = getEl('packaging-name').value;
-    const imageUrl = getEl('packaging-image-url').value;
-    if (!name || !imageUrl) { showMessage("Completa todos los campos."); return; }
+    const nombre = getEl('packaging-name').value;
+    const imagenUrl = getEl('packaging-image-url').value;
     try {
         await db.collection('empaques').add({
-            nombre: name,
-            imagenUrl: imageUrl,
-            visible: true
+            nombre,
+            imagenUrl,
+            visible: true,
+            fechaCreacion: firebase.firestore.FieldValue.serverTimestamp()
         });
-        showMessage("Empaque agregado.");
+        showMessage('Empaque agregado con éxito.');
         e.target.reset();
-    } catch (error) { 
-        console.error("Error al agregar empaque:", error);
-        showMessage("Error al agregar el empaque."); 
+        loadPackagingVisibility(); // Recargar la lista
+    } catch (error) {
+        showMessage('Error al agregar el empaque.');
+        console.error(error);
     }
 });
 
-function loadPackagingVisibility() {
+async function loadPackagingVisibility() {
     const container = getEl('packaging-visibility-controls');
-    container.innerHTML = '<h2>Visibilidad de Empaques</h2>'; // Mantiene el título
-    
-    const unsub = db.collection('empaques').orderBy('nombre').onSnapshot(snapshot => {
-        // Elimina solo los items antiguos, no el título
-        container.querySelectorAll('.visibility-item, .no-items-message').forEach(el => el.remove());
-        
+    container.innerHTML = '<h2>Visibilidad de Empaques</h2><p>Cargando...</p>';
+    try {
+        const snapshot = await db.collection('empaques').orderBy('fechaCreacion', 'desc').get();
         if (snapshot.empty) {
-            const p = document.createElement('p');
-            p.textContent = "No hay empaques registrados.";
-            p.className = 'no-items-message';
-            p.style.textAlign = 'center';
-            p.style.marginTop = '15px';
-            container.appendChild(p);
+            container.innerHTML = '<h2>Visibilidad de Empaques</h2><p>No hay empaques registrados.</p>';
             return;
         }
-
+        container.innerHTML = '<h2>Visibilidad de Empaques</h2>'; // Limpiar texto de carga
         snapshot.forEach(doc => {
             const empaque = { id: doc.id, ...doc.data() };
+            const itemDiv = document.createElement('div');
+            itemDiv.className = 'visibility-item';
             const isVisible = empaque.visible !== false;
-            
-            const item = document.createElement('div');
-            item.className = 'visibility-item';
-            item.innerHTML = `
+            itemDiv.innerHTML = `
                 <span>${empaque.nombre}</span>
-                <div class="actions-cell">
-                     <button 
-                        class="btn" 
-                        style="background-color: var(--${isVisible ? 'status-blue' : 'status-green'}); min-width: 95px;" 
-                        onclick="togglePackagingVisibility('${empaque.id}', ${isVisible})">
-                        ${isVisible ? 'Ocultar' : 'Mostrar'}
-                    </button>
-                    <button class="btn btn-delete" onclick="deletePackaging('${empaque.id}', '${empaque.nombre}')">Eliminar</button>
-                </div>
+                <button class="btn" style="background-color: var(--${isVisible ? 'status-blue' : 'status-green'});" onclick="togglePackagingVisibility('${empaque.id}', ${isVisible})">
+                    ${isVisible ? 'Ocultar' : 'Mostrar'}
+                </button>
             `;
-            container.appendChild(item);
+            container.appendChild(itemDiv);
         });
-    });
-    unsubscribes.push(unsub);
+    } catch (error) {
+        console.error("Error al cargar empaques:", error);
+        container.innerHTML = '<h2>Visibilidad de Empaques</h2><p>Error al cargar los empaques.</p>';
+    }
 }
 
 async function togglePackagingVisibility(id, isVisible) {
     try {
-        await db.collection('empaques').doc(id).update({ visible: !isVisible });
-        showMessage("Visibilidad actualizada.");
-    } catch (error) { showMessage("Error al actualizar visibilidad."); }
+        await db.collection('empaques').doc(id).update({
+            visible: !isVisible
+        });
+        showMessage(`Empaque ahora está ${!isVisible ? 'VISIBLE' : 'OCULTO'}.`);
+        loadPackagingVisibility(); // Recargar la lista
+    } catch (error) {
+        showMessage('Error al actualizar la visibilidad.');
+        console.error(error);
+    }
 }
 
-async function deletePackaging(id, name) {
-    if (!confirm(`¿Seguro que quieres eliminar el empaque "${name}"?`)) return;
+// --- NUEVAS FUNCIONES PARA VISIBILIDAD DE VIDEO ---
+async function loadVideoVisibility() {
+    const btn = getEl('toggle-video-btn');
+    btn.textContent = 'Cargando...';
+    btn.disabled = true;
+
     try {
-        await db.collection('empaques').doc(id).delete();
-        showMessage("Empaque eliminado.");
-    } catch (error) { showMessage("Error al eliminar el empaque."); }
+        const configRef = db.collection('configuracion').doc('tienda');
+        const doc = await configRef.get();
+        // Por defecto, el video es visible si el campo no existe.
+        const isVisible = doc.exists && doc.data().videoEmpaquesVisible !== false; 
+
+        updateVideoButton(isVisible);
+
+        btn.onclick = () => toggleVideoVisibility(isVisible);
+        btn.disabled = false;
+    } catch (error) {
+        console.error("Error al cargar la visibilidad del video:", error);
+        btn.textContent = 'Error';
+        btn.style.backgroundColor = 'var(--status-red)';
+    }
+}
+
+function updateVideoButton(isVisible) {
+    const btn = getEl('toggle-video-btn');
+    btn.textContent = isVisible ? 'Ocultar Video' : 'Mostrar Video';
+    const btnClass = isVisible ? 'status-blue' : 'status-green';
+    btn.style.backgroundColor = `var(--${btnClass})`;
+}
+
+async function toggleVideoVisibility(currentlyVisible) {
+    const newState = !currentlyVisible;
+    try {
+        await db.collection('configuracion').doc('tienda').set({
+            videoEmpaquesVisible: newState
+        }, { merge: true });
+        
+        showMessage(`El video de empaques ahora está ${newState ? 'VISIBLE' : 'OCULTO'}.`);
+        updateVideoButton(newState);
+        // Volver a asignar el onclick con el nuevo estado para el siguiente clic
+        getEl('toggle-video-btn').onclick = () => toggleVideoVisibility(newState);
+    } catch (error) {
+        console.error("Error al cambiar la visibilidad del video:", error);
+        showMessage("Hubo un error al actualizar la visibilidad del video.");
+    }
 }
 
 
