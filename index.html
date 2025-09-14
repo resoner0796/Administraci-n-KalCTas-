@@ -520,6 +520,7 @@
                 <button onclick="showScreen('finance-screen')">📈 Administración</button>
                 <button onclick="showScreen('theme-screen')">🎨 Tema de la Página</button>
                 <button onclick="showScreen('packaging-screen')">🧸 Gestionar Empaques</button>
+                <button onclick="showScreen('sales-screen')">📊 Reporte de Ventas</button>
                 <button id="install-app-button">📲 Instalar App</button>
             </div>
         </section>
@@ -839,6 +840,8 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <script>
+        // --- COMIENZA EL BLOQUE COMPLETO DE JAVASCRIPT ---
+
         if ('serviceWorker' in navigator) {
           window.addEventListener('load', () => {
             navigator.serviceWorker.register('sw.js')
@@ -1401,6 +1404,7 @@
 
                         for (const producto of pedidoData.productos) if (producto.id) t.update(db.collection('productos').doc(producto.id), { cantidadVendida: firebase.firestore.FieldValue.increment(producto.cantidad || 1) });
                         
+                        // NUEVO: Descontar empaque del inventario de insumos
                         if (pedidoData.empaque && empaqueInsumoMap[pedidoData.empaque]) {
                             const insumoName = empaqueInsumoMap[pedidoData.empaque];
                             const insumosQueryRef = db.collection('inventarioInsumos').where('descripcion', '==', insumoName).limit(1);
@@ -1511,12 +1515,12 @@
                             description: d.nota || d.concepto,
                             type: d.tipo,
                             amount: d.monto,
-                            category: d.tipo === 'Gastos' ? d.concepto : d.tipo // Usar concepto para gastos
+                            category: d.tipo === 'Gastos' ? d.concepto : d.tipo
                         });
                     }
                 });
 
-                // Cargar ventas (son un tipo de movimiento especial)
+                // Cargar ventas
                 const salesSnapshot = await db.collection('pedidos').where('estado', '==', 'Entregado').get();
                 salesSnapshot.forEach(doc => {
                     const d = doc.data();
@@ -1528,7 +1532,7 @@
                 const filteredMovements = selectedCategory === 'all' 
                     ? allMovements 
                     : allMovements.filter(m => {
-                        if (selectedCategory === 'Gastos') return m.amount < 0 && m.type !== 'Venta';
+                        if (selectedCategory === 'Gastos') return m.type.includes('Gasto');
                         return m.category === selectedCategory;
                     });
 
@@ -2021,7 +2025,7 @@
                     deleteProduct(id);
                 } else if (type === 'raw-material') {
                     deleteRawMaterial(id);
-                } else if (type === 'order') { // NUEVO
+                } else if (type === 'order') {
                     deleteOrder(id);
                 }
             };
