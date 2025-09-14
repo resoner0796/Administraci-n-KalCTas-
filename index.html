@@ -519,7 +519,7 @@
                 <button onclick="showScreen('sales-history-screen')">💰 Historial de Pedidos</button>
                 <button onclick="showScreen('finance-screen')">📈 Administración</button>
                 <button onclick="showScreen('theme-screen')">🎨 Tema de la Página</button>
-                <button onclick="showScreen('sales-screen')">📊 Reporte de Ventas</button>
+                <button onclick="showScreen('packaging-screen')">🧸 Gestionar Empaques</button>
                 <button id="install-app-button">📲 Instalar App</button>
             </div>
         </section>
@@ -756,10 +756,20 @@
                 <button onclick="setTheme('christmas')" style="background-color: #d94545;">Navidad 🎅</button>
             </div>
             
+            <button class="close-button" onclick="showScreen('main-menu')">Volver al Menú</button>
+        </section>
+
+        <section id="packaging-screen" style="display: none;">
+            <h1>Gestionar Empaques</h1>
+            <h2>Agregar Nuevo Empaque</h2>
+            <form id="add-packaging-form">
+                <input type="text" id="packaging-name" placeholder="Nombre del Empaque (Ej: Frankie)" required>
+                <input type="text" id="packaging-image-url" placeholder="Ruta de la imagen (Ej: Frankie.jpg)" required>
+                <button type="submit">Agregar Empaque</button>
+            </form>
             <div id="packaging-visibility-controls">
                 <h2>Visibilidad de Empaques</h2>
             </div>
-            
             <button class="close-button" onclick="showScreen('main-menu')">Volver al Menú</button>
         </section>
 
@@ -913,7 +923,9 @@
                 case 'movements-history-screen': loadMovementCategories(); loadMovementsHistory(); break;
                 case 'theme-screen': 
                     loadCurrentTheme();
-                    loadPackagingVisibility(); // NUEVO
+                    break;
+                case 'packaging-screen': // NUEVO
+                    loadPackagingVisibility();
                     break;
                 case 'manual-order-screen': 
                     await loadProductModels(); 
@@ -1389,7 +1401,6 @@
 
                         for (const producto of pedidoData.productos) if (producto.id) t.update(db.collection('productos').doc(producto.id), { cantidadVendida: firebase.firestore.FieldValue.increment(producto.cantidad || 1) });
                         
-                        // NUEVO: Descontar empaque del inventario de insumos
                         if (pedidoData.empaque && empaqueInsumoMap[pedidoData.empaque]) {
                             const insumoName = empaqueInsumoMap[pedidoData.empaque];
                             const insumosQueryRef = db.collection('inventarioInsumos').where('descripcion', '==', insumoName).limit(1);
@@ -1516,7 +1527,10 @@
                 
                 const filteredMovements = selectedCategory === 'all' 
                     ? allMovements 
-                    : allMovements.filter(m => m.category === selectedCategory);
+                    : allMovements.filter(m => {
+                        if (selectedCategory === 'Gastos') return m.amount < 0 && m.type !== 'Venta';
+                        return m.category === selectedCategory;
+                    });
 
                 filteredMovements.sort((a, b) => b.date - a.date);
                 
