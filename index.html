@@ -1955,7 +1955,7 @@
                 });
                 updateChart(salesByDate);
             });
-            unsubscribes.push(unsub);
+            unsubscribes.push(unsubscribe);
         }
         
         function updateChart(salesData) {
@@ -2056,6 +2056,87 @@
 // ====================================================================================
 // --- NUEVAS FUNCIONES Y CORRECCIONES INTEGRADAS ---
 // ====================================================================================
+
+// --- CORRECCIÓN 1: LÓGICA PARA ELIMINAR PEDIDOS ---
+async function deleteOrder(pedidoId) {
+    try {
+        const pedidoRef = db.collection('pedidos').doc(pedidoId);
+        const pedidoDoc = await pedidoRef.get();
+
+        if (!pedidoDoc.exists) {
+            throw new Error("El pedido que intentas eliminar no existe.");
+        }
+        
+        const pedidoData = pedidoDoc.data();
+
+        // Solo se revierten las finanzas si el pedido fue 'Entregado'
+        if (pedidoData.estado === 'Entregado') {
+            const batch = db.batch();
+            const finanzasRef = db.collection('finanzas').doc('resumen');
+
+            // 1. Calcular los montos a revertir
+            const totalVenta = pedidoData.montoTotal || 0;
+            const numeroProductos = pedidoData.productos?.reduce((sum, p) => sum + (p.cantidad || 1), 0) || 0;
+            const hasShipping = pedidoData.datosEntrega?.tipo === 'Envío a domicilio';
+            const gastoEnvio = hasShipping ? SHIPPING_COST : 0;
+            const capitalMonto = numeroProductos * CAPITAL_PER_PRODUCT;
+            const utilidadMonto = totalVenta - capitalMonto - gastoEnvio;
+
+            // 2. Revertir finanzas
+            batch.update(finanzasRef, {
+                ventas: firebase.firestore.FieldValue.increment(-totalVenta),
+                gastos: firebase.firestore.FieldValue.increment(-gastoEnvio),
+                utilidad: firebase.firestore.FieldValue.increment(-utilidadMonto),
+                capital: firebase.firestore.FieldValue.increment(-capitalMonto)
+            });
+
+            // 3. Devolver stock y revertir contador de vendidos
+            for (const producto of pedidoData.productos) {
+                if (producto.id) {
+                    const productoRef = db.collection('productos').doc(producto.id);
+                    batch.update(productoRef, {
+                        stock: firebase.firestore.FieldValue.increment(producto.cantidad || 1),
+                        cantidadVendida: firebase.firestore.FieldValue.increment(-(producto.cantidad || 1))
+                    });
+                }
+            }
+
+            // 4. Eliminar los movimientos asociados
+            const movimientosQuery = await db.collection('movimientos').where('relatedOrderId', '==', pedidoId).get();
+            movimientosQuery.forEach(doc => {
+                batch.delete(doc.ref);
+            });
+            
+            // 5. Eliminar el pedido y ejecutar todo
+            batch.delete(pedidoRef);
+            await batch.commit();
+
+        } else {
+            // Si el pedido no estaba 'Entregado', no impactó las finanzas, solo se elimina.
+            await pedidoRef.delete();
+        }
+
+        showMessage('Pedido eliminado y todas las operaciones revertidas con éxito.');
+        loadSalesHistory(); // Recargar la lista
+    } catch (error) {
+        console.error("Error al eliminar el pedido:", error);
+        showMessage('Hubo un error al eliminar el pedido: ' + error.message);
+    }
+}
+
+// --- CORRECCIÓN 2: LÓGICA PARA MOSTRAR HISTORIAL DESDE TARJETAS ---
+function showMovementsHistory(category) {
+    showScreen('movements-history-screen');
+    // Usamos un pequeño timeout para asegurar que la pantalla y sus elementos estén listos
+    setTimeout(() => {
+        const filterSelect = getEl('movement-filter-category');
+        if (filterSelect) {
+            filterSelect.value = category;
+            loadMovementsHistory(); // Esta función ya usa el valor del select
+        }
+    }, 100);
+}
+
 
 // --- 1. LÓGICA PARA COSTOS DE PRODUCTO Y ENVÍO ---
 async function loadProductCost() {
@@ -2425,8 +2506,6 @@ getEl('manual-order-form').addEventListener('submit', async (e) => {
         submitButton.textContent = "Registrar Venta";
     }
 });
-
-        // --- FINAL DEL CÓDIGO ORIGINAL ---
     </script>
 </body>
 </html>
