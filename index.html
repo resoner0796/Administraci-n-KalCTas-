@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<<!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
@@ -246,7 +246,7 @@
         /* --- FIN DE ESTILOS PARA TEMAS --- */
 
         /* --- ESTILOS VISIBILIDAD DE CATEGORÍAS Y EMPAQUES --- */
-        #category-visibility-controls, #packaging-visibility-controls, #video-visibility-controls {
+        #category-visibility-controls, #packaging-visibility-controls, #video-management-controls {
             width: 100%;
             background-color: var(--bg-dark-primary);
             border-radius: var(--border-radius-md);
@@ -259,17 +259,24 @@
             justify-content: space-between;
             align-items: center;
             padding: 10px 0;
+            gap: 15px;
         }
         .visibility-item:not(:last-child){
             border-bottom: 1px solid var(--border-color);
         }
         .visibility-item span {
             font-weight: 500;
+            word-break: break-all;
         }
-        .visibility-item button {
-            padding: 8px 16px;
+        .visibility-item .actions {
+            display: flex;
+            gap: 10px;
+            flex-shrink: 0;
+        }
+        .visibility-item .actions button {
+            padding: 8px 12px;
             font-size: 0.9em;
-            min-width: 130px; /* Aumentado para que quepa "Mostrar Video" */
+            min-width: 90px;
         }
         /* --- FIN ESTILOS VISIBILIDAD --- */
 
@@ -519,7 +526,7 @@
                 <button onclick="showScreen('sales-history-screen')">💰 Historial de Pedidos</button>
                 <button onclick="showScreen('finance-screen')">📈 Administración</button>
                 <button onclick="showScreen('theme-screen')">🎨 Tema de la Página</button>
-                <button onclick="showScreen('packaging-screen')">🧸 Gestionar Empaques</button>
+                <button onclick="showScreen('packaging-screen')">🧸 Gestionar Empaques y Video</button>
                 <button onclick="showScreen('sales-screen')">📊 Reporte de Ventas</button>
                 <button id="install-app-button">📲 Instalar App</button>
             </div>
@@ -761,26 +768,33 @@
         </section>
 
         <section id="packaging-screen" style="display: none;">
-            <h1>Gestionar Empaques</h1>
-            <h2>Agregar Nuevo Empaque</h2>
-            <form id="add-packaging-form">
-                <input type="text" id="packaging-name" placeholder="Nombre del Empaque (Ej: Frankie)" required>
-                <input type="text" id="packaging-image-url" placeholder="Ruta de la imagen (Ej: Frankie.jpg)" required>
-                <button type="submit">Agregar Empaque</button>
-            </form>
+            <h1>Gestionar Empaques y Video</h1>
+            
+            <div id="video-management-controls">
+                <h2>Gestionar Video de la Tienda</h2>
+                <form id="add-video-form" style="margin-bottom: 20px;">
+                    <input type="text" id="video-name" placeholder="Nombre del video (ej. Video Navidad)" required>
+                    <input type="text" id="video-url" placeholder="Ruta del video (ej. video_navidad.mp4)" required>
+                    <button type="submit">Agregar Video</button>
+                </form>
+                <div id="video-list">
+                    </div>
+            </div>
 
-            <div id="video-visibility-controls">
-                <h2>Visibilidad del Video de Empaques</h2>
-                <div class="visibility-item">
-                    <span>Video de Presentación</span>
-                    <button id="toggle-video-btn" class="btn">Cargando...</button>
-                </div>
-            </div>
             <div id="packaging-visibility-controls">
-                <h2>Visibilidad de Empaques</h2>
+                <h2>Gestionar Empaques</h2>
+                <form id="add-packaging-form" style="margin-bottom: 20px;">
+                    <input type="text" id="packaging-name" placeholder="Nombre del Empaque (Ej: Frankie)" required>
+                    <input type="text" id="packaging-image-url" placeholder="Ruta de la imagen (Ej: Frankie.jpg)" required>
+                    <button type="submit">Agregar Empaque</button>
+                </form>
+                <div id="packaging-list">
+                    </div>
             </div>
+
             <button class="close-button" onclick="showScreen('main-menu')">Volver al Menú</button>
         </section>
+
 
         <div id="edit-modal" class="edit-modal">
             <div class="modal-content">
@@ -935,9 +949,9 @@
                 case 'theme-screen': 
                     loadCurrentTheme();
                     break;
-                case 'packaging-screen': // NUEVO
+                case 'packaging-screen': 
                     loadPackagingVisibility();
-                    loadVideoVisibility(); // AÑADIDO
+                    loadVideoManagement(); // ACTUALIZADO
                     break;
                 case 'manual-order-screen': 
                     await loadProductModels(); 
@@ -1189,7 +1203,9 @@
 
                     controlItem.innerHTML = `
                         <span>${categoryName}</span>
-                        <button class="btn" style="background-color: var(--${btnClass});" onclick="toggleCategoryVisibility('${categoryName}', ${isVisible})">${btnText}</button>
+                        <div class="actions">
+                           <button class="btn" style="background-color: var(--${btnClass});" onclick="toggleCategoryVisibility('${categoryName}', ${isVisible})">${btnText}</button>
+                        </div>
                     `;
                     categoryControlsContainer.appendChild(controlItem);
                 });
@@ -2035,6 +2051,10 @@
                     deleteRawMaterial(id);
                 } else if (type === 'order') {
                     deleteOrder(id);
+                } else if (type === 'packaging') { // AÑADIDO
+                    deletePackaging(id);
+                } else if (type === 'video') { // AÑADIDO
+                    deleteVideo(id);
                 }
             };
             getEl('confirm-modal').style.display = 'flex';
@@ -2078,12 +2098,10 @@ async function deleteOrder(pedidoId) {
         
         const pedidoData = pedidoDoc.data();
 
-        // Solo se revierten las finanzas si el pedido fue 'Entregado'
         if (pedidoData.estado === 'Entregado') {
             const batch = db.batch();
             const finanzasRef = db.collection('finanzas').doc('resumen');
 
-            // 1. Calcular los montos a revertir
             const totalVenta = pedidoData.montoTotal || 0;
             const numeroProductos = pedidoData.productos?.reduce((sum, p) => sum + (p.cantidad || 1), 0) || 0;
             const hasShipping = pedidoData.datosEntrega?.tipo === 'Envío a domicilio';
@@ -2091,7 +2109,6 @@ async function deleteOrder(pedidoId) {
             const capitalMonto = numeroProductos * CAPITAL_PER_PRODUCT;
             const utilidadMonto = totalVenta - capitalMonto - gastoEnvio;
 
-            // 2. Revertir finanzas
             batch.update(finanzasRef, {
                 ventas: firebase.firestore.FieldValue.increment(-totalVenta),
                 gastos: firebase.firestore.FieldValue.increment(-gastoEnvio),
@@ -2099,7 +2116,6 @@ async function deleteOrder(pedidoId) {
                 capital: firebase.firestore.FieldValue.increment(-capitalMonto)
             });
 
-            // 3. Devolver stock y revertir contador de vendidos
             for (const producto of pedidoData.productos) {
                 if (producto.id) {
                     const productoRef = db.collection('productos').doc(producto.id);
@@ -2110,23 +2126,20 @@ async function deleteOrder(pedidoId) {
                 }
             }
 
-            // 4. Eliminar los movimientos asociados
             const movimientosQuery = await db.collection('movimientos').where('relatedOrderId', '==', pedidoId).get();
             movimientosQuery.forEach(doc => {
                 batch.delete(doc.ref);
             });
             
-            // 5. Eliminar el pedido y ejecutar todo
             batch.delete(pedidoRef);
             await batch.commit();
 
         } else {
-            // Si el pedido no estaba 'Entregado', no impactó las finanzas, solo se elimina.
             await pedidoRef.delete();
         }
 
         showMessage('Pedido eliminado y todas las operaciones revertidas con éxito.');
-        loadSalesHistory(); // Recargar la lista
+        loadSalesHistory();
     } catch (error) {
         console.error("Error al eliminar el pedido:", error);
         showMessage('Hubo un error al eliminar el pedido: ' + error.message);
@@ -2139,7 +2152,6 @@ async function showMovementsHistory(category) {
     const modalTitle = getEl('modal-history-title');
     const modalList = getEl('modal-sales-list');
     
-    // Si la pantalla de historial completo está activa, no hacemos nada para evitar conflictos
     if (getEl('movements-history-screen').style.display === 'block') {
         showScreen('movements-history-screen');
         setTimeout(() => {
@@ -2489,8 +2501,8 @@ getEl('manual-order-form').addEventListener('submit', async (e) => {
             const nuevoPedidoRef = db.collection('pedidos').doc();
             transaction.set(nuevoPedidoRef, {
                 folio: folioFormateado,
-                clienteManual: clienteManual, // Guardado para referencia
-                datosCliente: { nombre: clienteManual, apellido: '', telefono: telefonoCliente }, // CORREGIDO
+                clienteManual: clienteManual,
+                datosCliente: { nombre: clienteManual, apellido: '', telefono: telefonoCliente },
                 canalVenta: canalVenta,
                 productos: items,
                 montoTotal: montoTotal,
@@ -2576,7 +2588,10 @@ getEl('manual-order-form').addEventListener('submit', async (e) => {
     }
 });
 
-// --- NUEVAS FUNCIONES PARA GESTIÓN DE EMPAQUES ---
+
+// --- LÓGICA PARA GESTIÓN DE EMPAQUES Y VIDEO ---
+
+// EMPAQUES
 getEl('add-packaging-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     const nombre = getEl('packaging-name').value;
@@ -2590,7 +2605,7 @@ getEl('add-packaging-form').addEventListener('submit', async (e) => {
         });
         showMessage('Empaque agregado con éxito.');
         e.target.reset();
-        loadPackagingVisibility(); // Recargar la lista
+        loadPackagingVisibility();
     } catch (error) {
         showMessage('Error al agregar el empaque.');
         console.error(error);
@@ -2598,15 +2613,15 @@ getEl('add-packaging-form').addEventListener('submit', async (e) => {
 });
 
 async function loadPackagingVisibility() {
-    const container = getEl('packaging-visibility-controls');
-    container.innerHTML = '<h2>Visibilidad de Empaques</h2><p>Cargando...</p>';
+    const container = getEl('packaging-list');
+    container.innerHTML = '<p>Cargando...</p>';
     try {
         const snapshot = await db.collection('empaques').orderBy('fechaCreacion', 'desc').get();
         if (snapshot.empty) {
-            container.innerHTML = '<h2>Visibilidad de Empaques</h2><p>No hay empaques registrados.</p>';
+            container.innerHTML = '<p>No hay empaques registrados.</p>';
             return;
         }
-        container.innerHTML = '<h2>Visibilidad de Empaques</h2>'; // Limpiar texto de carga
+        container.innerHTML = '';
         snapshot.forEach(doc => {
             const empaque = { id: doc.id, ...doc.data() };
             const itemDiv = document.createElement('div');
@@ -2614,15 +2629,20 @@ async function loadPackagingVisibility() {
             const isVisible = empaque.visible !== false;
             itemDiv.innerHTML = `
                 <span>${empaque.nombre}</span>
-                <button class="btn" style="background-color: var(--${isVisible ? 'status-blue' : 'status-green'});" onclick="togglePackagingVisibility('${empaque.id}', ${isVisible})">
-                    ${isVisible ? 'Ocultar' : 'Mostrar'}
-                </button>
+                <div class="actions">
+                    <button class="btn" style="background-color: var(--${isVisible ? 'status-blue' : 'status-green'});" onclick="togglePackagingVisibility('${empaque.id}', ${isVisible})">
+                        ${isVisible ? 'Ocultar' : 'Mostrar'}
+                    </button>
+                    <button class="btn btn-delete" onclick="showConfirmModal('packaging', '${empaque.id}', '¿Seguro que quieres eliminar el empaque \\'${empaque.nombre}\\'?')">
+                        Eliminar
+                    </button>
+                </div>
             `;
             container.appendChild(itemDiv);
         });
     } catch (error) {
         console.error("Error al cargar empaques:", error);
-        container.innerHTML = '<h2>Visibilidad de Empaques</h2><p>Error al cargar los empaques.</p>';
+        container.innerHTML = '<p>Error al cargar los empaques.</p>';
     }
 }
 
@@ -2632,61 +2652,111 @@ async function togglePackagingVisibility(id, isVisible) {
             visible: !isVisible
         });
         showMessage(`Empaque ahora está ${!isVisible ? 'VISIBLE' : 'OCULTO'}.`);
-        loadPackagingVisibility(); // Recargar la lista
+        loadPackagingVisibility();
     } catch (error) {
         showMessage('Error al actualizar la visibilidad.');
         console.error(error);
     }
 }
 
-// --- NUEVAS FUNCIONES PARA VISIBILIDAD DE VIDEO ---
-async function loadVideoVisibility() {
-    const btn = getEl('toggle-video-btn');
-    btn.textContent = 'Cargando...';
-    btn.disabled = true;
-
+async function deletePackaging(id) {
     try {
-        const configRef = db.collection('configuracion').doc('tienda');
-        const doc = await configRef.get();
-        // Por defecto, el video es visible si el campo no existe.
-        const isVisible = doc.exists && doc.data().videoEmpaquesVisible !== false; 
-
-        updateVideoButton(isVisible);
-
-        btn.onclick = () => toggleVideoVisibility(isVisible);
-        btn.disabled = false;
+        await db.collection('empaques').doc(id).delete();
+        showMessage('Empaque eliminado correctamente.');
+        loadPackagingVisibility();
     } catch (error) {
-        console.error("Error al cargar la visibilidad del video:", error);
-        btn.textContent = 'Error';
-        btn.style.backgroundColor = 'var(--status-red)';
+        showMessage('Error al eliminar el empaque.');
+        console.error(error);
     }
 }
 
-function updateVideoButton(isVisible) {
-    const btn = getEl('toggle-video-btn');
-    btn.textContent = isVisible ? 'Ocultar Video' : 'Mostrar Video';
-    const btnClass = isVisible ? 'status-blue' : 'status-green';
-    btn.style.backgroundColor = `var(--${btnClass})`;
+// VIDEO
+getEl('add-video-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const nombre = getEl('video-name').value;
+    const videoUrl = getEl('video-url').value;
+    try {
+        await db.collection('videos').add({
+            nombre,
+            videoUrl,
+            activo: false,
+            fechaCreacion: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        showMessage('Video agregado con éxito.');
+        e.target.reset();
+        loadVideoManagement();
+    } catch (error) {
+        showMessage('Error al agregar el video.');
+        console.error(error);
+    }
+});
+
+async function loadVideoManagement() {
+    const container = getEl('video-list');
+    container.innerHTML = '<p>Cargando videos...</p>';
+    try {
+        const snapshot = await db.collection('videos').orderBy('fechaCreacion', 'desc').get();
+        if (snapshot.empty) {
+            container.innerHTML = '<p>No hay videos registrados.</p>';
+            return;
+        }
+        container.innerHTML = '';
+        snapshot.forEach(doc => {
+            const video = { id: doc.id, ...doc.data() };
+            const itemDiv = document.createElement('div');
+            itemDiv.className = 'visibility-item';
+            const isActive = video.activo === true;
+            itemDiv.innerHTML = `
+                <span>${video.nombre} <br><small style="color: var(--text-secondary);">${video.videoUrl}</small></span>
+                <div class="actions">
+                    <button class="btn" style="background-color: var(--status-green);" onclick="activateVideo('${video.id}')" ${isActive ? 'disabled' : ''}>
+                        ${isActive ? '✔ Activo' : 'Activar'}
+                    </button>
+                    <button class="btn btn-delete" onclick="showConfirmModal('video', '${video.id}', '¿Seguro que quieres eliminar el video \\'${video.nombre}\\'?')">
+                        Eliminar
+                    </button>
+                </div>
+            `;
+            container.appendChild(itemDiv);
+        });
+    } catch (error) {
+        console.error("Error al cargar videos:", error);
+        container.innerHTML = '<p>Error al cargar los videos.</p>';
+    }
 }
 
-async function toggleVideoVisibility(currentlyVisible) {
-    const newState = !currentlyVisible;
+async function activateVideo(videoIdToActivate) {
+    const batch = db.batch();
     try {
-        await db.collection('configuracion').doc('tienda').set({
-            videoEmpaquesVisible: newState
-        }, { merge: true });
+        // Poner todos los videos como inactivos
+        const snapshot = await db.collection('videos').get();
+        snapshot.forEach(doc => {
+            batch.update(doc.ref, { activo: false });
+        });
         
-        showMessage(`El video de empaques ahora está ${newState ? 'VISIBLE' : 'OCULTO'}.`);
-        updateVideoButton(newState);
-        // Volver a asignar el onclick con el nuevo estado para el siguiente clic
-        getEl('toggle-video-btn').onclick = () => toggleVideoVisibility(newState);
+        // Activar el video seleccionado
+        const videoRef = db.collection('videos').doc(videoIdToActivate);
+        batch.update(videoRef, { activo: true });
+
+        await batch.commit();
+        showMessage('Video activado con éxito en la tienda.');
+        loadVideoManagement();
     } catch (error) {
-        console.error("Error al cambiar la visibilidad del video:", error);
-        showMessage("Hubo un error al actualizar la visibilidad del video.");
+        showMessage('Error al activar el video.');
+        console.error(error);
     }
 }
 
-
+async function deleteVideo(id) {
+    try {
+        await db.collection('videos').doc(id).delete();
+        showMessage('Video eliminado correctamente.');
+        loadVideoManagement();
+    } catch (error) {
+        showMessage('Error al eliminar el video.');
+        console.error(error);
+    }
+}
     </script>
 </body>
 </html>
