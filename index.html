@@ -385,7 +385,7 @@
         .product-actions button { padding: 8px 15px; font-size: 0.9em; }
 
         /* --- Modales --- */
-        .message-box, .edit-modal, .confirm-modal, .sales-history-modal, .image-modal, .finance-modal { 
+        .message-box, .edit-modal, .confirm-modal, .sales-history-modal, .image-modal { 
             display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; 
             background-color: rgba(10, 10, 20, 0.5);
             backdrop-filter: blur(8px);
@@ -398,16 +398,6 @@
             box-shadow: var(--shadow-md); 
             text-align: center; color: var(--text-primary); 
             max-width: 500px; width: 100%;
-        }
-        /* NUEVO: Estilo para modal más grande */
-        .modal-content-large {
-            max-width: 850px;
-            max-height: 90vh;
-            overflow-y: auto;
-            text-align: left;
-        }
-        .modal-content-large h1, .modal-content-large h2 {
-            text-align: center;
         }
         .close-button { margin-top: 20px; background-color: var(--surface-color); }
         .confirm-buttons { display: flex; justify-content: center; gap: 15px; margin-top: 20px; }
@@ -527,7 +517,7 @@
                 <button onclick="showScreen('orders-screen')">📬 Pedidos de la Tienda</button>
                 <button onclick="showScreen('manual-order-screen')">📝 Registrar Venta Manual</button>
                 <button onclick="showScreen('sales-history-screen')">💰 Historial de Pedidos</button>
-                <button onclick="openFinanceModal()">📈 Administración</button>
+                <button onclick="showScreen('finance-screen')">📈 Administración</button>
                 <button onclick="showScreen('theme-screen')">🎨 Tema de la Página</button>
                 <button onclick="showScreen('packaging-screen')">🧸 Gestionar Empaques</button>
                 <button onclick="showScreen('sales-screen')">📊 Reporte de Ventas</button>
@@ -666,7 +656,52 @@
                 </select>
             </div>
             <ul id="movements-list" class="card-list"></ul>
-            <button class="close-button" onclick="openFinanceModal()">Volver a Administración</button>
+            <button class="close-button" onclick="showScreen('finance-screen')">Volver a Administración</button>
+        </section>
+
+        <section id="finance-screen" style="display: none;">
+            <h1>Administración Financiera</h1>
+            <div class="finance-panel">
+                <div class="finance-card" onclick="showMovementsHistory('Ventas')"><h3>Ventas Totales</h3><p id="total-sales">$0.00</p></div>
+                <div class="finance-card" onclick="showMovementsHistory('Gastos')"><h3>Gastos</h3><p id="total-expenses">$0.00</p></div>
+                <div class="finance-card" onclick="showMovementsHistory('Utilidad')"><h3>Utilidad</h3><p id="total-profit">$0.00</p></div>
+                <div class="finance-card" onclick="showMovementsHistory('Capital')"><h3>Capital</h3><p id="total-capital">$0.00</p></div>
+            </div>
+
+            <h2>Configuración de Costos</h2>
+            <form id="cost-config-form">
+                <label for="product-cost-input" style="text-align: left;">Costo por Producto ($)</label>
+                <div style="display: flex; gap: 10px;">
+                    <input type="number" id="product-cost-input" placeholder="Ej: 42" step="0.01" required>
+                    <button type="submit" style="width: 150px;">Guardar</button>
+                </div>
+            </form>
+
+            <form id="shipping-cost-config-form" style="margin-bottom: 20px;">
+                <label for="shipping-cost-input" style="text-align: left;">Costo de Envío a Domicilio ($)</label>
+                <div style="display: flex; gap: 10px;">
+                    <input type="number" id="shipping-cost-input" placeholder="Ej: 70" step="0.01" required>
+                    <button type="submit" style="width: 150px;">Guardar</button>
+                </div>
+            </form>
+            <hr style="width: 100%; border-color: rgba(255, 255, 255, 0.3);">
+
+            <h2>Registrar Gasto General</h2>
+            <form id="add-expense-form">
+                <input type="number" id="expense-amount" placeholder="Monto del Gasto ($)" step="0.01" required>
+                <select id="expense-concept" required><option value="">Selecciona un concepto</option></select>
+                <textarea id="expense-note" placeholder="Nota adicional (opcional)"></textarea>
+                <button type="submit">Registrar Gasto</button>
+            </form>
+            <button type="button" class="btn" style="background-color: #16a085; margin-top: -10px; margin-bottom: 20px; padding: 10px;" onclick="addNewExpenseConcept()">+ Agregar Nuevo Concepto</button>
+            <hr style="width: 100%; border-color: rgba(255, 255, 255, 0.3);">
+            <h2>Gestión</h2>
+            <div class="main-menu-buttons">
+                <button onclick="showScreen('supplies-screen')">Insumos (Gastos)</button>
+                <button onclick="showScreen('restock-screen')">Re-Stock de Inventario</button>
+                <button onclick="showScreen('movements-history-screen')">Historial de Movimientos 🧾</button>
+            </div>
+            <button class="close-button" onclick="showScreen('main-menu')">Volver al Menú</button>
         </section>
 
         <section id="supplies-screen" style="display: none;">
@@ -685,7 +720,7 @@
                     <tbody id="supplies-table-body"></tbody>
                 </table>
             </div>
-            <button class="close-button" onclick="openFinanceModal()">Volver a Administración</button>
+            <button class="close-button" onclick="showScreen('finance-screen')">Volver a Administración</button>
         </section>
         
         <section id="restock-screen" style="display: none;">
@@ -701,7 +736,7 @@
             <hr style="width: 100%; border-color: rgba(255, 255, 255, 0.3);">
             <h2>Historial de Re-Stocks</h2>
             <ul id="restock-history-list" class="card-list"></ul>
-            <button class="close-button" onclick="openFinanceModal()">Volver a Administración</button>
+            <button class="close-button" onclick="showScreen('finance-screen')">Volver a Administración</button>
         </section>
 
         <section id="sales-screen" style="display: none;">
@@ -738,53 +773,6 @@
             </div>
             <button class="close-button" onclick="showScreen('main-menu')">Volver al Menú</button>
         </section>
-        
-        <div id="finance-modal" class="finance-modal">
-            <div class="modal-content modal-content-large">
-                <h1>Administración Financiera</h1>
-                <div class="finance-panel">
-                    <div class="finance-card" onclick="showMovementsHistory('Ventas')"><h3>Ventas Totales</h3><p id="total-sales">$0.00</p></div>
-                    <div class="finance-card" onclick="showMovementsHistory('Gastos')"><h3>Gastos</h3><p id="total-expenses">$0.00</p></div>
-                    <div class="finance-card" onclick="showMovementsHistory('Utilidad')"><h3>Utilidad</h3><p id="total-profit">$0.00</p></div>
-                    <div class="finance-card" onclick="showMovementsHistory('Capital')"><h3>Capital</h3><p id="total-capital">$0.00</p></div>
-                </div>
-    
-                <h2>Configuración de Costos</h2>
-                <form id="cost-config-form">
-                    <label for="product-cost-input" style="text-align: left;">Costo por Producto ($)</label>
-                    <div style="display: flex; gap: 10px;">
-                        <input type="number" id="product-cost-input" placeholder="Ej: 42" step="0.01" required>
-                        <button type="submit" style="width: 150px;">Guardar</button>
-                    </div>
-                </form>
-    
-                <form id="shipping-cost-config-form" style="margin-bottom: 20px;">
-                    <label for="shipping-cost-input" style="text-align: left;">Costo de Envío a Domicilio ($)</label>
-                    <div style="display: flex; gap: 10px;">
-                        <input type="number" id="shipping-cost-input" placeholder="Ej: 70" step="0.01" required>
-                        <button type="submit" style="width: 150px;">Guardar</button>
-                    </div>
-                </form>
-                <hr style="width: 100%; border-color: rgba(255, 255, 255, 0.3);">
-    
-                <h2>Registrar Gasto General</h2>
-                <form id="add-expense-form">
-                    <input type="number" id="expense-amount" placeholder="Monto del Gasto ($)" step="0.01" required>
-                    <select id="expense-concept" required><option value="">Selecciona un concepto</option></select>
-                    <textarea id="expense-note" placeholder="Nota adicional (opcional)"></textarea>
-                    <button type="submit">Registrar Gasto</button>
-                </form>
-                <button type="button" class="btn" style="background-color: #16a085; margin-top: -10px; margin-bottom: 20px; padding: 10px;" onclick="addNewExpenseConcept()">+ Agregar Nuevo Concepto</button>
-                <hr style="width: 100%; border-color: rgba(255, 255, 255, 0.3);">
-                <h2>Gestión</h2>
-                <div class="main-menu-buttons">
-                    <button onclick="closeFinanceModal(); showScreen('supplies-screen')">Insumos (Gastos)</button>
-                    <button onclick="closeFinanceModal(); showScreen('restock-screen')">Re-Stock de Inventario</button>
-                    <button onclick="closeFinanceModal(); showScreen('movements-history-screen')">Historial de Movimientos 🧾</button>
-                </div>
-                <button class="close-button" onclick="closeFinanceModal()">Cerrar</button>
-            </div>
-        </div>
 
         <div id="edit-modal" class="edit-modal">
             <div class="modal-content">
@@ -919,6 +907,12 @@
                     break;
                 case 'orders-screen': loadOrders(); break;
                 case 'sales-history-screen': loadSalesHistory(); break;
+                case 'finance-screen': 
+                    loadFinancialSummary(); 
+                    loadExpenseConcepts(); 
+                    loadProductCost();
+                    loadShippingCost();
+                    break;
                 case 'supplies-screen': loadSupplies(); break;
                 case 'restock-screen': 
                     await loadProductModels();
@@ -1961,7 +1955,7 @@
                 });
                 updateChart(salesByDate);
             });
-            unsubscribes.push(unsub);
+            unsubscribes.push(unsubscribe);
         }
         
         function updateChart(salesData) {
@@ -2132,7 +2126,6 @@ async function deleteOrder(pedidoId) {
 
 // --- CORRECCIÓN 2: LÓGICA PARA MOSTRAR HISTORIAL DESDE TARJETAS ---
 function showMovementsHistory(category) {
-    closeFinanceModal();
     showScreen('movements-history-screen');
     // Usamos un pequeño timeout para asegurar que la pantalla y sus elementos estén listos
     setTimeout(() => {
@@ -2142,19 +2135,6 @@ function showMovementsHistory(category) {
             loadMovementsHistory(); // Esta función ya usa el valor del select
         }
     }, 100);
-}
-
-// --- NUEVO: Funciones para el Modal de Administración ---
-function openFinanceModal() {
-    loadFinancialSummary();
-    loadExpenseConcepts();
-    loadProductCost();
-    loadShippingCost();
-    getEl('finance-modal').style.display = 'flex';
-}
-
-function closeFinanceModal() {
-    getEl('finance-modal').style.display = 'none';
 }
 
 
