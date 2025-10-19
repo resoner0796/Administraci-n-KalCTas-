@@ -290,23 +290,36 @@
 
 
         /* --- Estilos para tablas --- */
-        .table-container { width: 100%; overflow-x: auto; margin-top: 20px; }
-        #supplies-table, #raw-materials-table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 0.95em;
-        }
-        #supplies-table th, #supplies-table td, #raw-materials-table th, #raw-materials-table td {
-            padding: 12px 15px;
-            text-align: left;
-            border-bottom: 1px solid var(--border-color);
-        }
-        #supplies-table th, #raw-materials-table th {
-            background-color: var(--bg-dark-primary);
-            font-weight: 500;
-            color: var(--text-secondary);
-        }
-        #supplies-table tbody tr:hover, #raw-materials-table tbody tr:hover { background-color: var(--bg-dark-primary); }
+    /* --- Estilos para tablas --- */
+        .table-container { width: 100%; overflow-x: auto; margin-top: 20px; }
+
+        #supplies-table, #raw-materials-table, #sales-report-table { /* Añadido #sales-report-table */
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.90em;
+            white-space: nowrap;
+        }
+
+        #supplies-table th, #supplies-table td, #raw-materials-table th, #raw-materials-table td, #sales-report-table th, #sales-report-table td { /* Añadido #sales-report-table */
+            padding: 10px 12px;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        #supplies-table th, #raw-materials-table th, #sales-report-table th { /* Añadido #sales-report-table */
+            background-color: var(--bg-dark-primary);
+            font-weight: 500;
+            color: var(--text-secondary);
+            position: sticky;
+            top: 0;
+        }
+
+        #supplies-table tbody tr:hover, #raw-materials-table tbody tr:hover, #sales-report-table tbody tr:hover { background-color: var(--bg-dark-primary); } /* Añadido #sales-report-table */
+
+#sales-report-table td:nth-child(n+5) {
+            text-align: right;
+            font-family: monospace;
+        }
 
         /* Botones de acción (Editar/Eliminar) */
         .btn-edit { background-color: var(--status-yellow); }
@@ -536,6 +549,7 @@
                 <button onclick="showScreen('theme-screen')">🎨 Tema de la Página</button>
                 <button onclick="showScreen('packaging-screen')">🧸 Gestionar Empaques y Video</button>
                 <button onclick="showScreen('sales-screen')">📊 Reporte de Ventas</button>
+                <button onclick="showScreen('sales-report-table-screen')">📄 Reporte Detallado (Tabla)</button>
                 <button id="install-app-button">📲 Instalar App</button>
             </div>
         </section>
@@ -676,12 +690,15 @@
 
         <section id="finance-screen" style="display: none;">
             <h1>Administración Financiera</h1>
-            <div class="finance-panel">
-                <div class="finance-card" onclick="showMovementsHistory('Ventas')"><h3>Ventas Totales</h3><p id="total-sales">$0.00</p></div>
-                <div class="finance-card" onclick="showMovementsHistory('Gastos')"><h3>Gastos</h3><p id="total-expenses">$0.00</p></div>
-                <div class="finance-card" onclick="showMovementsHistory('Utilidad')"><h3>Utilidad</h3><p id="total-profit">$0.00</p></div>
-                <div class="finance-card" onclick="showMovementsHistory('Capital')"><h3>Capital</h3><p id="total-capital">$0.00</p></div>
-            </div>
+        <div class="finance-panel">
+                <div class="finance-card" onclick="showMovementsHistory('Ventas')"><h3>Ventas Totales</h3><p id="total-sales">$0.00</p></div>
+                <div class="finance-card" onclick="showMovementsHistory('Gastos')"><h3>Gastos Totales</h3><p id="total-expenses">$0.00</p></div>
+                <div class="finance-card" onclick="showMovementsHistory('Utilidad')"><h3>Utilidad Total</h3><p id="total-profit">$0.00</p></div>
+                <div class="finance-card" onclick="showMovementsHistory('Capital')"><h3>Capital Acumulado</h3><p id="total-capital">$0.00</p></div>
+                <div class="finance-card" onclick="showMovementsHistory('Utilidad Negocio')"><h3>Utilidad Negocio (50%)</h3><p id="total-profit-negocio">$0.00</p></div>
+                <div class="finance-card" onclick="showMovementsHistory('Utilidad Socio', 'Ulises')"><h3>Utilidad Ulises (25%)</h3><p id="total-profit-ulises">$0.00</p></div>
+                <div class="finance-card" onclick="showMovementsHistory('Utilidad Socio', 'Dariana')"><h3>Utilidad Dariana (25%)</h3><p id="total-profit-dariana">$0.00</p></div>
+            </div>
 
             <h2>Configuración de Costos</h2>
             <form id="cost-config-form">
@@ -804,6 +821,32 @@
             </div>
 
             <button class="close-button" onclick="showScreen('main-menu')">Volver al Menú</button>
+            
+            <section id="sales-report-table-screen" style="display: none;">
+            <h1>Reporte Detallado de Ventas</h1>
+            <div class="table-container">
+                <table id="sales-report-table">
+                    <thead>
+                        <tr>
+                            <th>Folio</th>
+                            <th>Cliente</th>
+                            <th>Canal</th>
+                            <th>Fecha</th>
+                            <th>Total Venta</th>
+                            <th>Costo Capital</th>
+                            <th>Gasto Envío</th>
+                            <th>Utilidad Total</th>
+                            <th>Util. Negocio (50%)</th>
+                            <th>Util. Ulises (25%)</th>
+                            <th>Util. Dariana (25%)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="sales-report-table-body">
+                    </tbody>
+                </table>
+            </div>
+            <button class="close-button" onclick="showScreen('main-menu')">Volver al Menú</button>
+       
         </section>
 
 
@@ -935,7 +978,6 @@
             unsubscribes = [];
 
             switch (screenId) {
-                // --- CORRECCIÓN: Se agregó el 'case' faltante ---
                 case 'main-menu':
                     // No se necesita cargar nada, solo mostrar el menú
                     break;
@@ -966,7 +1008,7 @@
                     break;
                 case 'packaging-screen': 
                     loadPackagingVisibility();
-                    loadVideoManagement(); // ACTUALIZADO
+                    loadVideoManagement();
                     break;
                 case 'manual-order-screen': 
                     await loadProductModels(); 
@@ -977,6 +1019,7 @@
                     calculateManualOrderTotal();
                     break;
                 case 'raw-materials-screen': loadRawMaterials(); break;
+                case 'sales-report-table-screen': loadSalesReportTable(); break; // Agregado
             }
         }
         
@@ -1079,14 +1122,8 @@
             try {
                 const permission = await Notification.requestPermission();
                 if (permission === 'granted') {
-                    // const swRegistration = await navigator.serviceWorker.ready; // <-- LÍNEA ELIMINADA. No es necesaria y causaba el conflicto.
-                    
-                    // Se llama a getToken() solo con la vapidKey.
-                    // Firebase gestionará su propio service worker (firebase-messaging-sw.js)
-                    // en lugar de forzar el uso de 'sw.js'.
-                    const token = await messaging.getToken({ 
+                    const token = await messaging.getToken({
                         vapidKey: vapidKey
-                        // serviceWorkerRegistration: swRegistration // <-- LÍNEA ELIMINADA
                     });
                     
                     if (token) {
@@ -1098,7 +1135,6 @@
                     }
                 }
             } catch (error) {
-                // Este error es común en modo incógnito o si los permisos están bloqueados
                 console.error('Error al obtener el permiso o el token de FCM:', error);
                 showMessage('No se pudieron activar las notificaciones push. (¿Estás en modo incógnito?)');
             }
@@ -1187,6 +1223,68 @@
             });
             unsubscribes.push(unsubscribe);
         }
+        
+        async function loadSalesReportTable() {
+            const tbody = getEl('sales-report-table-body');
+            tbody.innerHTML = '<tr><td colspan="11">Cargando reporte... ⏳</td></tr>';
+
+            try {
+                const q = db.collection('pedidos').where('estado', '==', 'Entregado').orderBy('fechaActualizacion', 'desc');
+                const snapshot = await q.get();
+
+                if (snapshot.empty) {
+                    tbody.innerHTML = '<tr><td colspan="11">No hay ventas entregadas para mostrar.</td></tr>';
+                    return;
+                }
+
+                let tableHTML = '';
+                const configRef = db.collection('configuracion').doc('tienda');
+                const configDoc = await configRef.get();
+                const costPerProduct = configDoc.exists && configDoc.data().costoPorProducto ? configDoc.data().costoPorProducto : CAPITAL_PER_PRODUCT;
+                const shippingCost = configDoc.exists && configDoc.data().costoEnvio ? configDoc.data().costoEnvio : SHIPPING_COST;
+
+                snapshot.forEach(doc => {
+                    const pedido = doc.data();
+                    const totalVenta = pedido.montoTotal || 0;
+                    const clienteNombre = (pedido.datosCliente?.nombre || '').trim() || pedido.clienteManual || 'N/A';
+                    const canal = pedido.canalVenta || 'Tienda en línea';
+                    const fecha = pedido.fechaActualizacion?.toDate().toLocaleDateString() || 'N/A';
+
+                    const numeroProductos = pedido.productos?.reduce((sum, p) => sum + (p.cantidad || 1), 0) || 0;
+                    const hasShipping = pedido.datosEntrega?.tipo === 'Envío a domicilio';
+                    const gastoEnvio = hasShipping ? shippingCost : 0;
+                    const capitalMonto = numeroProductos * costPerProduct;
+                    const utilidadTotal = totalVenta - capitalMonto - gastoEnvio;
+
+                    const utilidadNegocio = utilidadTotal * 0.50;
+                    const utilidadUlises = utilidadTotal * 0.25;
+                    const utilidadDariana = utilidadTotal * 0.25;
+
+                    tableHTML += `
+                        <tr>
+                            <td>${pedido.folio || 'Manual'}</td>
+                            <td>${clienteNombre}</td>
+                            <td>${canal}</td>
+                            <td>${fecha}</td>
+                            <td>$${totalVenta.toFixed(2)}</td>
+                            <td>$${capitalMonto.toFixed(2)}</td>
+                            <td>$${gastoEnvio.toFixed(2)}</td>
+                            <td style="font-weight: bold;">$${utilidadTotal.toFixed(2)}</td>
+                            <td>$${utilidadNegocio.toFixed(2)}</td>
+                            <td>$${utilidadUlises.toFixed(2)}</td>
+                            <td>$${utilidadDariana.toFixed(2)}</td>
+                        </tr>
+                    `;
+                });
+
+                tbody.innerHTML = tableHTML;
+
+            } catch (error) {
+                console.error("Error al cargar el reporte de ventas:", error);
+                tbody.innerHTML = '<tr><td colspan="11">Error al cargar el reporte. Intenta de nuevo.</td></tr>';
+                showMessage('Error al cargar datos del reporte.');
+            }
+        }
         
         async function loadInventory() {
             const accordionContainer = getEl('inventory-accordion');
@@ -1382,100 +1480,109 @@
         });
         
         async function updateOrderStatus(pedidoId, newStatus, event) {
-            event.stopPropagation();
-            const pedidoRef = db.collection('pedidos').doc(pedidoId);
-            try {
-                await db.runTransaction(async (t) => {
-                    const configDoc = await t.get(db.collection('configuracion').doc('tienda'));
-                    const costPerProduct = configDoc.exists && configDoc.data().costoPorProducto ? configDoc.data().costoPorProducto : CAPITAL_PER_PRODUCT;
-                    const shippingCost = configDoc.exists && configDoc.data().costoEnvio ? configDoc.data().costoEnvio : SHIPPING_COST;
+            event.stopPropagation();
+            const pedidoRef = db.collection('pedidos').doc(pedidoId);
+            try {
+                await db.runTransaction(async (t) => {
+                    const configDoc = await t.get(db.collection('configuracion').doc('tienda'));
+                    const costPerProduct = configDoc.exists && configDoc.data().costoPorProducto ? configDoc.data().costoPorProducto : CAPITAL_PER_PRODUCT;
+                    const shippingCost = configDoc.exists && configDoc.data().costoEnvio ? configDoc.data().costoEnvio : SHIPPING_COST;
 
-                    const pedidoDoc = await t.get(pedidoRef);
-                    if (!pedidoDoc.exists) throw new Error("Pedido no encontrado");
-                    const pedidoData = pedidoDoc.data();
-                    if (pedidoData.estado === newStatus) return;
+                    const pedidoDoc = await t.get(pedidoRef);
+                    if (!pedidoDoc.exists) throw new Error("Pedido no encontrado");
+                    const pedidoData = pedidoDoc.data();
+                    if (pedidoData.estado === newStatus) return;
 
-                    const updatesForOrder = { estado: newStatus, fechaActualizacion: firebase.firestore.FieldValue.serverTimestamp() };
+                    const updatesForOrder = { estado: newStatus, fechaActualizacion: firebase.firestore.FieldValue.serverTimestamp() };
 
-                    if (newStatus === 'Entregado' && pedidoData.estado !== 'Entregado') {
-                        const totalVenta = pedidoData.montoTotal || 0;
-                        const numeroProductos = pedidoData.productos?.reduce((sum, p) => sum + (p.cantidad || 1), 0) || 0;
-                        const hasShipping = pedidoData.datosEntrega?.tipo === 'Envío a domicilio';
-                        const gastoEnvio = hasShipping ? shippingCost : 0;
-                        
-                        const capitalMonto = numeroProductos * costPerProduct; 
-                        const utilidadMonto = totalVenta - capitalMonto - gastoEnvio;
+                    if (newStatus === 'Entregado' && pedidoData.estado !== 'Entregado') {
+                        const totalVenta = pedidoData.montoTotal || 0;
+                        const numeroProductos = pedidoData.productos?.reduce((sum, p) => sum + (p.cantidad || 1), 0) || 0;
+                        const hasShipping = pedidoData.datosEntrega?.tipo === 'Envío a domicilio';
+                        const gastoEnvio = hasShipping ? shippingCost : 0;
+                        
+                        const capitalMonto = numeroProductos * costPerProduct;
+                        const utilidadTotal = totalVenta - capitalMonto - gastoEnvio;
 
-                        if (hasShipping) {
-                            const gastoEnvioRef = db.collection('movimientos').doc();
-                             t.set(gastoEnvioRef, {
-                                monto: -gastoEnvio,
-                                concepto: 'Gasto de Envío',
-                                tipo: 'Gastos',
-                                fecha: firebase.firestore.FieldValue.serverTimestamp(),
-                                nota: `Gasto de envío para pedido ${pedidoData.folio}`,
-                                relatedOrderId: pedidoId
-                            });
-                        }
+                        const utilidadNegocio = utilidadTotal * 0.50;
+                        const utilidadUlises = utilidadTotal * 0.25;
+                        const utilidadDariana = utilidadTotal * 0.25;
 
-                        if (capitalMonto > 0) {
-                            const capitalMovRef = db.collection('movimientos').doc();
-                            t.set(capitalMovRef, {
-                                monto: capitalMonto,
-                                concepto: 'Ingreso a Capital',
-                                tipo: 'Capital',
-                                fecha: firebase.firestore.FieldValue.serverTimestamp(),
-                                nota: `Apartado de capital del pedido ${pedidoData.folio}`,
-                                relatedOrderId: pedidoId
-                            });
-                        }
+                        if (hasShipping) {
+                            const gastoEnvioRef = db.collection('movimientos').doc();
+                             t.set(gastoEnvioRef, {
+                                monto: -gastoEnvio, concepto: 'Gasto de Envío', tipo: 'Gastos',
+                                fecha: firebase.firestore.FieldValue.serverTimestamp(),
+                                nota: `Gasto de envío para pedido ${pedidoData.folio}`, relatedOrderId: pedidoId
+                            });
+                        }
 
-                        if (utilidadMonto !== 0) {
-                            const utilidadMovRef = db.collection('movimientos').doc();
-                            t.set(utilidadMovRef, {
-                                monto: utilidadMonto,
-                                concepto: 'Ingreso a Utilidad',
-                                tipo: 'Utilidad',
-                                fecha: firebase.firestore.FieldValue.serverTimestamp(),
-                                nota: `Utilidad generada por el pedido ${pedidoData.folio}`,
-                                relatedOrderId: pedidoId
-                            });
-                        }
-                        
-                        const finanzasRef = db.collection('finanzas').doc('resumen');
-                        t.update(finanzasRef, {
-                            ventas: firebase.firestore.FieldValue.increment(totalVenta),
-                            gastos: firebase.firestore.FieldValue.increment(gastoEnvio),
-                            utilidad: firebase.firestore.FieldValue.increment(utilidadMonto),
-                            capital: firebase.firestore.FieldValue.increment(capitalMonto)
-                        });
+                        if (capitalMonto > 0) {
+                            const capitalMovRef = db.collection('movimientos').doc();
+                            t.set(capitalMovRef, {
+                                monto: capitalMonto, concepto: 'Ingreso a Capital', tipo: 'Capital',
+                                fecha: firebase.firestore.FieldValue.serverTimestamp(),
+                                nota: `Apartado de capital del pedido ${pedidoData.folio}`, relatedOrderId: pedidoId
+                            });
+                        }
 
-                        for (const producto of pedidoData.productos) if (producto.id) t.update(db.collection('productos').doc(producto.id), { cantidadVendida: firebase.firestore.FieldValue.increment(producto.cantidad || 1) });
-                        
-                        if (pedidoData.empaque && empaqueInsumoMap[pedidoData.empaque]) {
-                            const insumoName = empaqueInsumoMap[pedidoData.empaque];
-                            const insumosQueryRef = db.collection('inventarioInsumos').where('descripcion', '==', insumoName).limit(1);
-                            const insumoSnapshot = await t.get(insumosQueryRef);
+                        if (utilidadNegocio !== 0) {
+                            const utilidadNegocioRef = db.collection('movimientos').doc();
+                            t.set(utilidadNegocioRef, {
+                                monto: utilidadNegocio, concepto: 'Ingreso Utilidad Negocio', tipo: 'Utilidad Negocio',
+                                fecha: firebase.firestore.FieldValue.serverTimestamp(),
+                                nota: `Utilidad Negocio (50%) del pedido ${pedidoData.folio}`, relatedOrderId: pedidoId
+                            });
+                        }
+                        if (utilidadUlises !== 0) {
+                            const utilidadUlisesRef = db.collection('movimientos').doc();
+                            t.set(utilidadUlisesRef, {
+                                monto: utilidadUlises, concepto: 'Ingreso Utilidad Socio', tipo: 'Utilidad Socio', socio: 'Ulises',
+                                fecha: firebase.firestore.FieldValue.serverTimestamp(),
+                                nota: `Utilidad Ulises (25%) del pedido ${pedidoData.folio}`, relatedOrderId: pedidoId
+                            });
+                        }
+                        if (utilidadDariana !== 0) {
+                            const utilidadDarianaRef = db.collection('movimientos').doc();
+                            t.set(utilidadDarianaRef, {
+                                monto: utilidadDariana, concepto: 'Ingreso Utilidad Socio', tipo: 'Utilidad Socio', socio: 'Dariana',
+                                fecha: firebase.firestore.FieldValue.serverTimestamp(),
+                                nota: `Utilidad Dariana (25%) del pedido ${pedidoData.folio}`, relatedOrderId: pedidoId
+                            });
+                        }
 
-                            if (!insumoSnapshot.empty) {
-                                const insumoDocRef = insumoSnapshot.docs[0].ref;
-                                t.update(insumoDocRef, {
-                                    cantidad: firebase.firestore.FieldValue.increment(-1)
-                                });
-                            } else {
-                                console.warn(`Insumo de empaque "${insumoName}" no encontrado en inventarioInsumos.`);
-                            }
-                        }
-                    }
-                    
-                    t.update(pedidoRef, updatesForOrder);
-                });
-                showMessage(`Pedido actualizado a '${newStatus}'.`);
-            } catch (error) {
-                console.error("Error al actualizar estado: ", error);
-                showMessage('Error al actualizar el estado del pedido.');
-            }
-        }
+                        const finanzasRef = db.collection('finanzas').doc('resumen');
+                        t.update(finanzasRef, {
+                            ventas: firebase.firestore.FieldValue.increment(totalVenta),
+                            gastos: firebase.firestore.FieldValue.increment(gastoEnvio),
+                            capital: firebase.firestore.FieldValue.increment(capitalMonto),
+                            utilidad: firebase.firestore.FieldValue.increment(utilidadTotal),
+                            utilidadNegocioTotal: firebase.firestore.FieldValue.increment(utilidadNegocio),
+                            utilidadUlisesTotal: firebase.firestore.FieldValue.increment(utilidadUlises),
+                            utilidadDarianaTotal: firebase.firestore.FieldValue.increment(utilidadDariana)
+                        });
+
+                        for (const producto of pedidoData.productos) if (producto.id) t.update(db.collection('productos').doc(producto.id), { cantidadVendida: firebase.firestore.FieldValue.increment(producto.cantidad || 1) });
+                        
+                        if (pedidoData.empaque && empaqueInsumoMap[pedidoData.empaque]) {
+                            const insumoName = empaqueInsumoMap[pedidoData.empaque];
+                            const insumosQueryRef = db.collection('inventarioInsumos').where('descripcion', '==', insumoName).limit(1);
+                            const insumoSnapshot = await t.get(insumosQueryRef);
+                            if (!insumoSnapshot.empty) {
+                                const insumoDocRef = insumoSnapshot.docs[0].ref;
+                                t.update(insumoDocRef, { cantidad: firebase.firestore.FieldValue.increment(-1) });
+                            } else { console.warn(`Insumo de empaque "${insumoName}" no encontrado.`); }
+                        }
+                    }
+                    
+                    t.update(pedidoRef, updatesForOrder);
+                });
+                showMessage(`Pedido actualizado a '${newStatus}'. Reparto de utilidad registrado.`);
+            } catch (error) {
+                console.error("Error al actualizar estado y registrar reparto: ", error);
+                showMessage('Error al actualizar el estado del pedido y registrar reparto.');
+            }
+        }
         
         function promptCancelOrder(pedidoId, event) {
             event.stopPropagation();
@@ -1526,23 +1633,25 @@
         }
 
         async function loadMovementCategories() {
-            const select = getEl('movement-filter-category');
-            select.innerHTML = '<option value="all">Todas las categorías</option>';
-            const fixedCategories = ['Ventas', 'Gastos', 'Utilidad', 'Capital'];
-            const categories = new Set(fixedCategories);
-            try {
-                const [gastosSnap] = await Promise.all([
-                    db.collection('movimientos').where('tipo', '==', 'Gastos').get()
-                ]);
-                gastosSnap.forEach(doc => categories.add(doc.data().concepto));
+            const select = getEl('movement-filter-category');
+            select.innerHTML = '<option value="all">Todas las categorías</option>';
+            // Se añaden los nuevos tipos de utilidad aquí
+            const fixedCategories = ['Ventas', 'Gastos', 'Utilidad', 'Capital', 'Utilidad Negocio', 'Utilidad Socio'];
+            const categories = new Set(fixedCategories);
+            try {
+                // Cargar conceptos de gastos para agregarlos al filtro
+                const gastosSnap = await db.collection('movimientos').where('tipo', '==', 'Gastos').get();
+                gastosSnap.forEach(doc => {
+                    if(doc.data().concepto) categories.add(doc.data().concepto);
+                });
 
-                const orderedCategories = Array.from(categories).sort();
-                select.innerHTML = '<option value="all">Todas las categorías</option>'; // Reset
-                orderedCategories.forEach(cat => {
-                    if (cat) select.innerHTML += `<option value="${cat}">${cat}</option>`;
-                });
-            } catch (error) { console.error("Error al cargar categorías:", error); }
-        }
+                const orderedCategories = Array.from(categories).sort();
+                select.innerHTML = '<option value="all">Todas las categorías</option>'; // Reset
+                orderedCategories.forEach(cat => {
+                    if (cat) select.innerHTML += `<option value="${cat}">${cat}</option>`;
+                });
+            } catch (error) { console.error("Error al cargar categorías:", error); }
+        }
 
         async function loadMovementsHistory() {
             const list = getEl('movements-list');
@@ -1674,15 +1783,25 @@
         }
         
         function loadFinancialSummary() {
-            const unsub = db.collection('finanzas').doc('resumen').onSnapshot(doc => {
-                const data = doc.data() || {};
-                getEl('total-sales').textContent = `$${(data.ventas || 0).toFixed(2)}`;
-                getEl('total-expenses').textContent = `$${(data.gastos || 0).toFixed(2)}`;
-                getEl('total-profit').textContent = `$${(data.utilidad || 0).toFixed(2)}`;
-                getEl('total-capital').textContent = `$${(data.capital || 0).toFixed(2)}`;
-            });
-            unsubscribes.push(unsub);
-        }
+            const unsub = db.collection('finanzas').doc('resumen').onSnapshot(doc => {
+                const data = doc.data() || {};
+                getEl('total-sales').textContent = `$${(data.ventas || 0).toFixed(2)}`;
+                getEl('total-expenses').textContent = `$${(data.gastos || 0).toFixed(2)}`;
+                getEl('total-profit').textContent = `$${(data.utilidad || 0).toFixed(2)}`;
+                getEl('total-capital').textContent = `$${(data.capital || 0).toFixed(2)}`;
+                // Asegúrate de que los IDs coincidan con los que pusiste en el HTML del panel financiero
+                if (getEl('total-profit-negocio')) {
+                    getEl('total-profit-negocio').textContent = `$${(data.utilidadNegocioTotal || 0).toFixed(2)}`;
+                }
+                if (getEl('total-profit-ulises')) {
+                    getEl('total-profit-ulises').textContent = `$${(data.utilidadUlisesTotal || 0).toFixed(2)}`;
+                }
+                if (getEl('total-profit-dariana')) {
+                    getEl('total-profit-dariana').textContent = `$${(data.utilidadDarianaTotal || 0).toFixed(2)}`;
+                }
+            });
+            unsubscribes.push(unsub);
+        }
         
         async function loadExpenseConcepts() {
             const select = getEl('expense-concept');
@@ -2170,76 +2289,92 @@ async function deleteOrder(pedidoId) {
 }
 
 // --- CORRECCIÓN 2: LÓGICA PARA MOSTRAR HISTORIAL DESDE TARJETAS ---
-async function showMovementsHistory(category) {
-    const modal = getEl('sales-history-modal');
-    const modalTitle = getEl('modal-history-title');
-    const modalList = getEl('modal-sales-list');
-    
-    if (getEl('movements-history-screen').style.display === 'block') {
-        showScreen('movements-history-screen');
-        setTimeout(() => {
-            const filterSelect = getEl('movement-filter-category');
-            if (filterSelect) {
-                filterSelect.value = category;
-                loadMovementsHistory();
-            }
-        }, 100);
-        return;
-    }
+async function showMovementsHistory(category, socio = null) {
+            const modal = getEl('sales-history-modal');
+            const modalTitle = getEl('modal-history-title');
+            const modalList = getEl('modal-sales-list');
+            
+            // Si ya estamos en la pantalla de historial, solo cambia el filtro
+            if (getEl('movements-history-screen').style.display === 'block') {
+                // Asegúrate de que la pantalla esté visible antes de intentar cambiar el filtro
+                showScreen('movements-history-screen');
+                // Da un pequeño tiempo para que la pantalla cargue y el select esté disponible
+                setTimeout(() => {
+                    const filterSelect = getEl('movement-filter-category');
+                    if (filterSelect) {
+                        filterSelect.value = category; // Usa la categoría directamente
+                        loadMovementsHistory(); // Recarga la lista con el filtro aplicado
+                    }
+                }, 100);
+                return; // No mostramos el modal si vamos a la pantalla completa
+            }
 
-    modalTitle.textContent = `Historial de ${category}`;
-    modalList.innerHTML = '<p>Cargando movimientos...</p>';
-    modal.style.display = 'flex';
+            // Si no estamos en la pantalla de historial, mostramos el modal
+            modalTitle.textContent = `Historial de ${category} ${socio ? '('+socio+')' : ''}`;
+            modalList.innerHTML = '<p>Cargando movimientos...</p>';
+            modal.style.display = 'flex';
 
-    try {
-        let allMovements = [];
-        const movementsSnap = await db.collection('movimientos').get();
-        movementsSnap.forEach(doc => {
-            const d = doc.data();
-            if (d.fecha) {
-                allMovements.push({
-                    id: doc.id, date: d.fecha.toDate(), description: d.nota || d.concepto,
-                    type: d.tipo, amount: d.monto, category: d.tipo === 'Gastos' ? d.concepto : d.tipo
-                });
-            }
-        });
+            try {
+                let allMovements = [];
+                const movementsSnap = await db.collection('movimientos').get();
+                movementsSnap.forEach(doc => {
+                    const d = doc.data();
+                    if (d.fecha) {
+                        allMovements.push({
+                            id: doc.id, date: d.fecha.toDate(), description: d.nota || d.concepto,
+                            type: d.tipo, amount: d.monto,
+                            category: d.tipo === 'Gastos' ? d.concepto : d.tipo, // Usa concepto para gastos, tipo para otros
+                            socio: d.socio // Agrega el campo socio si existe
+                        });
+                    }
+                });
 
-        const salesSnapshot = await db.collection('pedidos').where('estado', '==', 'Entregado').get();
-        salesSnapshot.forEach(doc => {
-            const d = doc.data();
-            if (d.fechaActualizacion) {
-                allMovements.push({ id: doc.id, date: d.fechaActualizacion.toDate(), description: `Venta #${d.folio || d.clienteManual}`, type: 'Venta', amount: d.montoTotal || 0, category: 'Ventas' });
-            }
-        });
+                // También incluye las ventas como movimientos positivos de 'Ventas'
+                const salesSnapshot = await db.collection('pedidos').where('estado', '==', 'Entregado').get();
+                salesSnapshot.forEach(doc => {
+                    const d = doc.data();
+                    if (d.fechaActualizacion) {
+                        allMovements.push({
+                            id: doc.id, date: d.fechaActualizacion.toDate(),
+                            description: `Venta #${d.folio || d.clienteManual}`, type: 'Ventas', // Tipo 'Ventas'
+                            amount: d.montoTotal || 0, category: 'Ventas' // Categoría 'Ventas'
+                        });
+                    }
+                });
 
-        const filteredMovements = allMovements.filter(m => {
-            if (category === 'Gastos') return m.type.includes('Gasto') || m.type === 'Gastos';
-            if (category === 'Ventas') return m.type === 'Venta';
-            return m.category === category;
-        });
+                // Filtrado mejorado
+                const filteredMovements = allMovements.filter(m => {
+                    if (category === 'Gastos') return m.type === 'Gastos'; // Solo movimientos tipo 'Gastos'
+                    if (category === 'Ventas') return m.type === 'Ventas'; // Solo movimientos tipo 'Ventas' (las ventas agregadas arriba)
+                    if (category === 'Utilidad Socio') {
+                        return m.type === 'Utilidad Socio' && (socio ? m.socio === socio : true); // Filtra por tipo y opcionalmente por socio
+                    }
+                    // Para Capital y Utilidad Negocio, compara directamente con el tipo
+                    return m.type === category;
+                });
 
-        filteredMovements.sort((a, b) => b.date - a.date);
+                filteredMovements.sort((a, b) => b.date - a.date);
 
-        modalList.innerHTML = filteredMovements.length ? '' : `<p>No hay movimientos en la categoría ${category}.</p>`;
-        filteredMovements.forEach(m => {
-            const amountClass = m.amount >= 0 ? 'amount-positive' : 'amount-negative';
-            const amountSign = m.amount >= 0 ? '+' : '-';
-            modalList.innerHTML += `
-                <li class="card-item" style="padding: 15px;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; text-align: left;">
-                        <div>
-                            <p style="font-weight: 500;">${m.description}</p>
-                            <p style="font-size: 0.8em; color: var(--text-secondary); margin-top: 5px;">${m.date.toLocaleDateString()}</p>
-                        </div>
-                        <span class="${amountClass}" style="font-weight: 700;">${amountSign}$${Math.abs(m.amount).toFixed(2)}</span>
-                    </div>
-                </li>`;
-        });
-    } catch (error) {
-        console.error("Error al cargar movimientos en el modal:", error);
-        modalList.innerHTML = '<p>Error al cargar los movimientos.</p>';
-    }
-}
+                modalList.innerHTML = filteredMovements.length ? '' : `<p>No hay movimientos en la categoría ${category}.</p>`;
+                filteredMovements.forEach(m => {
+                    const amountClass = m.amount >= 0 ? 'amount-positive' : 'amount-negative';
+                    const amountSign = m.amount >= 0 ? '+' : '-'; // Usar '-' para negativos
+                    modalList.innerHTML += `
+                        <li class="card-item" style="padding: 15px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; text-align: left;">
+                                <div>
+                                    <p style="font-weight: 500;">${m.description}</p>
+                                    <p style="font-size: 0.8em; color: var(--text-secondary); margin-top: 5px;">${m.date.toLocaleDateString()}</p>
+                                </div>
+                                <span class="${amountClass}" style="font-weight: 700;">${amountSign}$${Math.abs(m.amount).toFixed(2)}</span>
+                            </div>
+                        </li>`;
+                });
+            } catch (error) {
+                console.error("Error al cargar movimientos en el modal:", error);
+                modalList.innerHTML = '<p>Error al cargar los movimientos.</p>';
+            }
+        }
 
 
 // --- LÓGICA PARA COSTOS DE PRODUCTO Y ENVÍO ---
@@ -2454,161 +2589,176 @@ function addManualOrderLine() {
 }
 
 getEl('manual-order-form').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const submitButton = e.target.querySelector('button[type="submit"]');
-    submitButton.disabled = true;
-    submitButton.textContent = "Procesando...";
+    e.preventDefault();
+    const submitButton = e.target.querySelector('button[type="submit"]');
+    submitButton.disabled = true;
+    submitButton.textContent = "Procesando...";
 
-    const clienteManual = getEl('manual-order-client').value;
-    const telefonoCliente = getEl('manual-order-phone').value;
-    const canalVenta = getEl('manual-order-channel').value;
-    const montoTotal = parseFloat(getEl('manual-order-total').value);
-    const comentarios = getEl('manual-delivery-comments').value;
-    
-    const deliveryMethod = getEl('manual-delivery-method').value;
-    let datosEntrega = {};
-    if (deliveryMethod === 'domicilio') {
-        datosEntrega = {
-            tipo: 'Envío a domicilio',
-            calle: getEl('manual-delivery-street').value,
-            colonia: getEl('manual-delivery-neighborhood').value,
-            descripcion: getEl('manual-delivery-description').value || null
-        };
-    } else {
-        const lugarSelect = getEl('manual-delivery-location').value;
-        const lugar = (lugarSelect === 'Otro') ? getEl('manual-other-location-note').value : lugarSelect;
-        datosEntrega = {
-            tipo: 'Punto medio',
-            lugar: lugar,
-            fecha: getEl('manual-delivery-date').value
-        };
-    }
-    
-    const items = [];
-    document.querySelectorAll('.manual-order-line').forEach(line => {
-        const productId = line.querySelector('.manual-order-product').value;
-        const quantity = parseInt(line.querySelector('.manual-order-quantity').value);
-        if (productId && quantity > 0) {
-            const productData = productModels.find(p => p.id === productId);
-            if(productData) {
-                items.push({
-                    id: productId,
-                    nombre: productData.nombre,
-                    precio: productData.precio,
-                    cantidad: quantity
-                });
-            }
-        }
-    });
+    const clienteManual = getEl('manual-order-client').value;
+    const telefonoCliente = getEl('manual-order-phone').value;
+    const canalVenta = getEl('manual-order-channel').value;
+    const montoTotal = parseFloat(getEl('manual-order-total').value);
+    const comentarios = getEl('manual-delivery-comments').value;
+    
+    const deliveryMethod = getEl('manual-delivery-method').value;
+    let datosEntrega = {};
+    if (deliveryMethod === 'domicilio') {
+        datosEntrega = {
+            tipo: 'Envío a domicilio',
+            calle: getEl('manual-delivery-street').value,
+            colonia: getEl('manual-delivery-neighborhood').value,
+            descripcion: getEl('manual-delivery-description').value || null
+        };
+    } else {
+        const lugarSelect = getEl('manual-delivery-location').value;
+        const lugar = (lugarSelect === 'Otro') ? getEl('manual-other-location-note').value : lugarSelect;
+        datosEntrega = {
+            tipo: 'Punto medio',
+            lugar: lugar,
+            fecha: getEl('manual-delivery-date').value
+        };
+    }
+    
+    const items = [];
+    document.querySelectorAll('.manual-order-line').forEach(line => {
+        const productId = line.querySelector('.manual-order-product').value;
+        const quantity = parseInt(line.querySelector('.manual-order-quantity').value);
+        if (productId && quantity > 0) {
+            const productData = productModels.find(p => p.id === productId);
+            if(productData) {
+                items.push({
+                    id: productId,
+                    nombre: productData.nombre,
+                    precio: productData.precio,
+                    cantidad: quantity
+                });
+            }
+        }
+    });
 
-    if (items.length === 0) {
-        showMessage("Debes agregar al menos un producto.");
-        submitButton.disabled = false;
-        submitButton.textContent = "Registrar Venta";
-        return;
-    }
+    if (items.length === 0) {
+        showMessage("Debes agregar al menos un producto.");
+        submitButton.disabled = false;
+        submitButton.textContent = "Registrar Venta";
+        return;
+    }
 
-    try {
-        await db.runTransaction(async (transaction) => {
-            const configRef = db.collection('configuracion').doc('tienda');
-            const configDoc = await transaction.get(configRef);
-            const costPerProduct = configDoc.exists && configDoc.data().costoPorProducto ? configDoc.data().costoPorProducto : CAPITAL_PER_PRODUCT;
-            const shippingCost = configDoc.exists && configDoc.data().costoEnvio ? configDoc.data().costoEnvio : SHIPPING_COST;
+    try {
+        await db.runTransaction(async (transaction) => {
+            const configRef = db.collection('configuracion').doc('tienda');
+            const configDoc = await transaction.get(configRef);
+            const costPerProduct = configDoc.exists && configDoc.data().costoPorProducto ? configDoc.data().costoPorProducto : CAPITAL_PER_PRODUCT;
+            const shippingCost = configDoc.exists && configDoc.data().costoEnvio ? configDoc.data().costoEnvio : SHIPPING_COST;
 
-            const counterRef = db.collection('contadores').doc('pedidos');
-            const counterDoc = await transaction.get(counterRef);
-            const nuevoFolioNum = (counterDoc.exists ? counterDoc.data().ultimoFolio : 0) + 1;
-            const folioFormateado = `MANUAL-${String(nuevoFolioNum).padStart(4, '0')}`;
-            transaction.set(counterRef, { ultimoFolio: nuevoFolioNum }, { merge: true });
+            const counterRef = db.collection('contadores').doc('pedidos');
+            const counterDoc = await transaction.get(counterRef);
+            const nuevoFolioNum = (counterDoc.exists ? counterDoc.data().ultimoFolio : 0) + 1;
+            const folioFormateado = `MANUAL-${String(nuevoFolioNum).padStart(4, '0')}`;
+            transaction.set(counterRef, { ultimoFolio: nuevoFolioNum }, { merge: true });
 
-            const nuevoPedidoRef = db.collection('pedidos').doc();
-            transaction.set(nuevoPedidoRef, {
-                folio: folioFormateado,
-                clienteManual: clienteManual,
-                datosCliente: { nombre: clienteManual, apellido: '', telefono: telefonoCliente },
-                canalVenta: canalVenta,
-                productos: items,
-                montoTotal: montoTotal,
-                estado: 'Entregado',
-                metodoPago: 'Manual',
-                fechaCreacion: firebase.firestore.FieldValue.serverTimestamp(),
-                fechaActualizacion: firebase.firestore.FieldValue.serverTimestamp(),
-                datosEntrega: datosEntrega,
-                comentarios: comentarios || null
-            });
+            const nuevoPedidoRef = db.collection('pedidos').doc();
+            transaction.set(nuevoPedidoRef, {
+                folio: folioFormateado,
+                clienteManual: clienteManual,
+                datosCliente: { nombre: clienteManual, apellido: '', telefono: telefonoCliente },
+                canalVenta: canalVenta,
+                productos: items,
+                montoTotal: montoTotal,
+                estado: 'Entregado',
+                metodoPago: 'Manual',
+                fechaCreacion: firebase.firestore.FieldValue.serverTimestamp(),
+                fechaActualizacion: firebase.firestore.FieldValue.serverTimestamp(),
+                datosEntrega: datosEntrega,
+                comentarios: comentarios || null
+            });
 
-            const hasShipping = datosEntrega.tipo === 'Envío a domicilio';
-            const gastoEnvio = hasShipping ? shippingCost : 0;
-            const numeroProductosTotal = items.reduce((sum, item) => sum + item.cantidad, 0);
-            const capitalMonto = numeroProductosTotal * costPerProduct;
-            const utilidadMonto = montoTotal - capitalMonto - gastoEnvio;
+            const hasShipping = datosEntrega.tipo === 'Envío a domicilio';
+            const gastoEnvio = hasShipping ? shippingCost : 0;
+            const numeroProductosTotal = items.reduce((sum, item) => sum + item.cantidad, 0);
+            const capitalMonto = numeroProductosTotal * costPerProduct;
+            const utilidadTotal = montoTotal - capitalMonto - gastoEnvio;
 
-            if (hasShipping) {
-                const gastoEnvioRef = db.collection('movimientos').doc();
-                transaction.set(gastoEnvioRef, {
-                    monto: -gastoEnvio,
-                    concepto: 'Gasto de Envío',
-                    tipo: 'Gastos',
-                    fecha: firebase.firestore.FieldValue.serverTimestamp(),
-                    nota: `Gasto de envío para venta manual ${folioFormateado}`,
-                    relatedOrderId: nuevoPedidoRef.id
-                });
-            }
+            const utilidadNegocio = utilidadTotal * 0.50;
+            const utilidadUlises = utilidadTotal * 0.25;
+            const utilidadDariana = utilidadTotal * 0.25;
 
-            const finanzasRef = db.collection('finanzas').doc('resumen');
-            transaction.update(finanzasRef, {
-                ventas: firebase.firestore.FieldValue.increment(montoTotal),
-                gastos: firebase.firestore.FieldValue.increment(gastoEnvio),
-                utilidad: firebase.firestore.FieldValue.increment(utilidadMonto),
-                capital: firebase.firestore.FieldValue.increment(capitalMonto)
-            });
-            
-             if (capitalMonto > 0) {
-                const capitalMovRef = db.collection('movimientos').doc();
-                transaction.set(capitalMovRef, {
-                    monto: capitalMonto,
-                    concepto: 'Ingreso a Capital',
-                    tipo: 'Capital',
-                    fecha: firebase.firestore.FieldValue.serverTimestamp(),
-                    nota: `Apartado de capital de venta manual ${folioFormateado}`,
-                    relatedOrderId: nuevoPedidoRef.id
-                });
-            }
-            if (utilidadMonto !== 0) {
-                const utilidadMovRef = db.collection('movimientos').doc();
-                transaction.set(utilidadMovRef, {
-                    monto: utilidadMonto,
-                    concepto: 'Ingreso a Utilidad',
-                    tipo: 'Utilidad',
-                    fecha: firebase.firestore.FieldValue.serverTimestamp(),
-                    nota: `Utilidad generada por venta manual ${folioFormateado}`,
-                    relatedOrderId: nuevoPedidoRef.id
-                });
-            }
+            if (hasShipping) {
+                const gastoEnvioRef = db.collection('movimientos').doc();
+                transaction.set(gastoEnvioRef, {
+                    monto: -gastoEnvio, concepto: 'Gasto de Envío', tipo: 'Gastos',
+                    fecha: firebase.firestore.FieldValue.serverTimestamp(),
+                    nota: `Gasto de envío para venta manual ${folioFormateado}`, relatedOrderId: nuevoPedidoRef.id
+                });
+            }
 
-            for (const item of items) {
-                const productRef = db.collection('productos').doc(item.id);
-                transaction.update(productRef, { 
-                    stock: firebase.firestore.FieldValue.increment(-item.cantidad),
-                    cantidadVendida: firebase.firestore.FieldValue.increment(item.cantidad)
-                });
-            }
-        });
+            if (capitalMonto > 0) {
+                const capitalMovRef = db.collection('movimientos').doc();
+                transaction.set(capitalMovRef, {
+                    monto: capitalMonto, concepto: 'Ingreso a Capital', tipo: 'Capital',
+                    fecha: firebase.firestore.FieldValue.serverTimestamp(),
+                    nota: `Apartado de capital de venta manual ${folioFormateado}`, relatedOrderId: nuevoPedidoRef.id
+                });
+            }
 
-        showMessage('Venta manual registrada con éxito.');
-        getEl('manual-order-form').reset();
-        getEl('manual-order-items').innerHTML = '';
-        addManualOrderLine();
-        toggleManualDeliveryFields();
-        calculateManualOrderTotal();
+            if (utilidadNegocio !== 0) {
+                const utilidadNegocioRef = db.collection('movimientos').doc();
+                transaction.set(utilidadNegocioRef, {
+                    monto: utilidadNegocio, concepto: 'Ingreso Utilidad Negocio', tipo: 'Utilidad Negocio',
+                    fecha: firebase.firestore.FieldValue.serverTimestamp(),
+                    nota: `Utilidad Negocio (50%) de venta manual ${folioFormateado}`, relatedOrderId: nuevoPedidoRef.id
+                });
+            }
+            if (utilidadUlises !== 0) {
+                const utilidadUlisesRef = db.collection('movimientos').doc();
+                transaction.set(utilidadUlisesRef, {
+                    monto: utilidadUlises, concepto: 'Ingreso Utilidad Socio', tipo: 'Utilidad Socio', socio: 'Ulises',
+                    fecha: firebase.firestore.FieldValue.serverTimestamp(),
+                    nota: `Utilidad Ulises (25%) de venta manual ${folioFormateado}`, relatedOrderId: nuevoPedidoRef.id
+                });
+            }
+            if (utilidadDariana !== 0) {
+                const utilidadDarianaRef = db.collection('movimientos').doc();
+                transaction.set(utilidadDarianaRef, {
+                    monto: utilidadDariana, concepto: 'Ingreso Utilidad Socio', tipo: 'Utilidad Socio', socio: 'Dariana',
+                    fecha: firebase.firestore.FieldValue.serverTimestamp(),
+                    nota: `Utilidad Dariana (25%) de venta manual ${folioFormateado}`, relatedOrderId: nuevoPedidoRef.id
+                });
+            }
 
-    } catch (error) {
-        console.error("Error al registrar venta manual:", error);
-        showMessage("Error al registrar la venta: " + error.message);
-    } finally {
-        submitButton.disabled = false;
-        submitButton.textContent = "Registrar Venta";
-    }
+            const finanzasRef = db.collection('finanzas').doc('resumen');
+            transaction.update(finanzasRef, {
+                ventas: firebase.firestore.FieldValue.increment(montoTotal),
+                gastos: firebase.firestore.FieldValue.increment(gastoEnvio),
+                capital: firebase.firestore.FieldValue.increment(capitalMonto),
+                utilidad: firebase.firestore.FieldValue.increment(utilidadTotal),
+                utilidadNegocioTotal: firebase.firestore.FieldValue.increment(utilidadNegocio),
+                utilidadUlisesTotal: firebase.firestore.FieldValue.increment(utilidadUlises),
+                utilidadDarianaTotal: firebase.firestore.FieldValue.increment(utilidadDariana)
+            });
+            
+            for (const item of items) {
+                const productRef = db.collection('productos').doc(item.id);
+                transaction.update(productRef, { 
+                    stock: firebase.firestore.FieldValue.increment(-item.cantidad),
+                    cantidadVendida: firebase.firestore.FieldValue.increment(item.cantidad)
+                });
+            }
+        }); // Fin de la transacción
+
+        showMessage('Venta manual registrada y reparto aplicado con éxito.');
+        getEl('manual-order-form').reset();
+        getEl('manual-order-items').innerHTML = '';
+        addManualOrderLine();
+        toggleManualDeliveryFields();
+        calculateManualOrderTotal();
+
+    } catch (error) {
+        console.error("Error al registrar venta manual y reparto:", error);
+        showMessage("Error al registrar la venta: " + error.message);
+    } finally {
+        submitButton.disabled = false;
+        submitButton.textContent = "Registrar Venta";
+    }
 });
 
 
