@@ -693,9 +693,10 @@
 
         <section id="finance-screen" style="display: none;">
             <h1>Administración Financiera</h1>
-        <div class="finance-panel">
+     <div class="finance-panel">
                 <div class="finance-card" onclick="showMovementsHistory('Ventas')"><h3>Ventas Totales</h3><p id="total-sales">$0.00</p></div>
                 <div class="finance-card" onclick="showMovementsHistory('Gastos')"><h3>Gastos Totales</h3><p id="total-expenses">$0.00</p></div>
+                <div class="finance-card" onclick="showMovementsHistory('Utilidad')"><h3>Utilidad Total</h3><p id="total-profit">$0.00</p></div>
                 <div class="finance-card" onclick="showMovementsHistory('Capital')"><h3>Capital Acumulado</h3><p id="total-capital">$0.00</p></div>
                 <div class="finance-card" onclick="showMovementsHistory('Utilidad Negocio')"><h3>Utilidad Negocio (50%)</h3><p id="total-profit-negocio">$0.00</p></div>
                 <div class="finance-card" onclick="showMovementsHistory('Utilidad Socio', 'Ulises')"><h3>Utilidad Ulises (25%)</h3><p id="total-profit-ulises">$0.00</p></div>
@@ -824,7 +825,9 @@
             </div>
 
             <button class="close-button" onclick="showScreen('main-menu')">Volver al Menú</button>
-        </section>                 <section id="sales-report-table-screen" style="display: none;">
+        </section>                 
+
+           <section id="sales-report-table-screen" style="display: none;">
             <h1>Reporte Detallado de Ventas</h1>
             <div class="table-container">
                 <table id="sales-report-table">
