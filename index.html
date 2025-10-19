@@ -924,57 +924,61 @@
         const getEl = (id) => document.getElementById(id);
         
         async function showScreen(screenId) {
-            document.querySelectorAll('section').forEach(screen => screen.style.display = 'none');
-            getEl(screenId).style.display = 'block';
+            document.querySelectorAll('section').forEach(screen => screen.style.display = 'none');
+            getEl(screenId).style.display = 'block';
 
-            document.querySelectorAll('.logo-img').forEach(img => {
-                img.src = IMAGES_BASE_URL + 'LOGO.png';
-            });
+            document.querySelectorAll('.logo-img').forEach(img => {
+                img.src = IMAGES_BASE_URL + 'LOGO.png';
+            });
 
-            unsubscribes.forEach(unsub => unsub());
-            unsubscribes = [];
+            unsubscribes.forEach(unsub => unsub());
+            unsubscribes = [];
 
-            switch (screenId) {
-                case 'inventory-screen': 
-                    loadInventory(); 
-                    break;
-                case 'orders-screen': loadOrders(); break;
-                case 'sales-history-screen': loadSalesHistory(); break;
-                case 'finance-screen': 
-                    loadFinancialSummary(); 
-                    loadExpenseConcepts(); 
-                    loadProductCost();
-                    loadShippingCost();
-                    break;
-                case 'supplies-screen': loadSupplies(); break;
-                case 'restock-screen': 
-                    await loadProductModels();
-                    loadRestockHistory();
-                    if(getEl('restock-items')) {
-                        getEl('restock-items').innerHTML = '';
-                        addRestockLine();
-                    }
-                    break;
-                case 'sales-screen': loadSalesData(); break;
-                case 'movements-history-screen': loadMovementCategories(); loadMovementsHistory(); break;
-                case 'theme-screen': 
-                    loadCurrentTheme();
-                    break;
-                case 'packaging-screen': 
-                    loadPackagingVisibility();
-                    loadVideoManagement(); // ACTUALIZADO
-                    break;
-                case 'manual-order-screen': 
-                    await loadProductModels(); 
-                    getEl('manual-order-items').innerHTML = '';
-                    addManualOrderLine();
-                    getEl('manual-order-form').reset();
-                    toggleManualDeliveryFields(); 
-                    calculateManualOrderTotal();
-                    break;
-                case 'raw-materials-screen': loadRawMaterials(); break;
-            }
-        }
+            switch (screenId) {
+                // --- CORRECCIÓN: Se agregó el 'case' faltante ---
+                case 'main-menu':
+                    // No se necesita cargar nada, solo mostrar el menú
+                    break;
+                case 'inventory-screen': 
+                    loadInventory(); 
+                    break;
+                case 'orders-screen': loadOrders(); break;
+                case 'sales-history-screen': loadSalesHistory(); break;
+                case 'finance-screen': 
+                    loadFinancialSummary(); 
+                    loadExpenseConcepts(); 
+                    loadProductCost();
+                    loadShippingCost();
+                    break;
+                case 'supplies-screen': loadSupplies(); break;
+                case 'restock-screen': 
+                    await loadProductModels();
+                    loadRestockHistory();
+                    if(getEl('restock-items')) {
+                        getEl('restock-items').innerHTML = '';
+                        addRestockLine();
+                    }
+                    break;
+                case 'sales-screen': loadSalesData(); break;
+                case 'movements-history-screen': loadMovementCategories(); loadMovementsHistory(); break;
+                case 'theme-screen': 
+                    loadCurrentTheme();
+                    break;
+                case 'packaging-screen': 
+                    loadPackagingVisibility();
+                    loadVideoManagement(); // ACTUALIZADO
+                    break;
+                case 'manual-order-screen': 
+                    await loadProductModels(); 
+                    getEl('manual-order-items').innerHTML = '';
+                    addManualOrderLine();
+                    getEl('manual-order-form').reset();
+                    toggleManualDeliveryFields(); 
+                    calculateManualOrderTotal();
+                    break;
+                case 'raw-materials-screen': loadRawMaterials(); break;
+            }
+        }
         
         async function loadCurrentTheme() {
             const statusEl = getEl('current-theme-status');
@@ -1070,28 +1074,36 @@
             });
         }
         
-        async function solicitarPermisoNotificaciones() {
-            try {
-                const permission = await Notification.requestPermission();
-                if (permission === 'granted') {
-                    const swRegistration = await navigator.serviceWorker.ready;
-                    const token = await messaging.getToken({ 
-                        vapidKey: vapidKey,
-                        serviceWorkerRegistration: swRegistration
-                    });
-                    
-                    if (token) {
-                        const tokenRef = db.collection('admin_devices').doc(token);
-                        await tokenRef.set({
-                            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                            userAgent: navigator.userAgent
-                        });
-                    }
-                }
-            } catch (error) {
-                console.error('Error al obtener el permiso o el token de FCM:', error);
-            }
-        }
+        // --- CORRECCIÓN: Se modificó esta función para evitar el crash ---
+        async function solicitarPermisoNotificaciones() {
+            try {
+                const permission = await Notification.requestPermission();
+                if (permission === 'granted') {
+                    // const swRegistration = await navigator.serviceWorker.ready; // <-- LÍNEA ELIMINADA. No es necesaria y causaba el conflicto.
+                    
+                    // Se llama a getToken() solo con la vapidKey.
+                    // Firebase gestionará su propio service worker (firebase-messaging-sw.js)
+                    // en lugar de forzar el uso de 'sw.js'.
+                    const token = await messaging.getToken({ 
+                        vapidKey: vapidKey
+                        // serviceWorkerRegistration: swRegistration // <-- LÍNEA ELIMINADA
+                    });
+                    
+                    if (token) {
+                        const tokenRef = db.collection('admin_devices').doc(token);
+                        await tokenRef.set({
+                            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                            userAgent: navigator.userAgent
+                        });
+                    }
+                }
+            } catch (error) {
+                // Este error es común en modo incógnito o si los permisos están bloqueados
+                console.error('Error al obtener el permiso o el token de FCM:', error);
+                showMessage('No se pudieron activar las notificaciones push. (¿Estás en modo incógnito?)');
+            }
+        }
+
         messaging.onMessage((payload) => {
             console.log('Mensaje recibido en primer plano: ', payload);
             const sound = getEl('notification-sound');
