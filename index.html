@@ -2043,6 +2043,83 @@
             }
         });
 
+
+// --- FUNCIÓN ESPECIAL PARA RECALCULAR UTILIDADES PASADAS (EJECUTAR UNA SOLA VEZ) ---
+        async function recalcularUtilidadesPasadas() {
+            console.log("Iniciando recálculo de utilidades pasadas...");
+            showMessage("Procesando recálculo de utilidades pasadas... Esto puede tardar un momento. Revisa la consola para ver el resultado.");
+
+            let totalUtilidadNegocioRetro = 0;
+            let totalUtilidadUlisesRetro = 0;
+            let totalUtilidadDarianaRetro = 0;
+            let utilidadTotalGeneralRetro = 0; // Para verificar
+            let contadorPedidos = 0;
+
+            try {
+                // 1. Obtener costos actuales
+                const configRef = db.collection('configuracion').doc('tienda');
+                const configDoc = await configRef.get();
+                const costPerProduct = configDoc.exists && configDoc.data().costoPorProducto ? configDoc.data().costoPorProducto : CAPITAL_PER_PRODUCT;
+                const shippingCost = configDoc.exists && configDoc.data().costoEnvio ? configDoc.data().costoEnvio : SHIPPING_COST;
+                console.log(`Usando Costo por Producto: ${costPerProduct}, Costo Envío: ${shippingCost}`);
+
+                // 2. Obtener todos los pedidos entregados
+                const q = db.collection('pedidos').where('estado', '==', 'Entregado');
+                const snapshot = await q.get();
+                contadorPedidos = snapshot.size;
+                console.log(`Se encontraron ${contadorPedidos} pedidos entregados.`);
+
+                if (contadorPedidos === 0) {
+                    showMessage("No hay pedidos entregados para recalcular.");
+                    return;
+                }
+
+                // 3. Calcular utilidades repartidas para cada pedido
+                snapshot.forEach(doc => {
+                    const pedido = doc.data();
+                    const totalVenta = pedido.montoTotal || 0;
+                    const numeroProductos = pedido.productos?.reduce((sum, p) => sum + (p.cantidad || 1), 0) || 0;
+                    const hasShipping = pedido.datosEntrega?.tipo === 'Envío a domicilio';
+                    const gastoEnvio = hasShipping ? shippingCost : 0;
+                    const capitalMonto = numeroProductos * costPerProduct;
+                    const utilidadTotal = totalVenta - capitalMonto - gastoEnvio;
+
+                    // Acumular los repartos calculados
+                    totalUtilidadNegocioRetro += utilidadTotal * 0.50;
+                    totalUtilidadUlisesRetro += utilidadTotal * 0.25;
+                    totalUtilidadDarianaRetro += utilidadTotal * 0.25;
+                    utilidadTotalGeneralRetro += utilidadTotal; // Suma de verificación
+                });
+
+                console.log("--- Totales Recalculados ---");
+                console.log(`Utilidad Total General (verificación): $${utilidadTotalGeneralRetro.toFixed(2)}`);
+                console.log(`Utilidad Negocio (50%): $${totalUtilidadNegocioRetro.toFixed(2)}`);
+                console.log(`Utilidad Ulises (25%): $${totalUtilidadUlisesRetro.toFixed(2)}`);
+                console.log(`Utilidad Dariana (25%): $${totalUtilidadDarianaRetro.toFixed(2)}`);
+
+                // 4. Actualizar el documento finanzas/resumen
+                const finanzasRef = db.collection('finanzas').doc('resumen');
+
+                // Usamos set con merge para asegurar que los campos existan y se sobreescriban
+                // ¡OJO! Esto REEMPLAZARÁ los valores actuales de utilidad repartida con los recalculados.
+                // Asegúrate de que esto es lo que quieres (recalcular TODO desde cero).
+                await finanzasRef.set({
+                    utilidadNegocioTotal: totalUtilidadNegocioRetro,
+                    utilidadUlisesTotal: totalUtilidadUlisesRetro,
+                    utilidadDarianaTotal: totalUtilidadDarianaRetro,
+                    utilidad: utilidadTotalGeneralRetro // Actualizamos también la utilidad total general recalculada
+                }, { merge: true });
+
+                console.log("¡Éxito! Los totales de utilidad repartida en finanzas/resumen han sido actualizados con los valores recalculados.");
+                showMessage(`¡Recálculo completado! Se procesaron ${contadorPedidos} pedidos. Totales actualizados.`);
+                loadFinancialSummary(); // Recargar el panel financiero para ver los cambios
+
+            } catch (error) {
+                console.error("Error durante el recálculo de utilidades pasadas:", error);
+                showMessage("Error durante el recálculo. Revisa la consola.");
+            }
+        }
+        
         function loadRestockHistory() {
             const list = getEl('restock-history-list');
             list.innerHTML = '<p>Cargando historial...</p>';
