@@ -289,37 +289,64 @@
         /* --- FIN ESTILOS VISIBILIDAD --- */
 
 
-        /* --- Estilos para tablas --- */
-    /* --- Estilos para tablas --- */
-        .table-container { width: 100%; overflow-x: auto; margin-top: 20px; }
+  /* --- Estilos para tablas --- */
+.table-container {
+    width: 100%;
+    overflow-x: auto;
+    margin-top: 20px;
+}
 
-        #supplies-table, #raw-materials-table, #sales-report-table { /* Añadido #sales-report-table */
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 0.90em;
-            white-space: nowrap;
-        }
+#supplies-table,
+#raw-materials-table,
+#sales-report-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.90em;
+    white-space: nowrap;
+}
 
-        #supplies-table th, #supplies-table td, #raw-materials-table th, #raw-materials-table td, #sales-report-table th, #sales-report-table td { /* Añadido #sales-report-table */
-            padding: 10px 12px;
-            text-align: left;
-            border-bottom: 1px solid var(--border-color);
-        }
+#supplies-table th, #supplies-table td,
+#raw-materials-table th, #raw-materials-table td,
+#sales-report-table th, #sales-report-table td {
+    padding: 10px 12px;
+    text-align: left;
+    border-bottom: 1px solid var(--border-color);
+    /* =============================================
+       👨‍💻 CORRECCIÓN DE CELDA AÑADIDA AQUÍ
+       ============================================= */
+    display: table-cell;
+}
 
-        #supplies-table th, #raw-materials-table th, #sales-report-table th { /* Añadido #sales-report-table */
-            background-color: var(--bg-dark-primary);
-            font-weight: 500;
-            color: var(--text-secondary);
-            position: sticky;
-            top: 0;
-        }
+/* =================================================================
+   👨‍💻 CORRECCIÓN DE FILA AÑADIDA AQUÍ
+   ================================================================= */
+#supplies-table tbody, #supplies-table tr,
+#raw-materials-table tbody, #raw-materials-table tr,
+#sales-report-table tbody, #sales-report-table tr {
+    display: table-row;
+}
+/* --- FIN DE LA CORRECCIÓN --- */
 
-        #supplies-table tbody tr:hover, #raw-materials-table tbody tr:hover, #sales-report-table tbody tr:hover { background-color: var(--bg-dark-primary); } /* Añadido #sales-report-table */
+#supplies-table th,
+#raw-materials-table th,
+#sales-report-table th {
+    background-color: var(--bg-dark-primary);
+    font-weight: 500;
+    color: var(--text-secondary);
+    position: sticky;
+    top: 0;
+}
+
+#supplies-table tbody tr:hover,
+#raw-materials-table tbody tr:hover,
+#sales-report-table tbody tr:hover {
+    background-color: var(--bg-dark-primary);
+}
 
 #sales-report-table td:nth-child(n+5) {
-            text-align: right;
-            font-family: monospace;
-        }
+    text-align: right;
+    font-family: monospace;
+}
 
         /* Botones de acción (Editar/Eliminar) */
         .btn-edit { background-color: var(--status-yellow); }
