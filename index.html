@@ -7,7 +7,138 @@
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#0f172a">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="css/styles.css">
+    
+    <style>
+        /* =========================================
+           VARIABLES Y RESET
+           ========================================= */
+        :root {
+            --bg-body: #0f172a;
+            --bg-sidebar: #1e293b;
+            --bg-card: #1e293b;
+            --text-main: #f1f5f9;
+            --text-muted: #94a3b8;
+            --primary: #6366f1;
+            --radius: 12px;
+            --glass-border: 1px solid rgba(255, 255, 255, 0.1);
+            --shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; }
+
+        body {
+            background-color: var(--bg-body);
+            color: var(--text-main);
+            height: 100vh;
+            display: flex;
+            overflow: hidden; /* Scroll dentro del contenido */
+        }
+
+        /* =========================================
+           LAYOUT DASHBOARD
+           ========================================= */
+        /* Login Screen */
+        #login-screen {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: var(--bg-body); z-index: 9999;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+        }
+
+        /* Sidebar */
+        .dashboard-sidebar {
+            width: 260px; background-color: var(--bg-sidebar);
+            border-right: var(--glass-border);
+            display: flex; flex-direction: column; padding: 20px;
+            height: 100vh; transition: transform 0.3s ease;
+        }
+
+        .sidebar-header {
+            display: flex; align-items: center; gap: 10px;
+            margin-bottom: 30px; padding-bottom: 20px;
+            border-bottom: var(--glass-border);
+        }
+        .sidebar-logo { width: 40px; height: 40px; object-fit: contain; }
+        .sidebar-title { font-weight: 700; font-size: 1.2rem; }
+
+        .nav-btn {
+            background: transparent; border: none; color: var(--text-muted);
+            padding: 12px 15px; text-align: left; border-radius: var(--radius);
+            cursor: pointer; transition: all 0.2s; font-size: 0.95rem; margin-bottom: 5px;
+            display: block; width: 100%;
+        }
+        .nav-btn:hover { background-color: rgba(99, 102, 241, 0.1); color: var(--primary); }
+
+        /* Main Area */
+        .dashboard-main {
+            flex: 1; display: flex; flex-direction: column;
+            height: 100vh; position: relative;
+        }
+
+        .top-header {
+            height: 60px; display: flex; align-items: center; justify-content: space-between;
+            padding: 0 20px; border-bottom: var(--glass-border);
+            background-color: rgba(15, 23, 42, 0.9);
+        }
+
+        .content-area {
+            flex: 1; padding: 20px; overflow-y: auto; padding-bottom: 80px;
+        }
+
+        /* Ocultar secciones por defecto */
+        section { display: none; animation: fadeIn 0.3s ease; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* =========================================
+           COMPONENTES
+           ========================================= */
+        .finance-panel { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 15px; margin-bottom: 20px; }
+        .finance-card, .card-item {
+            background-color: var(--bg-card); border: var(--glass-border);
+            border-radius: var(--radius); padding: 20px; box-shadow: var(--shadow);
+        }
+        .finance-card p { font-size: 1.5rem; font-weight: 700; margin-top: 5px; }
+        .finance-card h3 { font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; }
+
+        input, select, textarea {
+            width: 100%; background: #0f172a; border: 1px solid #334155;
+            color: white; padding: 12px; border-radius: 8px; margin-bottom: 10px; outline: none;
+        }
+        label { color: var(--text-muted); font-size: 0.9em; margin-bottom: 5px; display: block; }
+
+        button {
+            cursor: pointer; padding: 12px 20px; border-radius: 8px; border: none; font-weight: 600;
+        }
+        .btn-primary, button[type="submit"] { background: var(--primary); color: white; width: 100%; }
+        
+        /* Tablas */
+        .table-container { overflow-x: auto; border-radius: var(--radius); border: var(--glass-border); }
+        table { width: 100%; border-collapse: collapse; min-width: 600px; }
+        th { background: #334155; padding: 12px; text-align: left; color: white; }
+        td { padding: 12px; border-bottom: 1px solid #334155; color: var(--text-muted); }
+
+        /* Mobile */
+        .mobile-menu-btn { display: none; background: none; color: white; font-size: 1.5rem; padding: 0; }
+        
+        @media (max-width: 768px) {
+            .dashboard-sidebar { position: fixed; left: -100%; z-index: 100; height: 100%; }
+            .dashboard-sidebar.active { left: 0; }
+            .mobile-menu-btn { display: block; }
+            
+            /* Ajuste tablas móvil */
+            table, thead, tbody, th, td, tr { display: block; }
+            thead tr { position: absolute; top: -9999px; left: -9999px; }
+            tr { border: 1px solid #334155; margin-bottom: 10px; border-radius: 8px; padding: 10px; }
+            td { border: none; position: relative; padding-left: 50%; text-align: right; display: flex; justify-content: space-between; }
+        }
+
+        /* Modales */
+        .message-box, .edit-modal, .confirm-modal, .sales-history-modal, .image-modal {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8); z-index: 5000; display: none;
+            align-items: center; justify-content: center;
+        }
+        .modal-content { background: var(--bg-sidebar); padding: 25px; border-radius: 12px; width: 90%; max-width: 500px; }
+    </style>
 </head>
 <body>
 
@@ -15,149 +146,98 @@
 
     <section id="login-screen">
         <div style="text-align: center; margin-bottom: 20px;">
-            <img src="" class="logo logo-img" alt="Logo" style="width: 120px; margin-bottom: 10px;">
-            <h1 style="font-size: 1.5rem;">KalCTas Admin</h1>
-            <p style="color: var(--text-muted);">Bienvenido de nuevo, bro</p>
+            <h1 style="font-size: 2rem; margin-bottom: 10px;">KalCTas Admin</h1>
         </div>
-        <div class="modal-content" style="max-width: 400px;">
+        <div class="modal-content">
             <form id="login-form">
-                <label>Correo Electrónico</label>
-                <input type="email" id="login-email" placeholder="usuario@kalctas.com" required>
+                <label>Correo</label>
+                <input type="email" id="login-email" required>
                 <label>Contraseña</label>
-                <input type="password" id="login-password" placeholder="••••••••" required>
-                <button type="submit" class="btn-primary">Iniciar Sesión</button>
+                <input type="password" id="login-password" required>
+                <button type="submit" class="btn-primary">Entrar</button>
             </form>
         </div>
     </section>
 
     <aside class="dashboard-sidebar" id="app-sidebar" style="display: none;">
         <div class="sidebar-header">
-            <img src="" class="sidebar-logo logo-img" alt="K">
-            <span class="sidebar-title">KalCTas</span>
+            <span class="sidebar-title">KalCTas Pro</span>
         </div>
-
-        <nav class="sidebar-menu">
-            <button class="nav-btn" onclick="showScreen('finance-screen')">📊 Dashboard / Finanzas</button>
-            <button class="nav-btn" onclick="showScreen('orders-screen')">📬 Pedidos Activos</button>
-            <button class="nav-btn" onclick="showScreen('inventory-screen')">📦 Productos</button>
+        <nav>
+            <button class="nav-btn" onclick="showScreen('finance-screen')">📊 Dashboard</button>
+            <button class="nav-btn" onclick="showScreen('orders-screen')">📬 Pedidos</button>
+            <button class="nav-btn" onclick="showScreen('inventory-screen')">📦 Inventario</button>
             <button class="nav-btn" onclick="showScreen('raw-materials-screen')">🏷️ Insumos</button>
             <button class="nav-btn" onclick="showScreen('manual-order-screen')">📝 Venta Manual</button>
-            <button class="nav-btn" onclick="showScreen('sales-history-screen')">💰 Historial Ventas</button>
+            <button class="nav-btn" onclick="showScreen('sales-history-screen')">💰 Historial</button>
             <button class="nav-btn" onclick="showScreen('sales-screen')">📈 Gráficas</button>
-            <button class="nav-btn" onclick="showScreen('packaging-screen')">🧸 Empaques & Video</button>
-            <button class="nav-btn" onclick="showScreen('theme-screen')">🎨 Configuración Tema</button>
-            
-            <div style="margin-top: auto; border-top: 1px solid #334155; padding-top: 10px;">
-                <button class="nav-btn" onclick="logout()" style="color: var(--danger);">
-                    🚪 Cerrar Sesión
-                </button>
-            </div>
+            <button class="nav-btn" onclick="showScreen('packaging-screen')">🧸 Empaques</button>
+            <button class="nav-btn" onclick="showScreen('theme-screen')">🎨 Tema</button>
+            <button class="nav-btn" onclick="logout()" style="color: #ef4444; margin-top: 20px;">🚪 Salir</button>
         </nav>
     </aside>
 
     <main class="dashboard-main" id="app-main" style="display: none;">
-        
         <header class="top-header">
-            <button class="mobile-menu-btn" onclick="toggleSidebar()">☰</button>
-            <h2 class="page-title" id="page-title-display">Panel de Control</h2>
-            <div class="user-info" style="display: flex; align-items: center; gap: 10px;">
-                <span style="font-size: 0.9rem; color: var(--text-muted);">Admin</span>
-                <div style="width: 35px; height: 35px; background: var(--primary); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold;">A</div>
-            </div>
+            <button class="mobile-menu-btn" onclick="document.getElementById('app-sidebar').classList.toggle('active')">☰</button>
+            <h3 id="page-title-display">Panel de Control</h3>
+            <div style="width:30px; height:30px; background:var(--primary); border-radius:50%; display:flex; align-items:center; justify-content:center;">A</div>
         </header>
 
         <div class="content-area">
-
-            <section id="main-menu">
-                <div style="text-align: center; margin-top: 50px;">
-                        <h3>Bienvenido al Panel Pro</h3>
-                        <p>Selecciona una opción del menú lateral.</p>
-                        <button onclick="showScreen('finance-screen')" class="btn-primary" style="max-width: 200px; margin-top: 20px;">Ir al Resumen Financiero</button>
-                     </div>
-            </section>
+            
+            <section id="main-menu"></section> 
 
             <section id="finance-screen">
-                <h2 style="margin-bottom: 20px;">Resumen Financiero</h2>
+                <h2>Resumen Financiero</h2>
                 <div class="finance-panel">
-                    <div class="finance-card" onclick="showMovementsHistory('Ventas')"><h3>Ventas</h3><p id="total-sales">$0.00</p></div>
-                    <div class="finance-card" onclick="showMovementsHistory('Gastos')"><h3>Gastos</h3><p id="total-expenses">$0.00</p></div>
-                    <div class="finance-card" onclick="showMovementsHistory('Utilidad')"><h3 style="color: var(--success);">Utilidad Neta</h3><p id="total-profit">$0.00</p></div>
-                    <div class="finance-card" onclick="showMovementsHistory('Capital')"><h3 style="color: var(--warning);">Capital</h3><p id="total-capital">$0.00</p></div>
+                    <div class="finance-card" onclick="showMovementsHistory('Ventas')"><h3>Ventas</h3><p id="total-sales">...</p></div>
+                    <div class="finance-card" onclick="showMovementsHistory('Gastos')"><h3>Gastos</h3><p id="total-expenses">...</p></div>
+                    <div class="finance-card" onclick="showMovementsHistory('Utilidad')"><h3 style="color:#10b981;">Utilidad</h3><p id="total-profit">...</p></div>
+                    <div class="finance-card" onclick="showMovementsHistory('Capital')"><h3 style="color:#f59e0b;">Capital</h3><p id="total-capital">...</p></div>
                 </div>
-                
-                <h3 style="margin: 30px 0 15px 0; border-bottom: 1px solid #334155; padding-bottom: 10px;">Reparto de Utilidades</h3>
-                <div class="finance-panel" style="grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));">
-                    <div class="finance-card" onclick="showMovementsHistory('Utilidad Negocio')"><h3>Negocio (50%)</h3><p id="total-profit-negocio">$0.00</p></div>
-                    <div class="finance-card" onclick="showMovementsHistory('Utilidad Socio', 'Ulises')"><h3>Ulises (25%)</h3><p id="total-profit-ulises">$0.00</p></div>
-                    <div class="finance-card" onclick="showMovementsHistory('Utilidad Socio', 'Dariana')"><h3>Dariana (25%)</h3><p id="total-profit-dariana">$0.00</p></div>
+                <div class="card-item">
+                    <h3>Gasto Rápido</h3>
+                    <form id="add-expense-form" style="margin-top: 10px;">
+                        <input type="number" id="expense-amount" placeholder="$ Monto" step="0.01" required>
+                        <select id="expense-concept" required><option value="">Cargando...</option></select>
+                        <textarea id="expense-note" placeholder="Nota" rows="1"></textarea>
+                        <button type="submit" class="btn-primary">Registrar</button>
+                    </form>
+                    <button onclick="addNewExpenseConcept()" style="background:none; color:var(--primary); margin-top:5px; padding:0;">+ Nuevo concepto</button>
                 </div>
-
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 30px; margin-top: 30px;">
-                    <div class="card-item">
-                        <h3>Registrar Gasto Rápido</h3>
-                        <form id="add-expense-form" style="margin-top: 15px;">
-                            <input type="number" id="expense-amount" placeholder="Monto ($)" step="0.01" required>
-                            <select id="expense-concept" required><option value="">Cargando conceptos...</option></select>
-                            <textarea id="expense-note" placeholder="Nota (opcional)" rows="2"></textarea>
-                            <button type="submit" class="btn-primary">Registrar</button>
-                        </form>
-                        <button onclick="addNewExpenseConcept()" style="margin-top: 10px; background: transparent; color: var(--primary); width: auto; padding: 0;">+ Crear concepto</button>
-                    </div>
-                    
-                    <div class="card-item">
-                        <h3>Configuraciones</h3>
-                        <form id="cost-config-form" style="margin-top: 15px;">
-                            <label>Costo Base Producto</label>
-                            <div style="display: flex; gap: 10px;">
-                                <input type="number" id="product-cost-input" placeholder="42" step="0.01">
-                                <button type="submit" style="width: auto;">Guardar</button>
-                            </div>
-                        </form>
-                        <form id="shipping-cost-config-form" style="margin-top: 15px;">
-                            <label>Costo Envío Base</label>
-                            <div style="display: flex; gap: 10px;">
-                                <input type="number" id="shipping-cost-input" placeholder="70" step="0.01">
-                                <button type="submit" style="width: auto;">Guardar</button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-                
-                <div style="margin-top: 30px; display: flex; gap: 10px; flex-wrap: wrap;">
-                    <button onclick="showScreen('sales-report-table-screen')" style="background: var(--bg-card); border: 1px solid var(--primary);">Ver Tabla Detallada</button>
-                    <button onclick="showScreen('restock-screen')" style="background: var(--bg-card); border: 1px solid var(--warning); color: var(--warning);">Hacer Re-Stock</button>
+                <div style="margin-top:20px; display:flex; gap:10px;">
+                    <button onclick="showScreen('sales-report-table-screen')" style="background:#334155;">Ver Tabla Detallada</button>
+                    <button onclick="showScreen('restock-screen')" style="background:#334155;">Hacer Re-Stock</button>
                 </div>
             </section>
 
             <section id="inventory-screen">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
                     <h2>Inventario</h2>
-                    <button onclick="showScreen('add-product-screen')" class="btn-primary" style="width: auto;">+ Nuevo Producto</button>
+                    <button onclick="showScreen('add-product-screen')" class="btn-primary" style="width:auto;">+ Agregar</button>
                 </div>
-                <div id="category-visibility-controls" class="card-item" style="margin-bottom: 20px;">
-                    </div>
-                <div id="inventory-accordion" style="display: grid; gap: 15px;">
-                    </div>
+                <div id="category-visibility-controls" class="card-item" style="margin-bottom:15px;"></div>
+                <div id="inventory-accordion" style="display:grid; gap:10px;"></div>
             </section>
 
             <section id="add-product-screen">
-                <div class="card-item" style="max-width: 600px; margin: 0 auto;">
+                <div class="card-item" style="max-width:600px; margin:0 auto;">
                     <h2>Nuevo Producto</h2>
-                    <form id="add-product-form" style="margin-top: 20px;">
-                        <input type="text" id="product-name" placeholder="Nombre del modelo" required>
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                            <select id="product-category" required>
-                                <option value="" disabled selected>Categoría</option>
-                                <option value="KalCTas2-4">KalCTas 2/4</option>
-                                <option value="KalCTas3-4">KalCTas 3/4</option>
-                                <option value="KalCTasLargas">KalCTas Largas</option>
-                            </select>
-                            <input type="number" id="product-stock" placeholder="Stock Inicial" required>
+                    <form id="add-product-form">
+                        <input type="text" id="product-name" placeholder="Nombre" required>
+                        <select id="product-category" required>
+                            <option value="KalCTas2-4">KalCTas 2/4</option>
+                            <option value="KalCTas3-4">KalCTas 3/4</option>
+                            <option value="KalCTasLargas">KalCTas Largas</option>
+                        </select>
+                        <input type="text" id="product-image-url" placeholder="URL Imagen" required>
+                        <div style="display:flex; gap:10px;">
+                            <input type="number" id="product-stock" placeholder="Stock" required>
+                            <input type="number" id="product-price" placeholder="Precio" step="0.01" required>
                         </div>
-                        <input type="text" id="product-image-url" placeholder="URL Imagen (assets/...)" required>
-                        <input type="number" id="product-price" placeholder="Precio Venta ($)" step="0.01" required>
-                        <div style="display: flex; gap: 10px; margin-top: 20px;">
-                            <button type="button" onclick="showScreen('inventory-screen')" style="background: transparent; border: 1px solid #334155;">Cancelar</button>
+                        <div style="display:flex; gap:10px; margin-top:15px;">
+                            <button type="button" onclick="showScreen('inventory-screen')" style="background:#334155;">Cancelar</button>
                             <button type="submit" class="btn-primary">Guardar</button>
                         </div>
                     </form>
@@ -165,257 +245,177 @@
             </section>
 
             <section id="orders-screen">
-                <h2>Pedidos Pendientes</h2>
-                <ul id="orders-list" style="list-style: none; margin-top: 20px;"></ul>
+                <h2>Pedidos Activos</h2>
+                <ul id="orders-list" style="list-style:none; margin-top:15px;"></ul>
             </section>
 
             <section id="manual-order-screen">
-                <div class="card-item" style="max-width: 800px; margin: 0 auto;">
-                    <h2>Registrar Venta Manual</h2>
-                    <form id="manual-order-form" style="margin-top: 20px;">
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
-                            <input type="text" id="manual-order-client" placeholder="Nombre Cliente" required>
-                            <input type="tel" id="manual-order-phone" placeholder="Teléfono (Opcional)">
-                        </div>
-                        <select id="manual-order-channel" required>
+                <div class="card-item" style="max-width:600px; margin:0 auto;">
+                    <h2>Venta Manual</h2>
+                    <form id="manual-order-form">
+                        <input type="text" id="manual-order-client" placeholder="Cliente" required>
+                        <select id="manual-order-channel">
                             <option value="Facebook">Facebook</option>
-                            <option value="Venta Personal">Venta Personal</option>
-                            <option value="Otro">Otro</option>
-                        </select>
-
-                        <h4 style="margin: 20px 0 10px 0; color: var(--primary);">Productos</h4>
-                        <div id="manual-order-items"></div>
-                        <button type="button" onclick="addManualOrderLine()" style="background: transparent; border: 1px dashed #334155; margin-top: 10px; color: var(--text-muted);">+ Agregar otro producto</button>
-
-                        <h4 style="margin: 20px 0 10px 0; color: var(--primary);">Entrega</h4>
-                        <select id="manual-delivery-method" onchange="toggleManualDeliveryFields()">
-                            <option value="punto-medio">Punto medio</option>
-                            <option value="domicilio">Entrega a domicilio</option>
+                            <option value="Venta Personal">Personal</option>
                         </select>
                         
+                        <div id="manual-order-items" style="margin-top:15px;"></div>
+                        <button type="button" onclick="addManualOrderLine()" style="background:none; border:1px dashed #475569; color:var(--text-muted);">+ Producto</button>
+
+                        <select id="manual-delivery-method" onchange="toggleManualDeliveryFields()" style="margin-top:15px;">
+                            <option value="punto-medio">Punto Medio</option>
+                            <option value="domicilio">Domicilio</option>
+                        </select>
+
                         <div id="manual-home-delivery-fields" style="display:none;">
-                            <input type="text" id="manual-delivery-street" placeholder="Calle y número">
+                            <input type="text" id="manual-delivery-street" placeholder="Calle">
                             <input type="text" id="manual-delivery-neighborhood" placeholder="Colonia">
-                            <textarea id="manual-delivery-description" placeholder="Referencias de la casa..."></textarea>
                         </div>
-
                         <div id="manual-pickup-location-fields">
-                            <input type="date" id="manual-delivery-date" required>
+                            <input type="date" id="manual-delivery-date">
                             <select id="manual-delivery-location" onchange="toggleOtherManualLocation()">
-                                <option value="Mi tienda Jarachina">Mi tienda Jarachina</option>
-                                <option value="La Portillo">La Portillo</option>
+                                <option value="Mi tienda Jarachina">Jarachina</option>
                                 <option value="Periférico">Periférico</option>
-                                <option value="Soriana Hidalgo">Soriana Hidalgo</option>
-                                <option value="Otro">Otro...</option>
+                                <option value="Otro">Otro</option>
                             </select>
-                            <textarea id="manual-other-location-note" style="display:none;" placeholder="Escribe el lugar..."></textarea>
+                            <textarea id="manual-other-location-note" style="display:none;"></textarea>
                         </div>
 
-                        <textarea id="manual-delivery-comments" placeholder="Comentarios generales..." style="margin-top: 15px;"></textarea>
-                        
-                        <div style="margin-top: 20px; padding: 15px; background: rgba(16, 185, 129, 0.1); border-radius: 8px; text-align: right;">
-                            <label>Total a Cobrar:</label>
-                            <input type="number" id="manual-order-total" readonly style="background: transparent; border: none; font-size: 2rem; color: var(--success); text-align: right; font-weight: bold;">
-                        </div>
-
-                        <button type="submit" class="btn-primary" style="margin-top: 20px; font-size: 1.2rem;">Registrar Venta</button>
+                        <h3 style="text-align:right; margin-top:20px; color:var(--success);">Total: $<input type="number" id="manual-order-total" readonly style="background:none; border:none; color:inherit; font-size:inherit; width:100px; display:inline;"></h3>
+                        <button type="submit" class="btn-primary">Registrar</button>
                     </form>
                 </div>
             </section>
-
-            <section id="raw-materials-screen">
-                <h2>Inventario de Insumos</h2>
-                <div class="card-item" style="margin-bottom: 20px;">
-                    <form id="add-raw-material-form" style="display: flex; gap: 10px; flex-wrap: wrap;">
-                        <input type="hidden" id="raw-material-id">
-                        <input type="text" id="raw-material-description" placeholder="Nueva etiqueta / bolsa..." style="flex: 2;" required>
-                        <input type="number" id="raw-material-quantity" placeholder="Cant." style="flex: 1;" required>
-                        <button type="submit" id="add-raw-material-btn" class="btn-primary" style="width: auto;">Agregar</button>
-                        <button type="button" id="cancel-edit-raw-material-btn" style="display: none; background: var(--danger);" onclick="cancelEditRawMaterial()">X</button>
-                    </form>
-                </div>
-                <div class="table-container">
-                    <table id="raw-materials-table">
-                        <thead><tr><th>Descripción</th><th>Cantidad</th><th>Acciones</th></tr></thead>
-                        <tbody id="raw-materials-table-body"></tbody>
-                    </table>
-                </div>
-            </section>
-
-            <section id="packaging-screen">
-                <h2>Empaques y Video</h2>
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
-                    <div class="card-item">
-                        <h3>Videos</h3>
-                        <form id="add-video-form">
-                            <input type="text" id="video-name" placeholder="Nombre" required>
-                            <input type="text" id="video-url" placeholder="Archivo.mp4" required>
-                            <button type="submit" class="btn-primary">Subir Video</button>
-                        </form>
-                        <div id="video-list" style="margin-top: 15px;"></div>
-                    </div>
-                    <div class="card-item">
-                        <h3>Empaques</h3>
-                        <form id="add-packaging-form">
-                            <input type="text" id="packaging-name" placeholder="Nombre" required>
-                            <input type="text" id="packaging-image-url" placeholder="Imagen.jpg" required>
-                            <button type="submit" class="btn-primary">Agregar Empaque</button>
-                        </form>
-                        <div id="packaging-list" style="margin-top: 15px;"></div>
-                    </div>
-                </div>
-            </section>
-
+            
             <section id="sales-history-screen">
                 <h2>Historial de Pedidos</h2>
-                <ul id="sales-history-list" style="margin-top: 20px;"></ul>
+                <ul id="sales-history-list" style="margin-top:15px;"></ul>
+            </section>
+
+            <section id="movements-history-screen">
+                <h2>Movimientos</h2>
+                <select id="movement-filter-category" onchange="loadMovementsHistory()"></select>
+                <ul id="movements-list" class="card-list" style="margin-top:15px;"></ul>
+                <button onclick="showScreen('finance-screen')" style="margin-top:20px; background:#334155;">&larr; Volver</button>
             </section>
 
             <section id="sales-report-table-screen">
-                <h2>Reporte Detallado (Tabla)</h2>
+                <h2>Reporte Detallado</h2>
                 <div class="table-container">
                     <table id="sales-report-table">
-                        <thead>
-                            <tr>
-                                <th>Folio</th>
-                                <th>Cliente</th>
-                                <th>Canal</th>
-                                <th>Fecha</th>
-                                <th>Total</th>
-                                <th>Costo</th>
-                                <th>Envío</th>
-                                <th>Utilidad</th>
-                                <th>Negocio</th>
-                                <th>Ulises</th>
-                                <th>Dariana</th>
-                            </tr>
-                        </thead>
+                        <thead><tr><th>Folio</th><th>Total</th><th>Utilidad</th><th>Fecha</th></tr></thead>
                         <tbody id="sales-report-table-body"></tbody>
                     </table>
                 </div>
             </section>
 
-            <section id="movements-history-screen">
-                <h2>Historial de Movimientos</h2>
-                <div class="filter-container" style="margin-bottom: 20px;">
-                    <select id="movement-filter-category" onchange="loadMovementsHistory()" style="max-width: 300px;">
-                        <option value="all">Todas las categorías</option>
-                    </select>
+            <section id="raw-materials-screen">
+                <h2>Insumos</h2>
+                <div class="card-item">
+                    <form id="add-raw-material-form" style="display:flex; gap:10px;">
+                        <input type="hidden" id="raw-material-id">
+                        <input type="text" id="raw-material-description" placeholder="Desc." required>
+                        <input type="number" id="raw-material-quantity" placeholder="#" style="width:80px;" required>
+                        <button type="submit" id="add-raw-material-btn" class="btn-primary" style="width:auto;">OK</button>
+                        <button type="button" id="cancel-edit-raw-material-btn" style="display:none; background:#ef4444;">X</button>
+                    </form>
                 </div>
-                <ul id="movements-list" class="card-list"></ul>
-                <button onclick="showScreen('finance-screen')" style="margin-top: 20px;">&larr; Volver a Finanzas</button>
+                <div class="table-container" style="margin-top:15px;">
+                    <table id="raw-materials-table">
+                        <thead><tr><th>Item</th><th>Cant.</th><th>Acción</th></tr></thead>
+                        <tbody id="raw-materials-table-body"></tbody>
+                    </table>
+                </div>
             </section>
             
-            <section id="restock-screen">
-                 <h2>Re-Stock de Inventario</h2>
+            <section id="packaging-screen">
+                <h2>Configuración Visual</h2>
+                <div class="card-item">
+                    <h3>Videos</h3>
+                    <form id="add-video-form"><input type="text" id="video-name" placeholder="Nombre"><input type="text" id="video-url" placeholder="URL"><button type="submit" class="btn-primary">Subir</button></form>
+                    <div id="video-list" style="margin-top:10px;"></div>
+                </div>
+                <div class="card-item" style="margin-top:15px;">
+                    <h3>Empaques</h3>
+                    <form id="add-packaging-form"><input type="text" id="packaging-name" placeholder="Nombre"><input type="text" id="packaging-image-url" placeholder="URL"><button type="submit" class="btn-primary">Agregar</button></form>
+                    <div id="packaging-list" style="margin-top:10px;"></div>
+                </div>
+            </section>
+            
+             <section id="restock-screen">
+                 <h2>Re-Stock</h2>
                  <div class="card-item">
                     <form id="add-restock-form">
                         <div id="restock-items"></div>
-                        <button type="button" onclick="addRestockLine()" style="margin: 10px 0; border: 1px dashed #334155; background: transparent;">+ Modelo</button>
-                        <div style="text-align: right; margin-top: 20px;">
-                            <label style="display:inline;">Envío:</label>
-                            <input type="number" id="shipping-cost" value="0" style="width: 100px; display:inline;">
-                            <h3 style="margin-top: 10px;">Total: <span id="restock-total">$0.00</span></h3>
+                        <button type="button" onclick="addRestockLine()" style="border:1px dashed #475569; background:none;">+ Modelo</button>
+                        <div style="text-align:right; margin-top:15px;">
+                           Envío: <input type="number" id="shipping-cost" value="0" style="width:80px; display:inline;">
+                           <h3 id="restock-total">$0.00</h3>
                         </div>
-                        <button type="submit" class="btn-primary" style="margin-top: 15px;">Registrar Re-Stock</button>
+                        <button type="submit" class="btn-primary">Registrar</button>
                     </form>
                  </div>
-                 <h3 style="margin-top: 30px;">Historial Re-Stocks</h3>
-                 <ul id="restock-history-list" class="card-list"></ul>
-            </section>
-            
-            <section id="sales-screen">
-                <h2>Gráfica de Ventas</h2>
-                <div class="card-item" style="height: 400px;">
-                    <canvas id="sales-chart"></canvas>
-                </div>
-                <ul id="sales-list" style="margin-top: 20px;"></ul>
+                 <ul id="restock-history-list" style="margin-top:20px;"></ul>
             </section>
 
             <section id="theme-screen">
-                <h2>Tema de la Tienda Pública</h2>
-                <p>Estado: <strong id="current-theme-status">Cargando...</strong></p>
-                <div class="theme-buttons" style="display: flex; gap: 15px; margin-top: 20px;">
-                    <button onclick="setTheme('default')" style="background: #fff; color: #000;">Default</button>
-                    <button onclick="setTheme('halloween')" style="background: #f9a03f; color: #000;">Halloween 🎃</button>
-                    <button onclick="setTheme('christmas')" style="background: #d94545; color: #fff;">Navidad 🎅</button>
+                <h2>Tema Tienda</h2>
+                <p>Actual: <strong id="current-theme-status">...</strong></p>
+                <div style="display:flex; gap:10px; margin-top:15px;">
+                    <button onclick="setTheme('default')" style="background:white; color:black;">Normal</button>
+                    <button onclick="setTheme('halloween')" style="background:#f9a03f; color:black;">Halloween</button>
+                    <button onclick="setTheme('christmas')" style="background:#dc2626;">Navidad</button>
                 </div>
             </section>
             
+            <section id="sales-screen">
+                <h2>Gráfica</h2>
+                <div class="card-item" style="height:300px;"><canvas id="sales-chart"></canvas></div>
+                <ul id="sales-list" style="margin-top:15px;"></ul>
+            </section>
+
             <section id="supplies-screen">
-                <h2>Gastos en Insumos</h2>
+                <h2>Gastos Insumos</h2>
                 <div class="card-item">
                     <form id="add-supply-form">
-                        <input type="text" id="supply-description" placeholder="Descripción" required>
-                        <div style="display: flex; gap: 10px;">
-                            <input type="number" id="supply-quantity" placeholder="Cant." required>
-                            <input type="number" id="supply-cost" placeholder="Costo Unit." required>
+                        <input type="text" id="supply-description" placeholder="Desc." required>
+                        <div style="display:flex; gap:10px;">
+                            <input type="number" id="supply-quantity" placeholder="#" required>
+                            <input type="number" id="supply-cost" placeholder="$" required>
                         </div>
                         <button type="submit" class="btn-primary">Registrar</button>
                     </form>
                 </div>
-                <div class="table-container" style="margin-top: 20px;">
-                    <table id="supplies-table">
-                        <thead><tr><th>Desc.</th><th>Cant.</th><th>Total</th><th>Acción</th></tr></thead>
-                        <tbody id="supplies-table-body"></tbody>
-                    </table>
+                <div class="table-container" style="margin-top:15px;">
+                    <table id="supplies-table"><thead><tr><th>Item</th><th>Total</th><th>X</th></tr></thead><tbody id="supplies-table-body"></tbody></table>
                 </div>
             </section>
 
-        </div> </main>
+        </div>
+    </main>
 
+    <div id="message-box" class="message-box"><div class="modal-content"><p id="message-text"></p><button onclick="closeMessage()" class="btn-primary">OK</button></div></div>
+    <div id="confirm-modal" class="confirm-modal"><div class="modal-content"><p id="confirm-text">¿Seguro?</p><div style="display:flex; gap:10px; justify-content:center;"><button onclick="confirmAction()" class="btn-primary">Si</button><button onclick="cancelAction()" style="background:#ef4444;">No</button></div></div></div>
+    <div id="sales-history-modal" class="sales-history-modal"><div class="modal-content"><h3 id="modal-history-title">Historial</h3><ul id="modal-sales-list" style="max-height:300px; overflow-y:auto;"></ul><button onclick="closeSalesHistoryModal()" style="width:100%; margin-top:10px;">Cerrar</button></div></div>
     <div id="edit-modal" class="edit-modal">
         <div class="modal-content">
-            <h2>Editar Producto</h2>
+            <h3>Editar</h3>
             <form id="edit-product-form">
                 <input type="hidden" id="edit-product-id">
                 <input type="text" id="edit-name" required>
-                <select id="edit-category" required>
-                    <option value="KalCTas2-4">KalCTas 2/4</option>
-                    <option value="KalCTas3-4">KalCTas 3/4</option>
-                    <option value="KalCTasLargas">KalCTas Largas</option>
-                </select>
-                <input type="text" id="edit-image-url" placeholder="URL Imagen">
-                <div style="display:flex; gap:10px;">
-                    <input type="number" id="edit-stock" placeholder="Stock" required>
-                    <input type="number" id="edit-price" placeholder="Precio" step="0.01" required>
-                </div>
-                <label><input type="checkbox" id="edit-visible" style="width:auto;"> Visible en tienda</label>
-                <button type="submit" class="btn-primary" style="margin-top:15px;">Guardar Cambios</button>
+                <select id="edit-category"><option value="KalCTas2-4">2/4</option><option value="KalCTas3-4">3/4</option><option value="KalCTasLargas">Largas</option></select>
+                <div style="display:flex; gap:10px;"><input type="number" id="edit-stock" placeholder="Stock"><input type="number" id="edit-price" placeholder="$"></div>
+                <input type="text" id="edit-image-url" placeholder="URL">
+                <label><input type="checkbox" id="edit-visible" style="width:auto;"> Visible</label>
+                <button type="submit" class="btn-primary">Guardar</button>
             </form>
-            <button onclick="closeEditModal()" style="margin-top: 10px; background: transparent;">Cancelar</button>
+            <button onclick="closeEditModal()" style="background:transparent; margin-top:10px;">Cancelar</button>
         </div>
     </div>
-
-    <div id="message-box" class="message-box">
-        <div class="modal-content" style="text-align: center;">
-            <p id="message-text" style="font-size: 1.1rem; margin-bottom: 20px;"></p>
-            <button onclick="closeMessage()" class="btn-primary">Entendido</button>
-        </div>
-    </div>
-
-    <div id="confirm-modal" class="confirm-modal">
-        <div class="modal-content" style="text-align: center;">
-            <p id="confirm-text" style="font-size: 1.1rem; margin-bottom: 20px;">¿Seguro?</p>
-            <div style="display: flex; gap: 15px; justify-content: center;">
-                <button class="btn-primary" style="background: var(--success);" onclick="confirmAction()">Sí, dale</button>
-                <button style="background: var(--danger); color: white;" onclick="cancelAction()">Cancelar</button>
-            </div>
-        </div>
-    </div>
-
-    <div id="sales-history-modal" class="sales-history-modal">
-        <div class="modal-content">
-            <h2 id="modal-history-title">Historial</h2>
-            <ul id="modal-sales-list" style="max-height: 400px; overflow-y: auto; text-align:left; margin-top:10px;"></ul>
-            <button onclick="closeSalesHistoryModal()" style="margin-top:15px; width:100%;">Cerrar</button>
-        </div>
-    </div>
-
-    <div id="image-modal" class="image-modal" onclick="cerrarModal()">
-        <span class="close-modal" style="position:absolute; top:20px; right:30px; font-size:40px; cursor:pointer;">&times;</span>
-        <img class="modal-content-img" id="modal-image" style="max-width:90%; max-height:90%; border-radius:12px;">
-    </div>
+    <div id="image-modal" class="image-modal" onclick="cerrarModal()"><img class="modal-content-img" id="modal-image" style="max-width:90%; max-height:90%;"></div>
+    
+    <form id="cost-config-form" style="display:none;"><input id="product-cost-input"><button type="submit"></button></form>
+    <form id="shipping-cost-config-form" style="display:none;"><input id="shipping-cost-input"><button type="submit"></button></form>
 
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
@@ -427,86 +427,47 @@
     <script src="js/app.js"></script>
 
     <script>
-        // Control del sidebar en móvil
-        function toggleSidebar() {
-            document.getElementById('app-sidebar').classList.toggle('active');
-        }
-
-        // Detectar cuando el usuario hace login (Firebase Auth listener está en app.js)
-        // Pero necesitamos mostrar el sidebar y el main cuando NO es login-screen
-        // Modificamos un poco el observador visual:
-        const originalShowScreen = window.showScreen; // Guardamos la función original si existiera
-        
-        // Sobreescribimos showScreen SOLO para manejar la visibilidad del Layout
-        // (Tu app.js sigue controlando qué sección se ve, esto solo controla el marco)
-        window.showScreen = function(screenId) {
-            // Ejecutamos la lógica original de tu app.js (que carga datos, etc.)
-            // Como app.js define showScreen globalmente, aquí estamos "inyectando" lógica visual extra.
-            
-            // 1. Ocultar todas las secciones (Esto ya lo hace tu app.js, pero lo reforzamos)
-            document.querySelectorAll('section').forEach(s => s.style.display = 'none');
-            
-            // 2. Mostrar la sección pedida
-            const target = document.getElementById(screenId);
-            if(target) target.style.display = 'block';
-
-            // 3. Lógica del Layout (Login vs Dashboard)
-            const loginScreen = document.getElementById('login-screen');
-            const sidebar = document.getElementById('app-sidebar');
-            const main = document.getElementById('app-main');
-
-            if (screenId === 'login-screen') {
-                loginScreen.style.display = 'flex'; // Flex para centrar
-                sidebar.style.display = 'none';
-                main.style.display = 'none';
-            } else {
-                loginScreen.style.display = 'none';
-                sidebar.style.display = 'flex';
-                main.style.display = 'flex';
+        window.addEventListener('load', () => {
+            // Esperamos a que app.js cargue y luego forzamos la vista
+            setTimeout(() => {
+                const login = document.getElementById('login-screen');
+                const main = document.getElementById('app-main');
+                const side = document.getElementById('app-sidebar');
                 
-                // Actualizar título en el header según la pantalla
-                const titles = {
-                    'finance-screen': 'Dashboard Financiero',
-                    'inventory-screen': 'Inventario de Productos',
-                    'orders-screen': 'Gestión de Pedidos',
-                    'manual-order-screen': 'Punto de Venta Manual',
-                    'sales-report-table-screen': 'Reportes Detallados'
-                };
-                const titleDisplay = document.getElementById('page-title-display');
-                if(titleDisplay && titles[screenId]) titleDisplay.textContent = titles[screenId];
-                
-                // En móvil, ocultar sidebar al seleccionar algo
-                if(window.innerWidth < 768) {
-                    sidebar.classList.remove('active');
+                // Si el login está oculto (usuario logueado), mostramos el dashboard
+                if(login && login.style.display === 'none') {
+                    if(main) main.style.display = 'flex';
+                    if(side) side.style.display = 'flex';
+                    
+                    // Redirigir 'main-menu' vacío a Finanzas si es necesario
+                    if(document.getElementById('main-menu').style.display !== 'none') {
+                        showScreen('finance-screen');
+                    }
                 }
-            }
-            
-            // Llamar a las funciones de carga de datos de tu app.js original
-            // Como sobreescribimos la función, tenemos que asegurarnos de llamar a la lógica de carga.
-            // TRUCO: Tu app.js define showScreen. Al cargar este script AL FINAL del body,
-            // podriamos entrar en conflicto. 
-            // MEJOR ESTRATEGIA: No sobreescribir, dejar que app.js haga su trabajo.
-            // El CSS ya maneja el display:none/flex del layout basado en clases o IDs.
-            
-            // REVISIÓN: Tu app.js hace: document.querySelectorAll('section').forEach(screen => screen.style.display = 'none');
-            // Eso ocultará el Sidebar si fuera una <section>, pero el Sidebar es un <aside>. ¡Bien!
-            // El Login es una <section>, así que funcionará.
-        };
-        
-        // Parche rápido: Tu app.js al hacer logout() muestra login-screen.
-        // Necesitamos que al mostrar login-screen se oculte el sidebar.
-        // Usaremos un Observer para detectar cambios en el estilo del login-screen.
-        const loginSection = document.getElementById('login-screen');
-        const observer = new MutationObserver((mutations) => {
-            mutations.forEach((mutation) => {
-                if (mutation.type === 'attributes' && mutation.attributeName === 'style') {
-                    const isLoginVisible = loginSection.style.display !== 'none';
-                    document.getElementById('app-sidebar').style.display = isLoginVisible ? 'none' : 'flex';
-                    document.getElementById('app-main').style.display = isLoginVisible ? 'none' : 'flex';
-                }
-            });
+            }, 1000);
         });
-        observer.observe(loginSection, { attributes: true });
+
+        // Sobreescribir showScreen para manejar layout
+        const originalShow = window.showScreen;
+        window.showScreen = function(id) {
+            document.querySelectorAll('section').forEach(s => s.style.display='none');
+            const target = document.getElementById(id);
+            if(target) target.style.display='block';
+            
+            // Manejo layout
+            const isLogin = (id === 'login-screen');
+            document.getElementById('login-screen').style.display = isLogin ? 'flex' : 'none';
+            document.getElementById('app-sidebar').style.display = isLogin ? 'none' : 'flex';
+            document.getElementById('app-main').style.display = isLogin ? 'none' : 'flex';
+            
+            // Títulos dinámicos
+            const titles = {'finance-screen':'Dashboard', 'orders-screen':'Pedidos', 'inventory-screen':'Inventario'};
+            const titleEl = document.getElementById('page-title-display');
+            if(titleEl && titles[id]) titleEl.textContent = titles[id];
+
+            // Cerrar menú en móvil
+            if(window.innerWidth < 768 && !isLogin) document.getElementById('app-sidebar').classList.remove('active');
+        }
     </script>
 </body>
 </html>
