@@ -95,3 +95,5 @@ th { background: #334155; }
 /* CLASES DE UTILIDAD PARA JS */
 .hidden { display: none !important; }
 .visible-flex { display: flex !important; }
+
+
