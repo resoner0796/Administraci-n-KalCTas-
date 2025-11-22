@@ -3,418 +3,510 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KalCTas Admin</title>
-
+    <title>KalCTas Admin Pro</title>
     <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#1a1a2e">
-
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="KalCTas Admin">
-    <link rel="apple-touch-icon" href="icon-192x192.png">
-
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
-
+    <meta name="theme-color" content="#0f172a">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
 
     <audio id="notification-sound" src="notification.mp3" preload="auto"></audio>
 
-    <div class="container">
-        <div class="admin-nav">
-            <button class="btn-icon" onclick="logout()" title="Cerrar Sesión">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="24" height="24">
-                    <path fill-rule="evenodd" d="M7.5 3.75A1.5 1.5 0 006 5.25v13.5a1.5 1.5 0 001.5 1.5h6a1.5 1.5 0 001.5-1.5V15a.75.75 0 011.5 0v3.75a3 3 0 01-3 3h-6a3 3 0 01-3-3V5.25a3 3 0 013-3h6a3 3 0 013 3V9A.75.75 0 0115 9V5.25a1.5 1.5 0 00-1.5-1.5h-6zm10.72 4.72a.75.75 0 011.06 0l3 3a.75.75 0 010 1.06l-3 3a.75.75 0 11-1.06-1.06l1.72-1.72H9a.75.75 0 010-1.5h10.94l-1.72-1.72a.75.75 0 010-1.06z" clip-rule="evenodd" />
-                </svg>
-            </button>
+    <section id="login-screen">
+        <div style="text-align: center; margin-bottom: 20px;">
+            <img src="" class="logo logo-img" alt="Logo" style="width: 120px; margin-bottom: 10px;">
+            <h1 style="font-size: 1.5rem;">KalCTas Admin</h1>
+            <p style="color: var(--text-muted);">Bienvenido de nuevo, bro</p>
+        </div>
+        <div class="modal-content" style="max-width: 400px;">
+            <form id="login-form">
+                <label>Correo Electrónico</label>
+                <input type="email" id="login-email" placeholder="usuario@kalctas.com" required>
+                <label>Contraseña</label>
+                <input type="password" id="login-password" placeholder="••••••••" required>
+                <button type="submit" class="btn-primary">Iniciar Sesión</button>
+            </form>
+        </div>
+    </section>
+
+    <aside class="dashboard-sidebar" id="app-sidebar" style="display: none;">
+        <div class="sidebar-header">
+            <img src="" class="sidebar-logo logo-img" alt="K">
+            <span class="sidebar-title">KalCTas</span>
         </div>
 
-        <section id="login-screen" style="display: block;">
-            <div class="logo-container"><img src="" class="logo logo-img" alt="KalCTas Logo"></div>
-            <h2>Iniciar Sesión</h2>
-            <form id="login-form">
-                <input type="email" id="login-email" placeholder="Correo electrónico" required>
-                <input type="password" id="login-password" placeholder="Contraseña" required>
-                <button type="submit">Entrar</button>
-            </form>
-        </section>
-
-        <section id="main-menu" style="display: none;">
-            <div class="logo-container"><img src="" class="logo logo-img" alt="KalCTas Logo"></div>
-            <h2>Menú Principal</h2>
-            <div class="main-menu-buttons">
-                <button onclick="showScreen('inventory-screen')">📦 Inventario de Productos</button>
-                <button onclick="showScreen('raw-materials-screen')">🏷️ Inventario de Insumos</button>
-                <button onclick="showScreen('orders-screen')">📬 Pedidos de la Tienda</button>
-                <button onclick="showScreen('manual-order-screen')">📝 Registrar Venta Manual</button>
-                <button onclick="showScreen('sales-history-screen')">💰 Historial de Pedidos</button>
-                <button onclick="showScreen('finance-screen')">📈 Administración</button>
-                <button onclick="showScreen('theme-screen')">🎨 Tema de la Página</button>
-                <button onclick="showScreen('packaging-screen')">🧸 Gestionar Empaques y Video</button>
-                <button onclick="showScreen('sales-screen')">📊 Reporte de Ventas</button>
-                <button onclick="showScreen('sales-report-table-screen')">📄 Reporte Detallado (Tabla)</button>
-                <button id="install-app-button">📲 Instalar App</button>
+        <nav class="sidebar-menu">
+            <button class="nav-btn" onclick="showScreen('finance-screen')">📊 Dashboard / Finanzas</button>
+            <button class="nav-btn" onclick="showScreen('orders-screen')">📬 Pedidos Activos</button>
+            <button class="nav-btn" onclick="showScreen('inventory-screen')">📦 Productos</button>
+            <button class="nav-btn" onclick="showScreen('raw-materials-screen')">🏷️ Insumos</button>
+            <button class="nav-btn" onclick="showScreen('manual-order-screen')">📝 Venta Manual</button>
+            <button class="nav-btn" onclick="showScreen('sales-history-screen')">💰 Historial Ventas</button>
+            <button class="nav-btn" onclick="showScreen('sales-screen')">📈 Gráficas</button>
+            <button class="nav-btn" onclick="showScreen('packaging-screen')">🧸 Empaques & Video</button>
+            <button class="nav-btn" onclick="showScreen('theme-screen')">🎨 Configuración Tema</button>
+            
+            <div style="margin-top: auto; border-top: 1px solid #334155; padding-top: 10px;">
+                <button class="nav-btn" onclick="logout()" style="color: var(--danger);">
+                    🚪 Cerrar Sesión
+                </button>
             </div>
-        </section>
+        </nav>
+    </aside>
 
-        <section id="inventory-screen" style="display: none;">
-            <h1>Inventario de Productos</h1>
-            <div id="category-visibility-controls">
-                <h2>Visibilidad de Categorías</h2>
+    <main class="dashboard-main" id="app-main" style="display: none;">
+        
+        <header class="top-header">
+            <button class="mobile-menu-btn" onclick="toggleSidebar()">☰</button>
+            <h2 class="page-title" id="page-title-display">Panel de Control</h2>
+            <div class="user-info" style="display: flex; align-items: center; gap: 10px;">
+                <span style="font-size: 0.9rem; color: var(--text-muted);">Admin</span>
+                <div style="width: 35px; height: 35px; background: var(--primary); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold;">A</div>
             </div>
-            <button onclick="showScreen('add-product-screen')">Agregar Nuevo Producto</button>
-            <div id="inventory-accordion"></div> 
-            <button class="close-button" onclick="showScreen('main-menu')">Volver al Menú</button>
-        </section>
+        </header>
 
-        <section id="add-product-screen" style="display: none;">
-            <h1>Agregar Nuevo Producto</h1>
-            <form id="add-product-form">
-                <input type="text" id="product-name" placeholder="Nombre del producto" required>
-                <select id="product-category" required>
-                    <option value="" disabled selected>Selecciona una categoría</option>
+        <div class="content-area">
+
+            <section id="main-menu">
+                <div style="text-align: center; margin-top: 50px;">
+                        <h3>Bienvenido al Panel Pro</h3>
+                        <p>Selecciona una opción del menú lateral.</p>
+                        <button onclick="showScreen('finance-screen')" class="btn-primary" style="max-width: 200px; margin-top: 20px;">Ir al Resumen Financiero</button>
+                     </div>
+            </section>
+
+            <section id="finance-screen">
+                <h2 style="margin-bottom: 20px;">Resumen Financiero</h2>
+                <div class="finance-panel">
+                    <div class="finance-card" onclick="showMovementsHistory('Ventas')"><h3>Ventas</h3><p id="total-sales">$0.00</p></div>
+                    <div class="finance-card" onclick="showMovementsHistory('Gastos')"><h3>Gastos</h3><p id="total-expenses">$0.00</p></div>
+                    <div class="finance-card" onclick="showMovementsHistory('Utilidad')"><h3 style="color: var(--success);">Utilidad Neta</h3><p id="total-profit">$0.00</p></div>
+                    <div class="finance-card" onclick="showMovementsHistory('Capital')"><h3 style="color: var(--warning);">Capital</h3><p id="total-capital">$0.00</p></div>
+                </div>
+                
+                <h3 style="margin: 30px 0 15px 0; border-bottom: 1px solid #334155; padding-bottom: 10px;">Reparto de Utilidades</h3>
+                <div class="finance-panel" style="grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));">
+                    <div class="finance-card" onclick="showMovementsHistory('Utilidad Negocio')"><h3>Negocio (50%)</h3><p id="total-profit-negocio">$0.00</p></div>
+                    <div class="finance-card" onclick="showMovementsHistory('Utilidad Socio', 'Ulises')"><h3>Ulises (25%)</h3><p id="total-profit-ulises">$0.00</p></div>
+                    <div class="finance-card" onclick="showMovementsHistory('Utilidad Socio', 'Dariana')"><h3>Dariana (25%)</h3><p id="total-profit-dariana">$0.00</p></div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 30px; margin-top: 30px;">
+                    <div class="card-item">
+                        <h3>Registrar Gasto Rápido</h3>
+                        <form id="add-expense-form" style="margin-top: 15px;">
+                            <input type="number" id="expense-amount" placeholder="Monto ($)" step="0.01" required>
+                            <select id="expense-concept" required><option value="">Cargando conceptos...</option></select>
+                            <textarea id="expense-note" placeholder="Nota (opcional)" rows="2"></textarea>
+                            <button type="submit" class="btn-primary">Registrar</button>
+                        </form>
+                        <button onclick="addNewExpenseConcept()" style="margin-top: 10px; background: transparent; color: var(--primary); width: auto; padding: 0;">+ Crear concepto</button>
+                    </div>
+                    
+                    <div class="card-item">
+                        <h3>Configuraciones</h3>
+                        <form id="cost-config-form" style="margin-top: 15px;">
+                            <label>Costo Base Producto</label>
+                            <div style="display: flex; gap: 10px;">
+                                <input type="number" id="product-cost-input" placeholder="42" step="0.01">
+                                <button type="submit" style="width: auto;">Guardar</button>
+                            </div>
+                        </form>
+                        <form id="shipping-cost-config-form" style="margin-top: 15px;">
+                            <label>Costo Envío Base</label>
+                            <div style="display: flex; gap: 10px;">
+                                <input type="number" id="shipping-cost-input" placeholder="70" step="0.01">
+                                <button type="submit" style="width: auto;">Guardar</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+                
+                <div style="margin-top: 30px; display: flex; gap: 10px; flex-wrap: wrap;">
+                    <button onclick="showScreen('sales-report-table-screen')" style="background: var(--bg-card); border: 1px solid var(--primary);">Ver Tabla Detallada</button>
+                    <button onclick="showScreen('restock-screen')" style="background: var(--bg-card); border: 1px solid var(--warning); color: var(--warning);">Hacer Re-Stock</button>
+                </div>
+            </section>
+
+            <section id="inventory-screen">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h2>Inventario</h2>
+                    <button onclick="showScreen('add-product-screen')" class="btn-primary" style="width: auto;">+ Nuevo Producto</button>
+                </div>
+                <div id="category-visibility-controls" class="card-item" style="margin-bottom: 20px;">
+                    </div>
+                <div id="inventory-accordion" style="display: grid; gap: 15px;">
+                    </div>
+            </section>
+
+            <section id="add-product-screen">
+                <div class="card-item" style="max-width: 600px; margin: 0 auto;">
+                    <h2>Nuevo Producto</h2>
+                    <form id="add-product-form" style="margin-top: 20px;">
+                        <input type="text" id="product-name" placeholder="Nombre del modelo" required>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                            <select id="product-category" required>
+                                <option value="" disabled selected>Categoría</option>
+                                <option value="KalCTas2-4">KalCTas 2/4</option>
+                                <option value="KalCTas3-4">KalCTas 3/4</option>
+                                <option value="KalCTasLargas">KalCTas Largas</option>
+                            </select>
+                            <input type="number" id="product-stock" placeholder="Stock Inicial" required>
+                        </div>
+                        <input type="text" id="product-image-url" placeholder="URL Imagen (assets/...)" required>
+                        <input type="number" id="product-price" placeholder="Precio Venta ($)" step="0.01" required>
+                        <div style="display: flex; gap: 10px; margin-top: 20px;">
+                            <button type="button" onclick="showScreen('inventory-screen')" style="background: transparent; border: 1px solid #334155;">Cancelar</button>
+                            <button type="submit" class="btn-primary">Guardar</button>
+                        </div>
+                    </form>
+                </div>
+            </section>
+
+            <section id="orders-screen">
+                <h2>Pedidos Pendientes</h2>
+                <ul id="orders-list" style="list-style: none; margin-top: 20px;"></ul>
+            </section>
+
+            <section id="manual-order-screen">
+                <div class="card-item" style="max-width: 800px; margin: 0 auto;">
+                    <h2>Registrar Venta Manual</h2>
+                    <form id="manual-order-form" style="margin-top: 20px;">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                            <input type="text" id="manual-order-client" placeholder="Nombre Cliente" required>
+                            <input type="tel" id="manual-order-phone" placeholder="Teléfono (Opcional)">
+                        </div>
+                        <select id="manual-order-channel" required>
+                            <option value="Facebook">Facebook</option>
+                            <option value="Venta Personal">Venta Personal</option>
+                            <option value="Otro">Otro</option>
+                        </select>
+
+                        <h4 style="margin: 20px 0 10px 0; color: var(--primary);">Productos</h4>
+                        <div id="manual-order-items"></div>
+                        <button type="button" onclick="addManualOrderLine()" style="background: transparent; border: 1px dashed #334155; margin-top: 10px; color: var(--text-muted);">+ Agregar otro producto</button>
+
+                        <h4 style="margin: 20px 0 10px 0; color: var(--primary);">Entrega</h4>
+                        <select id="manual-delivery-method" onchange="toggleManualDeliveryFields()">
+                            <option value="punto-medio">Punto medio</option>
+                            <option value="domicilio">Entrega a domicilio</option>
+                        </select>
+                        
+                        <div id="manual-home-delivery-fields" style="display:none;">
+                            <input type="text" id="manual-delivery-street" placeholder="Calle y número">
+                            <input type="text" id="manual-delivery-neighborhood" placeholder="Colonia">
+                            <textarea id="manual-delivery-description" placeholder="Referencias de la casa..."></textarea>
+                        </div>
+
+                        <div id="manual-pickup-location-fields">
+                            <input type="date" id="manual-delivery-date" required>
+                            <select id="manual-delivery-location" onchange="toggleOtherManualLocation()">
+                                <option value="Mi tienda Jarachina">Mi tienda Jarachina</option>
+                                <option value="La Portillo">La Portillo</option>
+                                <option value="Periférico">Periférico</option>
+                                <option value="Soriana Hidalgo">Soriana Hidalgo</option>
+                                <option value="Otro">Otro...</option>
+                            </select>
+                            <textarea id="manual-other-location-note" style="display:none;" placeholder="Escribe el lugar..."></textarea>
+                        </div>
+
+                        <textarea id="manual-delivery-comments" placeholder="Comentarios generales..." style="margin-top: 15px;"></textarea>
+                        
+                        <div style="margin-top: 20px; padding: 15px; background: rgba(16, 185, 129, 0.1); border-radius: 8px; text-align: right;">
+                            <label>Total a Cobrar:</label>
+                            <input type="number" id="manual-order-total" readonly style="background: transparent; border: none; font-size: 2rem; color: var(--success); text-align: right; font-weight: bold;">
+                        </div>
+
+                        <button type="submit" class="btn-primary" style="margin-top: 20px; font-size: 1.2rem;">Registrar Venta</button>
+                    </form>
+                </div>
+            </section>
+
+            <section id="raw-materials-screen">
+                <h2>Inventario de Insumos</h2>
+                <div class="card-item" style="margin-bottom: 20px;">
+                    <form id="add-raw-material-form" style="display: flex; gap: 10px; flex-wrap: wrap;">
+                        <input type="hidden" id="raw-material-id">
+                        <input type="text" id="raw-material-description" placeholder="Nueva etiqueta / bolsa..." style="flex: 2;" required>
+                        <input type="number" id="raw-material-quantity" placeholder="Cant." style="flex: 1;" required>
+                        <button type="submit" id="add-raw-material-btn" class="btn-primary" style="width: auto;">Agregar</button>
+                        <button type="button" id="cancel-edit-raw-material-btn" style="display: none; background: var(--danger);" onclick="cancelEditRawMaterial()">X</button>
+                    </form>
+                </div>
+                <div class="table-container">
+                    <table id="raw-materials-table">
+                        <thead><tr><th>Descripción</th><th>Cantidad</th><th>Acciones</th></tr></thead>
+                        <tbody id="raw-materials-table-body"></tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section id="packaging-screen">
+                <h2>Empaques y Video</h2>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
+                    <div class="card-item">
+                        <h3>Videos</h3>
+                        <form id="add-video-form">
+                            <input type="text" id="video-name" placeholder="Nombre" required>
+                            <input type="text" id="video-url" placeholder="Archivo.mp4" required>
+                            <button type="submit" class="btn-primary">Subir Video</button>
+                        </form>
+                        <div id="video-list" style="margin-top: 15px;"></div>
+                    </div>
+                    <div class="card-item">
+                        <h3>Empaques</h3>
+                        <form id="add-packaging-form">
+                            <input type="text" id="packaging-name" placeholder="Nombre" required>
+                            <input type="text" id="packaging-image-url" placeholder="Imagen.jpg" required>
+                            <button type="submit" class="btn-primary">Agregar Empaque</button>
+                        </form>
+                        <div id="packaging-list" style="margin-top: 15px;"></div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="sales-history-screen">
+                <h2>Historial de Pedidos</h2>
+                <ul id="sales-history-list" style="margin-top: 20px;"></ul>
+            </section>
+
+            <section id="sales-report-table-screen">
+                <h2>Reporte Detallado (Tabla)</h2>
+                <div class="table-container">
+                    <table id="sales-report-table">
+                        <thead>
+                            <tr>
+                                <th>Folio</th>
+                                <th>Cliente</th>
+                                <th>Canal</th>
+                                <th>Fecha</th>
+                                <th>Total</th>
+                                <th>Costo</th>
+                                <th>Envío</th>
+                                <th>Utilidad</th>
+                                <th>Negocio</th>
+                                <th>Ulises</th>
+                                <th>Dariana</th>
+                            </tr>
+                        </thead>
+                        <tbody id="sales-report-table-body"></tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section id="movements-history-screen">
+                <h2>Historial de Movimientos</h2>
+                <div class="filter-container" style="margin-bottom: 20px;">
+                    <select id="movement-filter-category" onchange="loadMovementsHistory()" style="max-width: 300px;">
+                        <option value="all">Todas las categorías</option>
+                    </select>
+                </div>
+                <ul id="movements-list" class="card-list"></ul>
+                <button onclick="showScreen('finance-screen')" style="margin-top: 20px;">&larr; Volver a Finanzas</button>
+            </section>
+            
+            <section id="restock-screen">
+                 <h2>Re-Stock de Inventario</h2>
+                 <div class="card-item">
+                    <form id="add-restock-form">
+                        <div id="restock-items"></div>
+                        <button type="button" onclick="addRestockLine()" style="margin: 10px 0; border: 1px dashed #334155; background: transparent;">+ Modelo</button>
+                        <div style="text-align: right; margin-top: 20px;">
+                            <label style="display:inline;">Envío:</label>
+                            <input type="number" id="shipping-cost" value="0" style="width: 100px; display:inline;">
+                            <h3 style="margin-top: 10px;">Total: <span id="restock-total">$0.00</span></h3>
+                        </div>
+                        <button type="submit" class="btn-primary" style="margin-top: 15px;">Registrar Re-Stock</button>
+                    </form>
+                 </div>
+                 <h3 style="margin-top: 30px;">Historial Re-Stocks</h3>
+                 <ul id="restock-history-list" class="card-list"></ul>
+            </section>
+            
+            <section id="sales-screen">
+                <h2>Gráfica de Ventas</h2>
+                <div class="card-item" style="height: 400px;">
+                    <canvas id="sales-chart"></canvas>
+                </div>
+                <ul id="sales-list" style="margin-top: 20px;"></ul>
+            </section>
+
+            <section id="theme-screen">
+                <h2>Tema de la Tienda Pública</h2>
+                <p>Estado: <strong id="current-theme-status">Cargando...</strong></p>
+                <div class="theme-buttons" style="display: flex; gap: 15px; margin-top: 20px;">
+                    <button onclick="setTheme('default')" style="background: #fff; color: #000;">Default</button>
+                    <button onclick="setTheme('halloween')" style="background: #f9a03f; color: #000;">Halloween 🎃</button>
+                    <button onclick="setTheme('christmas')" style="background: #d94545; color: #fff;">Navidad 🎅</button>
+                </div>
+            </section>
+            
+            <section id="supplies-screen">
+                <h2>Gastos en Insumos</h2>
+                <div class="card-item">
+                    <form id="add-supply-form">
+                        <input type="text" id="supply-description" placeholder="Descripción" required>
+                        <div style="display: flex; gap: 10px;">
+                            <input type="number" id="supply-quantity" placeholder="Cant." required>
+                            <input type="number" id="supply-cost" placeholder="Costo Unit." required>
+                        </div>
+                        <button type="submit" class="btn-primary">Registrar</button>
+                    </form>
+                </div>
+                <div class="table-container" style="margin-top: 20px;">
+                    <table id="supplies-table">
+                        <thead><tr><th>Desc.</th><th>Cant.</th><th>Total</th><th>Acción</th></tr></thead>
+                        <tbody id="supplies-table-body"></tbody>
+                    </table>
+                </div>
+            </section>
+
+        </div> </main>
+
+    <div id="edit-modal" class="edit-modal">
+        <div class="modal-content">
+            <h2>Editar Producto</h2>
+            <form id="edit-product-form">
+                <input type="hidden" id="edit-product-id">
+                <input type="text" id="edit-name" required>
+                <select id="edit-category" required>
                     <option value="KalCTas2-4">KalCTas 2/4</option>
                     <option value="KalCTas3-4">KalCTas 3/4</option>
                     <option value="KalCTasLargas">KalCTas Largas</option>
                 </select>
-                <label for="product-image-url" style="text-align: left; margin-top: 10px;">Ruta de la imagen:</label>
-                <input type="text" id="product-image-url" placeholder="Ej: assets/KalCTas2-4/modelo.png" required>
-                <input type="number" id="product-stock" placeholder="Inventario" required>
-                <input type="number" id="product-price" placeholder="Precio" step="0.01" required>
-                <button type="submit">Guardar Producto</button>
-            </form>
-            <button class="close-button" onclick="showScreen('inventory-screen')">Volver al Inventario</button>
-        </section>
-
-        <section id="manual-order-screen" style="display: none;">
-            <h1>Registrar Venta Manual</h1>
-            <form id="manual-order-form">
-                <h3>Datos del Cliente</h3>
-                <input type="text" id="manual-order-client" placeholder="Nombre del Cliente" required>
-                <input type="tel" id="manual-order-phone" placeholder="Teléfono del Cliente (Opcional)">
-                <select id="manual-order-channel" required>
-                    <option value="" disabled selected>Seleccionar Canal de Venta</option>
-                    <option value="Facebook">Facebook</option>
-                    <option value="Venta Personal">Venta Personal</option>
-                    <option value="Otro">Otro</option>
-                </select>
-                <hr style="width:100%; border-color:var(--border-color); margin-top: 15px;">
-
-                <h3>Productos Vendidos</h3>
-                <div id="manual-order-items"></div>
-                <button type="button" class="btn" style="background-color: var(--status-blue);" onclick="addManualOrderLine()">+ Agregar Producto</button>
-                <hr style="width:100%; border-color:var(--border-color); margin-top: 15px;">
-                
-                <h3>Detalles de Entrega</h3>
-                <select id="manual-delivery-method" onchange="toggleManualDeliveryFields()">
-                    <option value="punto-medio">Punto medio</option>
-                    <option value="domicilio">Entrega a domicilio</option>
-                </select>
-        
-                <div id="manual-home-delivery-fields" style="display:none; flex-direction: column; gap: 15px;">
-                    <label for="manual-delivery-street">Calle y número:</label>
-                    <input type="text" id="manual-delivery-street">
-                    <label for="manual-delivery-neighborhood">Colonia:</label>
-                    <input type="text" id="manual-delivery-neighborhood">
-                    <label for="manual-delivery-description">Descripción (opcional):</label>
-                    <textarea id="manual-delivery-description" placeholder="Ej: Casa color azul, portón negro..."></textarea>
+                <input type="text" id="edit-image-url" placeholder="URL Imagen">
+                <div style="display:flex; gap:10px;">
+                    <input type="number" id="edit-stock" placeholder="Stock" required>
+                    <input type="number" id="edit-price" placeholder="Precio" step="0.01" required>
                 </div>
-                
-                <div id="manual-pickup-location-fields" style="display:flex; flex-direction: column; gap: 15px;">
-                    <label for="manual-delivery-date">Fecha de entrega:</label>
-                    <input type="date" id="manual-delivery-date" required>
-                    <label for="manual-delivery-location">Lugar de entrega:</label>
-                    <select id="manual-delivery-location" onchange="toggleOtherManualLocation()">
-                        <option value="Mi tienda Jarachina">Mi tienda Jarachina</option>
-                        <option value="La Portillo">La Portillo</option>
-                        <option value="Periférico">Periférico</option>
-                        <option value="Smart periférico">Smart periférico</option>
-                        <option value="Soriana Hidalgo">Soriana Hidalgo</option>
-                        <option value="HEB Morelos">HEB Morelos</option>
-                        <option value="Otro">Otro</option>
-                    </select>
-                    <textarea id="manual-other-location-note" placeholder="Escribe el lugar de entrega (punto medio)" style="display:none;"></textarea>
-                </div>
-        
-                <label for="manual-delivery-comments">Comentarios (opcional):</label>
-                <textarea id="manual-delivery-comments" placeholder="Ej: Entregar en la entrada principal, tocar el claxon, etc."></textarea>
-                <hr style="width:100%; border-color:var(--border-color); margin-top: 15px;">
-        
-                <label for="manual-order-total" style="text-align:left; font-weight: bold; font-size: 1.2em;">Monto Total de la Venta ($)</label>
-                <input type="number" id="manual-order-total" placeholder="0.00" step="0.01" required readonly style="font-size: 1.2em; font-weight: bold; color: var(--status-green); background-color: transparent; border: none; padding-left: 0;">
-                
-                <button type="submit">Registrar Venta</button>
+                <label><input type="checkbox" id="edit-visible" style="width:auto;"> Visible en tienda</label>
+                <button type="submit" class="btn-primary" style="margin-top:15px;">Guardar Cambios</button>
             </form>
-            <button class="close-button" onclick="showScreen('main-menu')">Volver al Menú</button>
-        </section>
-
-        <section id="raw-materials-screen" style="display: none;">
-            <h1>Inventario de Insumos</h1>
-            <h2>Agregar/Editar Insumo</h2>
-            <form id="add-raw-material-form">
-                <input type="hidden" id="raw-material-id">
-                <input type="text" id="raw-material-description" placeholder="Descripción (Ej: Etiquetas Halloween)" required>
-                <input type="number" id="raw-material-quantity" placeholder="Cantidad" min="0" required>
-                <button type="submit" id="add-raw-material-btn">Agregar Insumo</button>
-                <button type="button" id="cancel-edit-raw-material-btn" class="close-button" style="display: none;" onclick="cancelEditRawMaterial()">Cancelar Edición</button>
-            </form>
-            <div class="table-container">
-                <h2>Insumos Actuales</h2>
-                <table id="raw-materials-table">
-                    <thead><tr><th>Descripción</th><th>Cantidad</th><th>Acciones</th></tr></thead>
-                    <tbody id="raw-materials-table-body"></tbody>
-                </table>
-            </div>
-            <button class="close-button" onclick="showScreen('main-menu')">Volver al Menú</button>
-        </section>
-        
-        <section id="orders-screen" style="display: none;">
-            <h1>Pedidos de la Tienda</h1>
-            <ul id="orders-list"></ul>
-            <button class="close-button" onclick="showScreen('main-menu')">Volver al Menú</button>
-        </section>
-
-        <section id="sales-history-screen" style="display: none;">
-            <h1>Historial de Pedidos</h1>
-            <ul id="sales-history-list"></ul>
-            <button class="close-button" onclick="showScreen('main-menu')">Volver al Menú</button>
-        </section>
-        
-        <section id="movements-history-screen" style="display: none;">
-            <h1>Historial de Movimientos</h1>
-            <div class="filter-container">
-                <select id="movement-filter-category" onchange="loadMovementsHistory()">
-                    <option value="all">Todas las categorías</option>
-                </select>
-            </div>
-            <ul id="movements-list" class="card-list"></ul>
-            <button class="close-button" onclick="showScreen('finance-screen')">Volver a Administración</button>
-        </section>
-
-        <section id="finance-screen" style="display: none;">
-            <h1>Administración Financiera</h1>
-            <div class="finance-panel">
-                <div class="finance-card" onclick="showMovementsHistory('Ventas')"><h3>Ventas Totales</h3><p id="total-sales">$0.00</p></div>
-                <div class="finance-card" onclick="showMovementsHistory('Gastos')"><h3>Gastos Totales</h3><p id="total-expenses">$0.00</p></div>
-                <div class="finance-card" onclick="showMovementsHistory('Utilidad')"><h3>Utilidad Total</h3><p id="total-profit">$0.00</p></div>
-                <div class="finance-card" onclick="showMovementsHistory('Capital')"><h3>Capital Acumulado</h3><p id="total-capital">$0.00</p></div>
-                <div class="finance-card" onclick="showMovementsHistory('Utilidad Negocio')"><h3>Utilidad Negocio (50%)</h3><p id="total-profit-negocio">$0.00</p></div>
-                <div class="finance-card" onclick="showMovementsHistory('Utilidad Socio', 'Ulises')"><h3>Utilidad Ulises (25%)</h3><p id="total-profit-ulises">$0.00</p></div>
-                <div class="finance-card" onclick="showMovementsHistory('Utilidad Socio', 'Dariana')"><h3>Utilidad Dariana (25%)</h3><p id="total-profit-dariana">$0.00</p></div>
-            </div>
-
-            <h2>Configuración de Costos</h2>
-            <form id="cost-config-form">
-                <label for="product-cost-input" style="text-align: left;">Costo por Producto ($)</label>
-                <div style="display: flex; gap: 10px;">
-                    <input type="number" id="product-cost-input" placeholder="Ej: 42" step="0.01" required>
-                    <button type="submit" style="width: 150px;">Guardar</button>
-                </div>
-            </form>
-
-            <form id="shipping-cost-config-form" style="margin-bottom: 20px;">
-                <label for="shipping-cost-input" style="text-align: left;">Costo de Envío a Domicilio ($)</label>
-                <div style="display: flex; gap: 10px;">
-                    <input type="number" id="shipping-cost-input" placeholder="Ej: 70" step="0.01" required>
-                    <button type="submit" style="width: 150px;">Guardar</button>
-                </div>
-            </form>
-            <hr style="width: 100%; border-color: rgba(255, 255, 255, 0.3);">
-
-            <h2>Registrar Gasto General</h2>
-            <form id="add-expense-form">
-                <input type="number" id="expense-amount" placeholder="Monto del Gasto ($)" step="0.01" required>
-                <select id="expense-concept" required><option value="">Selecciona un concepto</option></select>
-                <textarea id="expense-note" placeholder="Nota adicional (opcional)"></textarea>
-                <button type="submit">Registrar Gasto</button>
-            </form>
-            <button type="button" class="btn" style="background-color: #16a085; margin-top: -10px; margin-bottom: 20px; padding: 10px;" onclick="addNewExpenseConcept()">+ Agregar Nuevo Concepto</button>
-            <hr style="width: 100%; border-color: rgba(255, 255, 255, 0.3);">
-            <h2>Gestión</h2>
-            <div class="main-menu-buttons">
-                <button onclick="showScreen('supplies-screen')">Insumos (Gastos)</button>
-                <button onclick="showScreen('restock-screen')">Re-Stock de Inventario</button>
-                <button onclick="showScreen('movements-history-screen')">Historial de Movimientos 🧾</button>
-            </div>
-            <button class="close-button" onclick="showScreen('main-menu')">Volver al Menú</button>
-        </section>
-
-        <section id="supplies-screen" style="display: none;">
-            <h1>Gestión de Insumos (Gastos)</h1>
-            <h2>Registrar Insumo</h2>
-            <form id="add-supply-form">
-                <input type="text" id="supply-description" placeholder="Descripción del insumo" required>
-                <input type="number" id="supply-quantity" placeholder="Cantidad" min="1" required>
-                <input type="number" id="supply-cost" placeholder="Costo por unidad" step="0.01" min="0" required>
-                <button type="submit">Registrar Insumo</button>
-            </form>
-            <div class="table-container">
-                <h2>Insumos Registrados</h2>
-                <table id="supplies-table">
-                    <thead><tr><th>Descripción</th><th>Cantidad</th><th>Costo Total</th><th>Acciones</th></tr></thead>
-                    <tbody id="supplies-table-body"></tbody>
-                </table>
-            </div>
-            <button class="close-button" onclick="showScreen('finance-screen')">Volver a Administración</button>
-        </section>
-        
-        <section id="restock-screen" style="display: none;">
-            <h1>Re-Stock de Inventario</h1>
-            <h2>Registrar Pedido</h2>
-            <form id="add-restock-form">
-                <div id="restock-items"></div>
-                <button type="button" class="btn" onclick="addRestockLine()">Agregar otro modelo</button>
-                <div style="text-align: right; font-size: 1.2em; font-weight: bold; margin: 15px 0;">Costo de Envío: <input type="number" id="shipping-cost" placeholder="0" step="0.01" value="0" style="width: 100px; text-align: right; font-size: 1em;"></div>
-                <div style="text-align: right; font-size: 1.5em; font-weight: bold; margin: 15px 0;">Total: <span id="restock-total">$0.00</span></div>
-                <button type="submit">Registrar Pedido de Re-Stock</button>
-            </form>
-            <hr style="width: 100%; border-color: rgba(255, 255, 255, 0.3);">
-            <h2>Historial de Re-Stocks</h2>
-            <ul id="restock-history-list" class="card-list"></ul>
-            <button class="close-button" onclick="showScreen('finance-screen')">Volver a Administración</button>
-        </section>
-
-        <section id="sales-screen" style="display: none;">
-             <h1>Reporte de Ventas</h1>
-            <div class="chart-container" style="position: relative; height:40vh; width:80vw; background: #fff; border-radius: 12px; padding: 10px;"><canvas id="sales-chart"></canvas></div>
-            <h2>Detalle de Ventas</h2>
-            <ul id="sales-list"></ul>
-            <button class="close-button" onclick="showScreen('main-menu')">Volver al Menú</button>
-        </section>
-
-        <section id="theme-screen" style="display: none;">
-            <h1>Gestionar Tema de la Tienda</h1>
-            <p>Selecciona el tema que se mostrará públicamente en la tienda en línea.</p>
-            <p style="margin-top: 15px;">Tema Actual: <strong id="current-theme-status">Cargando...</strong></p>
-            <div class="theme-buttons">
-                <button onclick="setTheme('default')">Default (Normal)</button>
-                <button onclick="setTheme('halloween')" style="background-color: #f9a03f; color: #0d0221;">Halloween 🎃</button>
-                <button onclick="setTheme('christmas')" style="background-color: #d94545;">Navidad 🎅</button>
-            </div>
-            
-            <button class="close-button" onclick="showScreen('main-menu')">Volver al Menú</button>
-        </section>
-
-        <section id="packaging-screen" style="display: none;">
-            <h1>Gestionar Empaques y Video</h1>
-            
-            <div id="video-management-controls">
-                <h2>Gestionar Video de la Tienda</h2>
-                <form id="add-video-form" style="margin-bottom: 20px;">
-                    <input type="text" id="video-name" placeholder="Nombre del video (ej. Video Navidad)" required>
-                    <input type="text" id="video-url" placeholder="Ruta del video (ej. video_navidad.mp4)" required>
-                    <button type="submit">Agregar Video</button>
-                </form>
-                <div id="video-list"></div>
-            </div>
-
-            <div id="packaging-visibility-controls">
-                <h2>Gestionar Empaques</h2>
-                <form id="add-packaging-form" style="margin-bottom: 20px;">
-                    <input type="text" id="packaging-name" placeholder="Nombre del Empaque (Ej: Frankie)" required>
-                    <input type="text" id="packaging-image-url" placeholder="Ruta de la imagen (Ej: Frankie.jpg)" required>
-                    <button type="submit">Agregar Empaque</button>
-                </form>
-                <div id="packaging-list"></div>
-            </div>
-
-            <button class="close-button" onclick="showScreen('main-menu')">Volver al Menú</button>
-        </section>
-        
-        <section id="sales-report-table-screen" style="display: none;">
-            <h1>Reporte Detallado de Ventas</h1>
-            <div class="table-container">
-                <table id="sales-report-table">
-                    <thead>
-                        <tr>
-                            <th>Folio</th>
-                            <th>Cliente</th>
-                            <th>Canal</th>
-                            <th>Fecha</th>
-                            <th>Total Venta</th>
-                            <th>Costo Capital</th>
-                            <th>Gasto Envío</th>
-                            <th>Utilidad Total</th>
-                            <th>Util. Negocio (50%)</th>
-                            <th>Util. Ulises (25%)</th>
-                            <th>Util. Dariana (25%)</th>
-                        </tr>
-                    </thead>
-                    <tbody id="sales-report-table-body"></tbody>
-                </table>
-            </div>
-            <button class="close-button" onclick="showScreen('main-menu')">Volver al Menú</button>
-        </section>
-
-        <div id="edit-modal" class="edit-modal">
-            <div class="modal-content">
-                <h2>Editar Producto</h2>
-                <form id="edit-product-form" class="edit-modal-form">
-                    <input type="hidden" id="edit-product-id">
-                    <label for="edit-name">Nombre:</label>
-                    <input type="text" id="edit-name" required>
-                    <label for="edit-category">Categoría:</label>
-                    <select id="edit-category" required>
-                        <option value="KalCTas2-4">KalCTas 2/4</option>
-                        <option value="KalCTas3-4">KalCTas 3/4</option>
-                        <option value="KalCTasLargas">KalCTas Largas</option>
-                    </select>
-                    <label for="edit-image-url">Cambiar URL de imagen (opcional):</label>
-                    <input type="text" id="edit-image-url">
-                    <label for="edit-stock">Stock:</label>
-                    <input type="number" id="edit-stock" required>
-                    <label for="edit-price">Precio:</label>
-                    <input type="number" id="edit-price" step="0.01" required>
-                    
-                    <div style="display: flex; align-items: center; justify-content: start; margin: 15px 0 10px 0; text-align: left;">
-                        <input type="checkbox" id="edit-visible" style="width: auto; height: auto; margin-right: 10px;">
-                        <label for="edit-visible" style="margin: 0;">Visible en la tienda</label>
-                    </div>
-                    
-                    <button type="submit">Guardar Cambios</button>
-                </form>
-                <button class="close-button" onclick="closeEditModal()">Cancelar</button>
-            </div>
-        </div>
-        <div id="message-box" class="message-box">
-            <div class="modal-content">
-                <p id="message-text"></p>
-                <button class="close-button" onclick="closeMessage()">Aceptar</button>
-            </div>
-        </div>
-        <div id="confirm-modal" class="confirm-modal">
-            <div class="modal-content">
-                <p id="confirm-text">¿Estás seguro?</p>
-                <div class="confirm-buttons">
-                    <button class="btn btn-yes" onclick="confirmAction()">Sí</button>
-                    <button class="btn btn-no" onclick="cancelAction()">Cancelar</button>
-                </div>
-            </div>
-        </div>
-        <div id="sales-history-modal" class="sales-history-modal">
-            <div class="modal-content">
-                <h2 id="modal-history-title">Historial</h2>
-                <ul id="modal-sales-list" style="max-height: 400px; overflow-y: auto; text-align:left;"></ul>
-                <button class="close-button" onclick="closeSalesHistoryModal()">Cerrar</button>
-            </div>
-        </div>
-        <div id="image-modal" class="image-modal" onclick="cerrarModal()">
-            <span class="close-modal">&times;</span>
-            <img class="modal-content-img" id="modal-image">
+            <button onclick="closeEditModal()" style="margin-top: 10px; background: transparent;">Cancelar</button>
         </div>
     </div>
-    
+
+    <div id="message-box" class="message-box">
+        <div class="modal-content" style="text-align: center;">
+            <p id="message-text" style="font-size: 1.1rem; margin-bottom: 20px;"></p>
+            <button onclick="closeMessage()" class="btn-primary">Entendido</button>
+        </div>
+    </div>
+
+    <div id="confirm-modal" class="confirm-modal">
+        <div class="modal-content" style="text-align: center;">
+            <p id="confirm-text" style="font-size: 1.1rem; margin-bottom: 20px;">¿Seguro?</p>
+            <div style="display: flex; gap: 15px; justify-content: center;">
+                <button class="btn-primary" style="background: var(--success);" onclick="confirmAction()">Sí, dale</button>
+                <button style="background: var(--danger); color: white;" onclick="cancelAction()">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="sales-history-modal" class="sales-history-modal">
+        <div class="modal-content">
+            <h2 id="modal-history-title">Historial</h2>
+            <ul id="modal-sales-list" style="max-height: 400px; overflow-y: auto; text-align:left; margin-top:10px;"></ul>
+            <button onclick="closeSalesHistoryModal()" style="margin-top:15px; width:100%;">Cerrar</button>
+        </div>
+    </div>
+
+    <div id="image-modal" class="image-modal" onclick="cerrarModal()">
+        <span class="close-modal" style="position:absolute; top:20px; right:30px; font-size:40px; cursor:pointer;">&times;</span>
+        <img class="modal-content-img" id="modal-image" style="max-width:90%; max-height:90%; border-radius:12px;">
+    </div>
+
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging-compat.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
+    
     <script src="js/app.js"></script>
 
+    <script>
+        // Control del sidebar en móvil
+        function toggleSidebar() {
+            document.getElementById('app-sidebar').classList.toggle('active');
+        }
+
+        // Detectar cuando el usuario hace login (Firebase Auth listener está en app.js)
+        // Pero necesitamos mostrar el sidebar y el main cuando NO es login-screen
+        // Modificamos un poco el observador visual:
+        const originalShowScreen = window.showScreen; // Guardamos la función original si existiera
+        
+        // Sobreescribimos showScreen SOLO para manejar la visibilidad del Layout
+        // (Tu app.js sigue controlando qué sección se ve, esto solo controla el marco)
+        window.showScreen = function(screenId) {
+            // Ejecutamos la lógica original de tu app.js (que carga datos, etc.)
+            // Como app.js define showScreen globalmente, aquí estamos "inyectando" lógica visual extra.
+            
+            // 1. Ocultar todas las secciones (Esto ya lo hace tu app.js, pero lo reforzamos)
+            document.querySelectorAll('section').forEach(s => s.style.display = 'none');
+            
+            // 2. Mostrar la sección pedida
+            const target = document.getElementById(screenId);
+            if(target) target.style.display = 'block';
+
+            // 3. Lógica del Layout (Login vs Dashboard)
+            const loginScreen = document.getElementById('login-screen');
+            const sidebar = document.getElementById('app-sidebar');
+            const main = document.getElementById('app-main');
+
+            if (screenId === 'login-screen') {
+                loginScreen.style.display = 'flex'; // Flex para centrar
+                sidebar.style.display = 'none';
+                main.style.display = 'none';
+            } else {
+                loginScreen.style.display = 'none';
+                sidebar.style.display = 'flex';
+                main.style.display = 'flex';
+                
+                // Actualizar título en el header según la pantalla
+                const titles = {
+                    'finance-screen': 'Dashboard Financiero',
+                    'inventory-screen': 'Inventario de Productos',
+                    'orders-screen': 'Gestión de Pedidos',
+                    'manual-order-screen': 'Punto de Venta Manual',
+                    'sales-report-table-screen': 'Reportes Detallados'
+                };
+                const titleDisplay = document.getElementById('page-title-display');
+                if(titleDisplay && titles[screenId]) titleDisplay.textContent = titles[screenId];
+                
+                // En móvil, ocultar sidebar al seleccionar algo
+                if(window.innerWidth < 768) {
+                    sidebar.classList.remove('active');
+                }
+            }
+            
+            // Llamar a las funciones de carga de datos de tu app.js original
+            // Como sobreescribimos la función, tenemos que asegurarnos de llamar a la lógica de carga.
+            // TRUCO: Tu app.js define showScreen. Al cargar este script AL FINAL del body,
+            // podriamos entrar en conflicto. 
+            // MEJOR ESTRATEGIA: No sobreescribir, dejar que app.js haga su trabajo.
+            // El CSS ya maneja el display:none/flex del layout basado en clases o IDs.
+            
+            // REVISIÓN: Tu app.js hace: document.querySelectorAll('section').forEach(screen => screen.style.display = 'none');
+            // Eso ocultará el Sidebar si fuera una <section>, pero el Sidebar es un <aside>. ¡Bien!
+            // El Login es una <section>, así que funcionará.
+        };
+        
+        // Parche rápido: Tu app.js al hacer logout() muestra login-screen.
+        // Necesitamos que al mostrar login-screen se oculte el sidebar.
+        // Usaremos un Observer para detectar cambios en el estilo del login-screen.
+        const loginSection = document.getElementById('login-screen');
+        const observer = new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+                if (mutation.type === 'attributes' && mutation.attributeName === 'style') {
+                    const isLoginVisible = loginSection.style.display !== 'none';
+                    document.getElementById('app-sidebar').style.display = isLoginVisible ? 'none' : 'flex';
+                    document.getElementById('app-main').style.display = isLoginVisible ? 'none' : 'flex';
+                }
+            });
+        });
+        observer.observe(loginSection, { attributes: true });
+    </script>
 </body>
 </html>
