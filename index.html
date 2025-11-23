@@ -3,142 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KalCTas Admin Pro</title>
+    <title>KalCTas Admin</title>
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#0f172a">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
     
-    <style>
-        /* =========================================
-           VARIABLES Y RESET
-           ========================================= */
-        :root {
-            --bg-body: #0f172a;
-            --bg-sidebar: #1e293b;
-            --bg-card: #1e293b;
-            --text-main: #f1f5f9;
-            --text-muted: #94a3b8;
-            --primary: #6366f1;
-            --radius: 12px;
-            --glass-border: 1px solid rgba(255, 255, 255, 0.1);
-            --shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
-        }
-
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; }
-
-        body {
-            background-color: var(--bg-body);
-            color: var(--text-main);
-            height: 100vh;
-            display: flex;
-            overflow: hidden; /* Scroll dentro del contenido */
-        }
-
-        /* =========================================
-           LAYOUT DASHBOARD
-           ========================================= */
-        /* Login Screen */
-        #login-screen {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: var(--bg-body); z-index: 9999;
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-        }
-
-        /* Sidebar */
-        .dashboard-sidebar {
-            width: 260px; background-color: var(--bg-sidebar);
-            border-right: var(--glass-border);
-            display: flex; flex-direction: column; padding: 20px;
-            height: 100vh; transition: transform 0.3s ease;
-        }
-
-        .sidebar-header {
-            display: flex; align-items: center; gap: 10px;
-            margin-bottom: 30px; padding-bottom: 20px;
-            border-bottom: var(--glass-border);
-        }
-        .sidebar-logo { width: 40px; height: 40px; object-fit: contain; }
-        .sidebar-title { font-weight: 700; font-size: 1.2rem; }
-
-        .nav-btn {
-            background: transparent; border: none; color: var(--text-muted);
-            padding: 12px 15px; text-align: left; border-radius: var(--radius);
-            cursor: pointer; transition: all 0.2s; font-size: 0.95rem; margin-bottom: 5px;
-            display: block; width: 100%;
-        }
-        .nav-btn:hover { background-color: rgba(99, 102, 241, 0.1); color: var(--primary); }
-
-        /* Main Area */
-        .dashboard-main {
-            flex: 1; display: flex; flex-direction: column;
-            height: 100vh; position: relative;
-        }
-
-        .top-header {
-            height: 60px; display: flex; align-items: center; justify-content: space-between;
-            padding: 0 20px; border-bottom: var(--glass-border);
-            background-color: rgba(15, 23, 42, 0.9);
-        }
-
-        .content-area {
-            flex: 1; padding: 20px; overflow-y: auto; padding-bottom: 80px;
-        }
-
-        /* Ocultar secciones por defecto */
-        section { display: none; animation: fadeIn 0.3s ease; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-
-        /* =========================================
-           COMPONENTES
-           ========================================= */
-        .finance-panel { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 15px; margin-bottom: 20px; }
-        .finance-card, .card-item {
-            background-color: var(--bg-card); border: var(--glass-border);
-            border-radius: var(--radius); padding: 20px; box-shadow: var(--shadow);
-        }
-        .finance-card p { font-size: 1.5rem; font-weight: 700; margin-top: 5px; }
-        .finance-card h3 { font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; }
-
-        input, select, textarea {
-            width: 100%; background: #0f172a; border: 1px solid #334155;
-            color: white; padding: 12px; border-radius: 8px; margin-bottom: 10px; outline: none;
-        }
-        label { color: var(--text-muted); font-size: 0.9em; margin-bottom: 5px; display: block; }
-
-        button {
-            cursor: pointer; padding: 12px 20px; border-radius: 8px; border: none; font-weight: 600;
-        }
-        .btn-primary, button[type="submit"] { background: var(--primary); color: white; width: 100%; }
-        
-        /* Tablas */
-        .table-container { overflow-x: auto; border-radius: var(--radius); border: var(--glass-border); }
-        table { width: 100%; border-collapse: collapse; min-width: 600px; }
-        th { background: #334155; padding: 12px; text-align: left; color: white; }
-        td { padding: 12px; border-bottom: 1px solid #334155; color: var(--text-muted); }
-
-        /* Mobile */
-        .mobile-menu-btn { display: none; background: none; color: white; font-size: 1.5rem; padding: 0; }
-        
-        @media (max-width: 768px) {
-            .dashboard-sidebar { position: fixed; left: -100%; z-index: 100; height: 100%; }
-            .dashboard-sidebar.active { left: 0; }
-            .mobile-menu-btn { display: block; }
-            
-            /* Ajuste tablas móvil */
-            table, thead, tbody, th, td, tr { display: block; }
-            thead tr { position: absolute; top: -9999px; left: -9999px; }
-            tr { border: 1px solid #334155; margin-bottom: 10px; border-radius: 8px; padding: 10px; }
-            td { border: none; position: relative; padding-left: 50%; text-align: right; display: flex; justify-content: space-between; }
-        }
-
-        /* Modales */
-        .message-box, .edit-modal, .confirm-modal, .sales-history-modal, .image-modal {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.8); z-index: 5000; display: none;
-            align-items: center; justify-content: center;
-        }
-        .modal-content { background: var(--bg-sidebar); padding: 25px; border-radius: 12px; width: 90%; max-width: 500px; }
-    </style>
+    <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
 
@@ -146,24 +16,25 @@
 
     <section id="login-screen">
         <div style="text-align: center; margin-bottom: 20px;">
-            <h1 style="font-size: 2rem; margin-bottom: 10px;">KalCTas Admin</h1>
+            <h1 style="font-size: 2rem; margin-bottom: 10px; color: white;">KalCTas Admin</h1>
+            <p style="color: #94a3b8;">Panel de Administración</p>
         </div>
         <div class="modal-content">
             <form id="login-form">
-                <label>Correo</label>
-                <input type="email" id="login-email" required>
+                <label>Correo Electrónico</label>
+                <input type="email" id="login-email" placeholder="usuario@kalctas.com" required>
                 <label>Contraseña</label>
-                <input type="password" id="login-password" required>
-                <button type="submit" class="btn-primary">Entrar</button>
+                <input type="password" id="login-password" placeholder="••••••••" required>
+                <button type="submit" class="btn-primary">Iniciar Sesión</button>
             </form>
         </div>
     </section>
 
     <aside class="dashboard-sidebar" id="app-sidebar" style="display: none;">
         <div class="sidebar-header">
-            <span class="sidebar-title">KalCTas Pro</span>
+            <span class="sidebar-title">KalCTas</span>
         </div>
-        <nav>
+        <nav class="sidebar-menu">
             <button class="nav-btn" onclick="showScreen('finance-screen')">📊 Dashboard</button>
             <button class="nav-btn" onclick="showScreen('orders-screen')">📬 Pedidos</button>
             <button class="nav-btn" onclick="showScreen('inventory-screen')">📦 Inventario</button>
@@ -173,71 +44,91 @@
             <button class="nav-btn" onclick="showScreen('sales-screen')">📈 Gráficas</button>
             <button class="nav-btn" onclick="showScreen('packaging-screen')">🧸 Empaques</button>
             <button class="nav-btn" onclick="showScreen('theme-screen')">🎨 Tema</button>
-            <button class="nav-btn" onclick="logout()" style="color: #ef4444; margin-top: 20px;">🚪 Salir</button>
+            <div style="margin-top: auto; border-top: 1px solid #334155; padding-top: 10px;">
+                <button class="nav-btn" onclick="logout()" style="color: #ef4444;">🚪 Salir</button>
+            </div>
         </nav>
     </aside>
 
     <main class="dashboard-main" id="app-main" style="display: none;">
         <header class="top-header">
             <button class="mobile-menu-btn" onclick="document.getElementById('app-sidebar').classList.toggle('active')">☰</button>
-            <h3 id="page-title-display">Panel de Control</h3>
-            <div style="width:30px; height:30px; background:var(--primary); border-radius:50%; display:flex; align-items:center; justify-content:center;">A</div>
+            <h2 class="page-title" id="page-title-display">Panel</h2>
+            <div style="width: 35px; height: 35px; background: #6366f1; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold;">A</div>
         </header>
 
         <div class="content-area">
             
-            <section id="main-menu"></section> 
-
             <section id="finance-screen">
-                <h2>Resumen Financiero</h2>
+                <h2 style="margin-bottom: 20px;">Resumen Financiero</h2>
+                
                 <div class="finance-panel">
-                    <div class="finance-card" onclick="showMovementsHistory('Ventas')"><h3>Ventas</h3><p id="total-sales">...</p></div>
-                    <div class="finance-card" onclick="showMovementsHistory('Gastos')"><h3>Gastos</h3><p id="total-expenses">...</p></div>
-                    <div class="finance-card" onclick="showMovementsHistory('Utilidad')"><h3 style="color:#10b981;">Utilidad</h3><p id="total-profit">...</p></div>
-                    <div class="finance-card" onclick="showMovementsHistory('Capital')"><h3 style="color:#f59e0b;">Capital</h3><p id="total-capital">...</p></div>
+                    <div class="finance-card" onclick="showMovementsHistory('Ventas')"><h3>Ventas</h3><p id="total-sales">$0.00</p></div>
+                    <div class="finance-card" onclick="showMovementsHistory('Gastos')"><h3>Gastos</h3><p id="total-expenses">$0.00</p></div>
+                    <div class="finance-card" onclick="showMovementsHistory('Utilidad')"><h3 style="color: #10b981;">Utilidad</h3><p id="total-profit">$0.00</p></div>
+                    <div class="finance-card" onclick="showMovementsHistory('Capital')"><h3 style="color: #f59e0b;">Capital</h3><p id="total-capital">$0.00</p></div>
                 </div>
-                <div class="card-item">
-                    <h3>Gasto Rápido</h3>
+
+                <h3 style="margin: 20px 0 10px 0; border-bottom: 1px solid #334155; padding-bottom: 5px;">Utilidades Socios</h3>
+                <div class="finance-panel">
+                    <div class="finance-card" onclick="showMovementsHistory('Utilidad Negocio')"><h3>Negocio (50%)</h3><p id="total-profit-negocio">$0.00</p></div>
+                    <div class="finance-card" onclick="showMovementsHistory('Utilidad Socio', 'Ulises')"><h3>Ulises (25%)</h3><p id="total-profit-ulises">$0.00</p></div>
+                    <div class="finance-card" onclick="showMovementsHistory('Utilidad Socio', 'Dariana')"><h3>Dariana (25%)</h3><p id="total-profit-dariana">$0.00</p></div>
+                </div>
+
+                <div class="card-item" style="margin-top: 20px;">
+                    <h3>Registrar Gasto</h3>
                     <form id="add-expense-form" style="margin-top: 10px;">
                         <input type="number" id="expense-amount" placeholder="$ Monto" step="0.01" required>
                         <select id="expense-concept" required><option value="">Cargando...</option></select>
-                        <textarea id="expense-note" placeholder="Nota" rows="1"></textarea>
+                        <textarea id="expense-note" placeholder="Nota (opcional)"></textarea>
                         <button type="submit" class="btn-primary">Registrar</button>
                     </form>
-                    <button onclick="addNewExpenseConcept()" style="background:none; color:var(--primary); margin-top:5px; padding:0;">+ Nuevo concepto</button>
+                    <button onclick="addNewExpenseConcept()" style="background: transparent; color: #6366f1; padding: 0; margin-top: 5px;">+ Nuevo concepto</button>
                 </div>
-                <div style="margin-top:20px; display:flex; gap:10px;">
-                    <button onclick="showScreen('sales-report-table-screen')" style="background:#334155;">Ver Tabla Detallada</button>
-                    <button onclick="showScreen('restock-screen')" style="background:#334155;">Hacer Re-Stock</button>
+
+                <div style="margin-top: 20px; display: flex; gap: 10px; flex-wrap: wrap;">
+                    <button onclick="showScreen('sales-report-table-screen')" style="background: #1e293b; border: 1px solid #6366f1;">Ver Tabla Detallada</button>
+                    <button onclick="showScreen('restock-screen')" style="background: #1e293b; border: 1px solid #f59e0b;">Hacer Re-Stock</button>
                 </div>
+                
+                <form id="cost-config-form" style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #334155;">
+                    <label>Costo Producto</label>
+                    <div style="display: flex; gap: 10px;"><input type="number" id="product-cost-input"><button type="submit" style="width: auto;">Guardar</button></div>
+                </form>
+                <form id="shipping-cost-config-form" style="margin-top: 10px;">
+                    <label>Costo Envío</label>
+                    <div style="display: flex; gap: 10px;"><input type="number" id="shipping-cost-input"><button type="submit" style="width: auto;">Guardar</button></div>
+                </form>
             </section>
 
             <section id="inventory-screen">
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                     <h2>Inventario</h2>
-                    <button onclick="showScreen('add-product-screen')" class="btn-primary" style="width:auto;">+ Agregar</button>
+                    <button onclick="showScreen('add-product-screen')" class="btn-primary" style="width: auto;">+ Producto</button>
                 </div>
-                <div id="category-visibility-controls" class="card-item" style="margin-bottom:15px;"></div>
-                <div id="inventory-accordion" style="display:grid; gap:10px;"></div>
+                <div id="category-visibility-controls" style="margin-bottom: 20px;"></div>
+                <div id="inventory-accordion" style="display: grid; gap: 15px;"></div>
             </section>
 
             <section id="add-product-screen">
-                <div class="card-item" style="max-width:600px; margin:0 auto;">
+                <div class="card-item" style="max-width: 600px; margin: 0 auto;">
                     <h2>Nuevo Producto</h2>
                     <form id="add-product-form">
                         <input type="text" id="product-name" placeholder="Nombre" required>
                         <select id="product-category" required>
+                            <option value="" disabled selected>Categoría</option>
                             <option value="KalCTas2-4">KalCTas 2/4</option>
                             <option value="KalCTas3-4">KalCTas 3/4</option>
                             <option value="KalCTasLargas">KalCTas Largas</option>
                         </select>
                         <input type="text" id="product-image-url" placeholder="URL Imagen" required>
-                        <div style="display:flex; gap:10px;">
+                        <div style="display: flex; gap: 10px;">
                             <input type="number" id="product-stock" placeholder="Stock" required>
                             <input type="number" id="product-price" placeholder="Precio" step="0.01" required>
                         </div>
-                        <div style="display:flex; gap:10px; margin-top:15px;">
-                            <button type="button" onclick="showScreen('inventory-screen')" style="background:#334155;">Cancelar</button>
+                        <div style="display: flex; gap: 10px; margin-top: 15px;">
+                            <button type="button" onclick="showScreen('inventory-screen')" style="background: #334155;">Cancelar</button>
                             <button type="submit" class="btn-primary">Guardar</button>
                         </div>
                     </form>
@@ -246,31 +137,37 @@
 
             <section id="orders-screen">
                 <h2>Pedidos Activos</h2>
-                <ul id="orders-list" style="list-style:none; margin-top:15px;"></ul>
+                <ul id="orders-list" style="list-style: none; margin-top: 20px;"></ul>
             </section>
 
             <section id="manual-order-screen">
-                <div class="card-item" style="max-width:600px; margin:0 auto;">
+                <div class="card-item" style="max-width: 600px; margin: 0 auto;">
                     <h2>Venta Manual</h2>
                     <form id="manual-order-form">
                         <input type="text" id="manual-order-client" placeholder="Cliente" required>
-                        <select id="manual-order-channel">
+                        <input type="tel" id="manual-order-phone" placeholder="Teléfono">
+                        <select id="manual-order-channel" required>
                             <option value="Facebook">Facebook</option>
                             <option value="Venta Personal">Personal</option>
+                            <option value="Otro">Otro</option>
                         </select>
                         
-                        <div id="manual-order-items" style="margin-top:15px;"></div>
-                        <button type="button" onclick="addManualOrderLine()" style="background:none; border:1px dashed #475569; color:var(--text-muted);">+ Producto</button>
+                        <h4 style="margin-top: 15px; color: #6366f1;">Productos</h4>
+                        <div id="manual-order-items"></div>
+                        <button type="button" onclick="addManualOrderLine()" style="background: none; border: 1px dashed #475569; color: #94a3b8; margin-top: 5px;">+ Agregar Producto</button>
 
-                        <select id="manual-delivery-method" onchange="toggleManualDeliveryFields()" style="margin-top:15px;">
+                        <h4 style="margin-top: 15px; color: #6366f1;">Entrega</h4>
+                        <select id="manual-delivery-method" onchange="toggleManualDeliveryFields()">
                             <option value="punto-medio">Punto Medio</option>
                             <option value="domicilio">Domicilio</option>
                         </select>
 
-                        <div id="manual-home-delivery-fields" style="display:none;">
+                        <div id="manual-home-delivery-fields" style="display: none;">
                             <input type="text" id="manual-delivery-street" placeholder="Calle">
                             <input type="text" id="manual-delivery-neighborhood" placeholder="Colonia">
+                            <textarea id="manual-delivery-description" placeholder="Referencias"></textarea>
                         </div>
+
                         <div id="manual-pickup-location-fields">
                             <input type="date" id="manual-delivery-date">
                             <select id="manual-delivery-location" onchange="toggleOtherManualLocation()">
@@ -278,25 +175,39 @@
                                 <option value="Periférico">Periférico</option>
                                 <option value="Otro">Otro</option>
                             </select>
-                            <textarea id="manual-other-location-note" style="display:none;"></textarea>
+                            <textarea id="manual-other-location-note" style="display: none;" placeholder="Especifique..."></textarea>
                         </div>
+                        
+                        <textarea id="manual-delivery-comments" placeholder="Comentarios" style="margin-top: 10px;"></textarea>
 
-                        <h3 style="text-align:right; margin-top:20px; color:var(--success);">Total: $<input type="number" id="manual-order-total" readonly style="background:none; border:none; color:inherit; font-size:inherit; width:100px; display:inline;"></h3>
-                        <button type="submit" class="btn-primary">Registrar</button>
+                        <h3 style="text-align: right; margin-top: 20px;">Total: $<input type="number" id="manual-order-total" readonly style="background: none; border: none; width: 100px; font-size: 1.5rem; color: #10b981; font-weight: bold; display: inline;"></h3>
+                        <button type="submit" class="btn-primary" style="margin-top: 10px;">Registrar Venta</button>
                     </form>
                 </div>
             </section>
-            
-            <section id="sales-history-screen">
-                <h2>Historial de Pedidos</h2>
-                <ul id="sales-history-list" style="margin-top:15px;"></ul>
+
+            <section id="raw-materials-screen">
+                <h2>Insumos</h2>
+                <div class="card-item">
+                    <form id="add-raw-material-form" style="display: flex; gap: 10px;">
+                        <input type="hidden" id="raw-material-id">
+                        <input type="text" id="raw-material-description" placeholder="Descripción" required style="flex: 2;">
+                        <input type="number" id="raw-material-quantity" placeholder="Cant." required style="flex: 1;">
+                        <button type="submit" id="add-raw-material-btn" class="btn-primary" style="width: auto;">Agregar</button>
+                        <button type="button" id="cancel-edit-raw-material-btn" style="display: none; background: #ef4444; width: auto;" onclick="cancelEditRawMaterial()">X</button>
+                    </form>
+                </div>
+                <div class="table-container" style="margin-top: 20px;">
+                    <table id="raw-materials-table">
+                        <thead><tr><th>Item</th><th>Cant.</th><th>Acción</th></tr></thead>
+                        <tbody id="raw-materials-table-body"></tbody>
+                    </table>
+                </div>
             </section>
 
-            <section id="movements-history-screen">
-                <h2>Movimientos</h2>
-                <select id="movement-filter-category" onchange="loadMovementsHistory()"></select>
-                <ul id="movements-list" class="card-list" style="margin-top:15px;"></ul>
-                <button onclick="showScreen('finance-screen')" style="margin-top:20px; background:#334155;">&larr; Volver</button>
+            <section id="sales-history-screen">
+                <h2>Historial de Pedidos</h2>
+                <ul id="sales-history-list" style="margin-top: 20px;"></ul>
             </section>
 
             <section id="sales-report-table-screen">
@@ -309,94 +220,81 @@
                 </div>
             </section>
 
-            <section id="raw-materials-screen">
-                <h2>Insumos</h2>
-                <div class="card-item">
-                    <form id="add-raw-material-form" style="display:flex; gap:10px;">
-                        <input type="hidden" id="raw-material-id">
-                        <input type="text" id="raw-material-description" placeholder="Desc." required>
-                        <input type="number" id="raw-material-quantity" placeholder="#" style="width:80px;" required>
-                        <button type="submit" id="add-raw-material-btn" class="btn-primary" style="width:auto;">OK</button>
-                        <button type="button" id="cancel-edit-raw-material-btn" style="display:none; background:#ef4444;">X</button>
-                    </form>
-                </div>
-                <div class="table-container" style="margin-top:15px;">
-                    <table id="raw-materials-table">
-                        <thead><tr><th>Item</th><th>Cant.</th><th>Acción</th></tr></thead>
-                        <tbody id="raw-materials-table-body"></tbody>
-                    </table>
-                </div>
+            <section id="movements-history-screen">
+                <h2>Movimientos</h2>
+                <select id="movement-filter-category" onchange="loadMovementsHistory()" style="margin-bottom: 15px;"></select>
+                <ul id="movements-list" class="card-list"></ul>
+                <button onclick="showScreen('finance-screen')" style="margin-top: 20px; background: #334155;">&larr; Volver</button>
             </section>
-            
-            <section id="packaging-screen">
-                <h2>Configuración Visual</h2>
+
+            <section id="restock-screen">
+                <h2>Re-Stock</h2>
                 <div class="card-item">
-                    <h3>Videos</h3>
-                    <form id="add-video-form"><input type="text" id="video-name" placeholder="Nombre"><input type="text" id="video-url" placeholder="URL"><button type="submit" class="btn-primary">Subir</button></form>
-                    <div id="video-list" style="margin-top:10px;"></div>
-                </div>
-                <div class="card-item" style="margin-top:15px;">
-                    <h3>Empaques</h3>
-                    <form id="add-packaging-form"><input type="text" id="packaging-name" placeholder="Nombre"><input type="text" id="packaging-image-url" placeholder="URL"><button type="submit" class="btn-primary">Agregar</button></form>
-                    <div id="packaging-list" style="margin-top:10px;"></div>
-                </div>
-            </section>
-            
-             <section id="restock-screen">
-                 <h2>Re-Stock</h2>
-                 <div class="card-item">
                     <form id="add-restock-form">
                         <div id="restock-items"></div>
-                        <button type="button" onclick="addRestockLine()" style="border:1px dashed #475569; background:none;">+ Modelo</button>
-                        <div style="text-align:right; margin-top:15px;">
-                           Envío: <input type="number" id="shipping-cost" value="0" style="width:80px; display:inline;">
-                           <h3 id="restock-total">$0.00</h3>
+                        <button type="button" onclick="addRestockLine()" style="background: none; border: 1px dashed #475569; color: #94a3b8; margin: 10px 0;">+ Modelo</button>
+                        <div style="text-align: right;">
+                            Envío: <input type="number" id="shipping-cost" value="0" style="width: 80px; display: inline;">
+                            <h3>Total: <span id="restock-total">$0.00</span></h3>
                         </div>
                         <button type="submit" class="btn-primary">Registrar</button>
                     </form>
-                 </div>
-                 <ul id="restock-history-list" style="margin-top:20px;"></ul>
+                </div>
+                <ul id="restock-history-list" style="margin-top: 20px;"></ul>
+            </section>
+
+            <section id="sales-screen">
+                <h2>Gráfica</h2>
+                <div class="card-item" style="height: 300px;"><canvas id="sales-chart"></canvas></div>
+                <ul id="sales-list" style="margin-top: 20px;"></ul>
             </section>
 
             <section id="theme-screen">
-                <h2>Tema Tienda</h2>
+                <h2>Tema Tienda Pública</h2>
                 <p>Actual: <strong id="current-theme-status">...</strong></p>
-                <div style="display:flex; gap:10px; margin-top:15px;">
-                    <button onclick="setTheme('default')" style="background:white; color:black;">Normal</button>
-                    <button onclick="setTheme('halloween')" style="background:#f9a03f; color:black;">Halloween</button>
-                    <button onclick="setTheme('christmas')" style="background:#dc2626;">Navidad</button>
+                <div style="display: flex; gap: 10px; margin-top: 15px;">
+                    <button onclick="setTheme('default')" style="background: white; color: black;">Normal</button>
+                    <button onclick="setTheme('halloween')" style="background: #f9a03f; color: black;">Halloween</button>
+                    <button onclick="setTheme('christmas')" style="background: #dc2626;">Navidad</button>
                 </div>
             </section>
-            
-            <section id="sales-screen">
-                <h2>Gráfica</h2>
-                <div class="card-item" style="height:300px;"><canvas id="sales-chart"></canvas></div>
-                <ul id="sales-list" style="margin-top:15px;"></ul>
+
+            <section id="packaging-screen">
+                <h2>Config Visual</h2>
+                <div class="card-item">
+                    <h3>Video</h3>
+                    <form id="add-video-form"><input type="text" id="video-name" placeholder="Nombre"><input type="text" id="video-url" placeholder="URL"><button type="submit" class="btn-primary">Subir</button></form>
+                    <div id="video-list" style="margin-top: 10px;"></div>
+                </div>
+                <div class="card-item" style="margin-top: 20px;">
+                    <h3>Empaques</h3>
+                    <form id="add-packaging-form"><input type="text" id="packaging-name" placeholder="Nombre"><input type="text" id="packaging-image-url" placeholder="URL"><button type="submit" class="btn-primary">Agregar</button></form>
+                    <div id="packaging-list" style="margin-top: 10px;"></div>
+                </div>
             </section>
 
             <section id="supplies-screen">
                 <h2>Gastos Insumos</h2>
                 <div class="card-item">
                     <form id="add-supply-form">
-                        <input type="text" id="supply-description" placeholder="Desc." required>
-                        <div style="display:flex; gap:10px;">
-                            <input type="number" id="supply-quantity" placeholder="#" required>
-                            <input type="number" id="supply-cost" placeholder="$" required>
+                        <input type="text" id="supply-description" placeholder="Descripción" required>
+                        <div style="display: flex; gap: 10px;">
+                            <input type="number" id="supply-quantity" placeholder="Cant." required>
+                            <input type="number" id="supply-cost" placeholder="$ Unit." required>
                         </div>
                         <button type="submit" class="btn-primary">Registrar</button>
                     </form>
                 </div>
-                <div class="table-container" style="margin-top:15px;">
+                <div class="table-container" style="margin-top: 20px;">
                     <table id="supplies-table"><thead><tr><th>Item</th><th>Total</th><th>X</th></tr></thead><tbody id="supplies-table-body"></tbody></table>
                 </div>
             </section>
 
+            <section id="main-menu"></section>
+
         </div>
     </main>
 
-    <div id="message-box" class="message-box"><div class="modal-content"><p id="message-text"></p><button onclick="closeMessage()" class="btn-primary">OK</button></div></div>
-    <div id="confirm-modal" class="confirm-modal"><div class="modal-content"><p id="confirm-text">¿Seguro?</p><div style="display:flex; gap:10px; justify-content:center;"><button onclick="confirmAction()" class="btn-primary">Si</button><button onclick="cancelAction()" style="background:#ef4444;">No</button></div></div></div>
-    <div id="sales-history-modal" class="sales-history-modal"><div class="modal-content"><h3 id="modal-history-title">Historial</h3><ul id="modal-sales-list" style="max-height:300px; overflow-y:auto;"></ul><button onclick="closeSalesHistoryModal()" style="width:100%; margin-top:10px;">Cerrar</button></div></div>
     <div id="edit-modal" class="edit-modal">
         <div class="modal-content">
             <h3>Editar</h3>
@@ -404,18 +302,19 @@
                 <input type="hidden" id="edit-product-id">
                 <input type="text" id="edit-name" required>
                 <select id="edit-category"><option value="KalCTas2-4">2/4</option><option value="KalCTas3-4">3/4</option><option value="KalCTasLargas">Largas</option></select>
-                <div style="display:flex; gap:10px;"><input type="number" id="edit-stock" placeholder="Stock"><input type="number" id="edit-price" placeholder="$"></div>
-                <input type="text" id="edit-image-url" placeholder="URL">
-                <label><input type="checkbox" id="edit-visible" style="width:auto;"> Visible</label>
+                <input type="text" id="edit-image-url">
+                <div style="display: flex; gap: 10px;"><input type="number" id="edit-stock"><input type="number" id="edit-price"></div>
+                <label><input type="checkbox" id="edit-visible" style="width: auto;"> Visible</label>
                 <button type="submit" class="btn-primary">Guardar</button>
             </form>
-            <button onclick="closeEditModal()" style="background:transparent; margin-top:10px;">Cancelar</button>
+            <button onclick="closeEditModal()" style="background: transparent; margin-top: 10px;">Cancelar</button>
         </div>
     </div>
-    <div id="image-modal" class="image-modal" onclick="cerrarModal()"><img class="modal-content-img" id="modal-image" style="max-width:90%; max-height:90%;"></div>
-    
-    <form id="cost-config-form" style="display:none;"><input id="product-cost-input"><button type="submit"></button></form>
-    <form id="shipping-cost-config-form" style="display:none;"><input id="shipping-cost-input"><button type="submit"></button></form>
+
+    <div id="message-box" class="message-box"><div class="modal-content"><p id="message-text"></p><button onclick="closeMessage()" class="btn-primary">OK</button></div></div>
+    <div id="confirm-modal" class="confirm-modal"><div class="modal-content"><p id="confirm-text">¿Seguro?</p><div style="display: flex; gap: 10px; justify-content: center;"><button onclick="confirmAction()" class="btn-primary">Si</button><button onclick="cancelAction()" style="background: #ef4444;">No</button></div></div></div>
+    <div id="sales-history-modal" class="sales-history-modal"><div class="modal-content"><h3 id="modal-history-title">Historial</h3><ul id="modal-sales-list" style="max-height: 300px; overflow-y: auto;"></ul><button onclick="closeSalesHistoryModal()" style="width: 100%; margin-top: 10px;">Cerrar</button></div></div>
+    <div id="image-modal" class="image-modal" onclick="cerrarModal()"><img class="modal-content-img" id="modal-image" style="max-width: 90%; max-height: 90%;"></div>
 
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
@@ -425,6 +324,5 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     
     <script src="js/app.js"></script>
-
 </body>
 </html>
