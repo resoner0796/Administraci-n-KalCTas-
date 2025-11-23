@@ -46,62 +46,97 @@
 
         const getEl = (id) => document.getElementById(id);
         
-        async function showScreen(screenId) {
-            document.querySelectorAll('section').forEach(screen => screen.style.display = 'none');
-            getEl(screenId).style.display = 'block';
+        // Busca tu función showScreen antigua y reemplázala por esta:
 
-            document.querySelectorAll('.logo-img').forEach(img => {
-                img.src = IMAGES_BASE_URL + 'LOGO.png';
-            });
+async function showScreen(screenId) {
+    // 1. Limpiar suscripciones (Igual que tu código original)
+    document.querySelectorAll('section').forEach(screen => screen.style.display = 'none');
+    
+    const target = getEl(screenId);
+    if (target) target.style.display = 'block';
 
-            unsubscribes.forEach(unsub => unsub());
-            unsubscribes = [];
+    // Imagenes (Tu código original)
+    document.querySelectorAll('.logo-img').forEach(img => {
+        img.src = IMAGES_BASE_URL + 'LOGO.png';
+    });
 
-            switch (screenId) {
-                case 'main-menu':
-                    // No se necesita cargar nada, solo mostrar el menú
-                    break;
-                case 'inventory-screen': 
-                    loadInventory(); 
-                    break;
-                case 'orders-screen': loadOrders(); break;
-                case 'sales-history-screen': loadSalesHistory(); break;
-                case 'finance-screen': 
-                    loadFinancialSummary(); 
-                    loadExpenseConcepts(); 
-                    loadProductCost();
-                    loadShippingCost();
-                    break;
-                case 'supplies-screen': loadSupplies(); break;
-                case 'restock-screen': 
-                    await loadProductModels();
-                    loadRestockHistory();
-                    if(getEl('restock-items')) {
-                        getEl('restock-items').innerHTML = '';
-                        addRestockLine();
-                    }
-                    break;
-                case 'sales-screen': loadSalesData(); break;
-                case 'movements-history-screen': loadMovementCategories(); loadMovementsHistory(); break;
-                case 'theme-screen': 
-                    loadCurrentTheme();
-                    break;
-                case 'packaging-screen': 
-                    loadPackagingVisibility();
-                    loadVideoManagement();
-                    break;
-                case 'manual-order-screen': 
-                    await loadProductModels(); 
-                    getEl('manual-order-items').innerHTML = '';
-                    addManualOrderLine();
-                    getEl('manual-order-form').reset();
-                    toggleManualDeliveryFields(); 
-                    calculateManualOrderTotal();
-                    break;
-                case 'raw-materials-screen': loadRawMaterials(); break;
-                case 'sales-report-table-screen': loadSalesReportTable(); break; // Agregado
-            }
-        }
+    unsubscribes.forEach(unsub => unsub());
+    unsubscribes = [];
+
+    // =====================================================
+    // --- CONTROL DEL NUEVO DISEÑO (ESTO ES LO NUEVO) ---
+    // =====================================================
+    const loginScreen = getEl('login-screen');
+    const sidebar = getEl('app-sidebar');
+    const main = getEl('app-main');
+    const pageTitle = getEl('page-title-display');
+
+    if (screenId === 'login-screen') {
+        // Modo Login: Ocultar menú y panel principal
+        if(loginScreen) loginScreen.style.display = 'flex'; 
+        if(sidebar) sidebar.style.display = 'none';
+        if(main) main.style.display = 'none';
+    } else {
+        // Modo Sistema: Ocultar login, mostrar menú y panel
+        if(loginScreen) loginScreen.style.display = 'none';
+        if(sidebar) sidebar.style.display = 'flex'; // O 'block' dependiendo de tu CSS
+        if(main) main.style.display = 'flex';       // O 'block'
+        
+        // Actualizar título arriba (Opcional, para que se vea pro)
+        if(pageTitle) pageTitle.textContent = screenId.replace('-screen', '').toUpperCase();
+        
+        // Si es celular, cerrar el menú al dar clic
+        if(window.innerWidth < 768 && sidebar) sidebar.classList.remove('active');
+    }
+    // =====================================================
+
+    // TU SWITCH ORIGINAL (NO LO TOQUES, AQUÍ ESTÁN TUS FUNCIONES)
+    switch (screenId) {
+        case 'main-menu':
+            // OJO: Como ahora tenemos sidebar, 'main-menu' puede redirigir a finanzas
+            showScreen('finance-screen'); 
+            break;
+        case 'inventory-screen': 
+            loadInventory(); 
+            break;
+        case 'orders-screen': loadOrders(); break;
+        case 'sales-history-screen': loadSalesHistory(); break;
+        case 'finance-screen': 
+            loadFinancialSummary(); 
+            loadExpenseConcepts();
+            loadProductCost();
+            loadShippingCost();
+            break;
+        case 'supplies-screen': loadSupplies(); break;
+        case 'restock-screen': 
+            await loadProductModels();
+            loadRestockHistory();
+            if(getEl('restock-items')) {
+                getEl('restock-items').innerHTML = '';
+                addRestockLine();
+            }
+            break;
+        case 'sales-screen': loadSalesData(); break;
+        case 'movements-history-screen': loadMovementCategories(); loadMovementsHistory(); break;
+        case 'theme-screen': 
+            loadCurrentTheme();
+            break;
+        case 'packaging-screen': 
+            loadPackagingVisibility();
+            loadVideoManagement();
+            break;
+        case 'manual-order-screen': 
+            await loadProductModels(); 
+            getEl('manual-order-items').innerHTML = '';
+            addManualOrderLine();
+            getEl('manual-order-form').reset();
+            toggleManualDeliveryFields(); 
+            calculateManualOrderTotal();
+            break;
+        case 'raw-materials-screen': loadRawMaterials(); break;
+        case 'sales-report-table-screen': loadSalesReportTable(); break;
+    }
+}
         
         async function loadCurrentTheme() {
             const statusEl = getEl('current-theme-status');
