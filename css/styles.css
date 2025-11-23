@@ -1,6 +1,3 @@
-//* =========================================
-   STYLES.CSS - CORREGIDO Y ROBUSTO
-   ========================================= */
 :root {
     --bg-body: #0f172a;
     --bg-sidebar: #1e293b;
@@ -9,91 +6,105 @@
     --text-muted: #94a3b8;
     --primary: #6366f1;
     --radius: 12px;
+    --glass-border: 1px solid rgba(255, 255, 255, 0.1);
+    --shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
 }
 
-/* RESET BÁSICO */
 * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; }
 
 body {
-    background-color: #0f172a; /* Color de fondo fijo por si falla la variable */
-    color: white;
+    background-color: var(--bg-body);
+    color: var(--text-main);
     height: 100vh;
     display: flex;
     overflow: hidden;
 }
 
-/* LAYOUT */
 #login-screen {
     position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-    background: #0f172a; z-index: 9999;
+    background: var(--bg-body); z-index: 9999;
     display: flex; flex-direction: column; align-items: center; justify-content: center;
 }
 
 .dashboard-sidebar {
-    width: 260px; background: #1e293b;
+    width: 260px; background-color: var(--bg-sidebar);
+    border-right: var(--glass-border);
     display: flex; flex-direction: column; padding: 20px;
-    border-right: 1px solid rgba(255,255,255,0.1);
+    height: 100vh; transition: transform 0.3s ease;
 }
+
+.sidebar-header {
+    display: flex; align-items: center; gap: 10px;
+    margin-bottom: 30px; padding-bottom: 20px;
+    border-bottom: var(--glass-border);
+}
+.sidebar-title { font-weight: 700; font-size: 1.2rem; }
+
+.nav-btn {
+    background: transparent; border: none; color: var(--text-muted);
+    padding: 12px 15px; text-align: left; border-radius: var(--radius);
+    cursor: pointer; transition: all 0.2s; font-size: 0.95rem; margin-bottom: 5px;
+    display: block; width: 100%;
+}
+.nav-btn:hover { background-color: rgba(99, 102, 241, 0.1); color: var(--primary); }
 
 .dashboard-main {
     flex: 1; display: flex; flex-direction: column;
-    height: 100vh; position: relative; background: #0f172a;
+    height: 100vh; position: relative;
 }
 
 .top-header {
     height: 60px; display: flex; align-items: center; justify-content: space-between;
-    padding: 0 20px; border-bottom: 1px solid rgba(255,255,255,0.1);
-    background: rgba(15, 23, 42, 0.9);
+    padding: 0 20px; border-bottom: var(--glass-border);
+    background-color: rgba(15, 23, 42, 0.9);
 }
 
 .content-area {
-    flex: 1; padding: 20px; overflow-y: auto;
+    flex: 1; padding: 20px; overflow-y: auto; padding-bottom: 80px;
 }
 
-/* ESTILOS DE ELEMENTOS */
-section {
-    /* OJO: No usamos display:none aquí para evitar que se quede blanco si JS falla.
-       El JS se encarga de ocultar/mostrar. */
-    animation: fadeIn 0.3s ease;
+section { display: none; animation: fadeIn 0.3s ease; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+.finance-panel { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 15px; margin-bottom: 20px; }
+.finance-card, .card-item {
+    background-color: var(--bg-card); border: var(--glass-border);
+    border-radius: var(--radius); padding: 20px; box-shadow: var(--shadow);
 }
+.finance-card p { font-size: 1.5rem; font-weight: 700; margin-top: 5px; }
+.finance-card h3 { font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; }
 
 input, select, textarea {
-    width: 100%; background: #334155; border: 1px solid #475569;
-    color: white; padding: 12px; border-radius: 8px; margin-bottom: 10px;
+    width: 100%; background: #0f172a; border: 1px solid #334155;
+    color: white; padding: 12px; border-radius: 8px; margin-bottom: 10px; outline: none;
 }
+label { color: var(--text-muted); font-size: 0.9em; margin-bottom: 5px; display: block; }
 
 button {
-    cursor: pointer; padding: 12px 20px; border-radius: 8px; border: none;
-    font-weight: bold; transition: 0.2s;
+    cursor: pointer; padding: 12px 20px; border-radius: 8px; border: none; font-weight: 600;
 }
-.btn-primary, button[type="submit"] { background: #6366f1; color: white; }
-button:hover { opacity: 0.9; }
+.btn-primary, button[type="submit"] { background: var(--primary); color: white; width: 100%; }
 
-.finance-panel { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin-bottom: 20px; }
-.finance-card, .card-item { background: #1e293b; padding: 20px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.05); }
+.table-container { overflow-x: auto; border-radius: var(--radius); border: var(--glass-border); }
+table { width: 100%; border-collapse: collapse; min-width: 600px; }
+th { background: #334155; padding: 12px; text-align: left; color: white; }
+td { padding: 12px; border-bottom: 1px solid #334155; color: var(--text-muted); }
 
-/* TABLAS */
-.table-container { overflow-x: auto; }
-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-th, td { padding: 12px; text-align: left; border-bottom: 1px solid #334155; }
-th { background: #334155; }
+.mobile-menu-btn { display: none; background: none; color: white; font-size: 1.5rem; padding: 0; }
 
-/* MODALES */
+@media (max-width: 768px) {
+    .dashboard-sidebar { position: fixed; left: -100%; z-index: 100; height: 100%; }
+    .dashboard-sidebar.active { left: 0; }
+    .mobile-menu-btn { display: block; }
+    table, thead, tbody, th, td, tr { display: block; }
+    thead tr { position: absolute; top: -9999px; left: -9999px; }
+    tr { border: 1px solid #334155; margin-bottom: 10px; border-radius: 8px; padding: 10px; }
+    td { border: none; position: relative; padding-left: 50%; text-align: right; display: flex; justify-content: space-between; }
+}
+
 .message-box, .edit-modal, .confirm-modal, .sales-history-modal, .image-modal {
     position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-    background: rgba(0,0,0,0.8); z-index: 10000;
-    display: none; align-items: center; justify-content: center;
+    background: rgba(0,0,0,0.8); z-index: 5000; display: none;
+    align-items: center; justify-content: center;
 }
-.modal-content { background: #1e293b; padding: 25px; border-radius: 12px; max-width: 500px; width: 90%; text-align: center; }
-
-/* OCULTAR SIDEBAR EN MÓVIL */
-@media (max-width: 768px) {
-    .dashboard-sidebar { position: fixed; left: -100%; height: 100%; z-index: 100; transition: 0.3s; }
-    .dashboard-sidebar.active { left: 0; }
-}
-
-/* CLASES DE UTILIDAD PARA JS */
-.hidden { display: none !important; }
-.visible-flex { display: flex !important; }
-
-
+.modal-content { background: var(--bg-sidebar); padding: 25px; border-radius: 12px; width: 90%; max-width: 500px; }
