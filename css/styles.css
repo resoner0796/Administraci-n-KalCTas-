@@ -1,311 +1,249 @@
 :root {
-    --bg-dark-primary: #11111d; /* Fondo más profundo */
-    --bg-dark-secondary: #1e1e2f; /* Paneles */
-    --surface-color: #27293d; /* Elementos */
-    --primary-accent: #e14eca; /* Rosa Neón/Morado moderno */
-    --primary-accent-hover: #d23bb8;
-    --text-primary: #ffffff;
-    --text-secondary: #9a9a9a;
-    --border-color: #2b3553;
+    --bg-body: #0f0f13;       /* Fondo ultra oscuro */
+    --bg-panel: #1a1a2e;      /* Fondo de tarjetas/paneles */
+    --surface: #252540;       /* Inputs y elementos */
+    --primary: #e14eca;       /* Rosa Neón (Tu marca) */
+    --primary-hover: #b53ea2;
+    --text-main: #ffffff;
+    --text-muted: #a0a0b0;
+    --border: #2b3553;
     
-    --status-green: #00f2c3;
-    --status-yellow: #ff8d72;
-    --status-blue: #1d8cf8;
-    --status-red: #fd5d93;
-    --status-gray: #6c757d;
+    --success: #00f2c3;
+    --warning: #ff8d72;
+    --info: #1d8cf8;
+    --danger: #fd5d93;
     
-    --shadow-sm: 0 1px 20px 0px rgba(0, 0, 0, 0.1);
-    --shadow-md: 0 4px 20px 0px rgba(0, 0, 0, 0.3);
-    --border-radius-md: 8px;
-    --border-radius-sm: 4px;
+    --radius: 8px;
+    --shadow: 0 4px 20px 0px rgba(0, 0, 0, 0.4);
 }
 
-*, *::before, *::after {
-    box-sizing: border-box;
-    margin: 0;
-    padding: 0;
-}
+/* RESET BÁSICO */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-/* --- Estilos Generales --- */
 body {
-    font-family: 'Inter', sans-serif;
-    background-color: var(--bg-dark-primary);
-    color: var(--text-primary);
-    display: flex;
-    justify-content: center;
-    align-items: flex-start;
+    font-family: 'Inter', system-ui, sans-serif;
+    background-color: var(--bg-body);
+    color: var(--text-main);
+    width: 100%;
     min-height: 100vh;
-    padding: 20px;
-    line-height: 1.5;
+    overflow-x: hidden; /* Evita scroll horizontal en la página entera */
 }
 
-/* Scrollbar Bonito */
-::-webkit-scrollbar { width: 8px; height: 8px; }
-::-webkit-scrollbar-track { background: var(--bg-dark-primary); }
-::-webkit-scrollbar-thumb { background: var(--surface-color); border-radius: 4px; }
-::-webkit-scrollbar-thumb:hover { background: var(--primary-accent); }
+/* SCROLLBAR PERSONALIZADO (Estilo Hacker) */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: var(--bg-body); }
+::-webkit-scrollbar-thumb { background: var(--surface); border-radius: 5px; border: 1px solid var(--border); }
+::-webkit-scrollbar-thumb:hover { background: var(--primary); }
 
-/* --- Contenedor Principal (Expandido) --- */
+/* --- CONTENEDOR FULL SCREEN (WALL STREET MODE) --- */
 .container {
-    background-color: var(--bg-dark-secondary);
-    padding: 40px;
-    border-radius: var(--border-radius-md);
-    box-shadow: var(--shadow-md);
-    /* CAMBIO CLAVE: Más ancho para que quepan las tablas */
-    max-width: 1400px; 
-    width: 95%;
+    width: 100%;
+    max-width: 100%; /* Ocupa todo el ancho disponible */
+    min-height: 100vh;
+    padding: 30px 5%; /* Un poco de margen a los lados para que respire */
+    background-color: var(--bg-body);
+    position: relative;
     display: flex;
     flex-direction: column;
-    align-items: center;
-    position: relative;
-    border: 1px solid var(--border-color);
+    align-items: center; /* Centra el contenido verticalmente */
 }
 
-/* --- Navegación --- */
-.admin-nav { position: absolute; top: 20px; right: 20px; z-index: 100; }
-.btn-icon {
-    background-color: var(--surface-color);
-    color: var(--text-primary);
-    border: none;
-    border-radius: 50%;
-    width: 45px;
-    height: 45px;
-    display: flex;
+/* --- ESTILOS DE LOS MODALES (CORRECCIÓN URGENTE) --- */
+/* Esto arregla que el modal aparezca pegado en el fondo */
+.edit-modal, .confirm-modal, .message-box, .image-modal, .sales-history-modal {
+    display: none; /* OCULTO POR DEFECTO */
+    position: fixed; /* FLOTANTE SIEMPRE */
+    top: 0; left: 0;
+    width: 100vw; height: 100vh;
+    background-color: rgba(0, 0, 0, 0.85); /* Fondo oscuro transparente */
+    backdrop-filter: blur(5px);
+    z-index: 9999; /* Encima de todo */
     justify-content: center;
     align-items: center;
-    cursor: pointer;
-    transition: 0.3s;
-    box-shadow: var(--shadow-sm);
 }
-.btn-icon:hover { background-color: var(--status-red); transform: scale(1.1); }
-.btn-icon svg { width: 22px; height: 22px; }
 
-/* --- Tipografía --- */
-h1, h2, h3 { color: var(--text-primary); text-align: center; margin-bottom: 20px; font-weight: 600; }
-h1 { font-size: 2em; margin-bottom: 30px; letter-spacing: 1px; }
-h2 { font-size: 1.5em; border-bottom: 1px solid var(--border-color); padding-bottom: 10px; width: 100%; text-align: left; }
-h3 { font-size: 1.1em; color: var(--text-secondary); text-align: left; margin-top: 15px; text-transform: uppercase; font-size: 0.85em; letter-spacing: 1px; }
-
-.logo-container { margin-bottom: 30px; display: flex; justify-content: center; }
-.logo { max-width: 180px; height: auto; }
-
-/* --- Formularios --- */
-form { width: 100%; display: grid; gap: 15px; }
-input, select, textarea {
-    padding: 12px 15px;
-    border-radius: var(--border-radius-sm);
-    border: 1px solid var(--border-color);
-    font-size: 0.95em;
-    background-color: var(--bg-dark-primary);
-    color: var(--text-primary);
-    width: 100%;
-    transition: 0.3s;
+/* El contenido del modal */
+.modal-content {
+    background-color: var(--bg-panel);
+    padding: 40px;
+    border-radius: var(--radius);
+    border: 1px solid var(--primary); /* Borde neón para resaltar */
+    box-shadow: 0 0 50px rgba(225, 78, 202, 0.2);
+    width: 90%;
+    max-width: 500px; /* Ancho máximo del modal */
+    max-height: 90vh;
+    overflow-y: auto;
+    position: relative;
 }
-input:focus, select:focus, textarea:focus {
-    outline: none;
-    border-color: var(--primary-accent);
-    box-shadow: 0 0 0 2px rgba(225, 78, 202, 0.2);
+
+/* --- NAVEGACIÓN Y LOGO --- */
+.admin-nav { position: absolute; top: 20px; right: 20px; z-index: 100; }
+.btn-icon {
+    background: var(--surface); color: white; border: none; width: 40px; height: 40px; border-radius: 50%;
+    cursor: pointer; display: flex; justify-content: center; align-items: center; transition: 0.3s;
 }
-textarea { resize: vertical; min-height: 80px; }
+.btn-icon:hover { background: var(--danger); transform: rotate(90deg); }
 
-/* --- Botones --- */
-button {
-    padding: 12px 20px;
-    border: none;
-    border-radius: var(--border-radius-sm);
-    font-size: 1em;
-    font-weight: 600;
-    color: #fff;
-    cursor: pointer;
-    background-color: var(--primary-accent);
-    transition: 0.3s;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-}
-button:hover { background-color: var(--primary-accent-hover); transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
-button:disabled { background-color: var(--status-gray); cursor: not-allowed; transform: none; }
+.logo-container { margin: 20px 0 40px 0; }
+.logo { max-width: 250px; height: auto; filter: drop-shadow(0 0 10px rgba(225, 78, 202, 0.3)); }
 
-.btn-edit { background-color: var(--status-yellow); color: #1a1a2e; }
-.btn-delete { background-color: var(--status-red); }
-.close-button { background-color: var(--surface-color); color: var(--text-secondary); margin-top: 25px; }
-.close-button:hover { background-color: var(--border-color); color: white; }
+/* --- TIPOGRAFÍA --- */
+h1 { font-size: 2.5rem; text-align: center; margin-bottom: 40px; text-transform: uppercase; letter-spacing: 2px; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: 10px; margin-bottom: 20px; color: var(--text-muted); }
 
-/* --- Menú Principal --- */
+/* --- GRID DE BOTONES (MENÚ PRINCIPAL) --- */
 .main-menu-buttons {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: 20px;
+    /* Esto asegura columnas responsivas: Mínimo 300px, si cabe más, pone más columnas */
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); 
+    gap: 25px;
     width: 100%;
+    max-width: 1200px; /* Para que no se estiren infinitamente en monitores gigantes */
 }
+
 .main-menu-buttons button {
-    background-color: var(--surface-color);
-    padding: 25px;
+    background-color: var(--bg-panel);
+    border: 1px solid var(--border);
+    padding: 30px;
+    font-size: 1.2rem;
     text-align: left;
     display: flex;
     align-items: center;
     gap: 15px;
-    border: 1px solid transparent;
-    font-size: 1.1em;
-    text-transform: none;
-}
-.main-menu-buttons button:hover {
-    border-color: var(--primary-accent);
-    background-color: rgba(225, 78, 202, 0.1);
+    border-radius: var(--radius);
+    transition: all 0.3s ease;
+    color: var(--text-main);
 }
 
-/* --- TABLAS (LA CORRECCIÓN IMPORTANTE) --- */
+.main-menu-buttons button:hover {
+    border-color: var(--primary);
+    background-color: rgba(225, 78, 202, 0.05);
+    transform: translateY(-5px);
+    box-shadow: 0 10px 20px rgba(0,0,0,0.3);
+}
+
+/* --- TABLAS (SOLUCIÓN AL DESBORDE) --- */
 .table-container {
     width: 100%;
-    overflow-x: auto; /* Permite scroll horizontal */
+    overflow-x: auto; /* Scroll horizontal si no cabe */
+    background: var(--bg-panel);
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
     margin-top: 20px;
-    background: var(--surface-color);
-    border-radius: var(--border-radius-md);
-    box-shadow: var(--shadow-sm);
+    box-shadow: var(--shadow);
 }
 
 table {
     width: 100%;
     border-collapse: collapse;
-    font-size: 0.9em;
-    white-space: nowrap; /* Evita que el texto se parta feo */
-}
-
-th, td {
-    padding: 15px 20px;
-    text-align: left;
-    border-bottom: 1px solid var(--border-color);
+    white-space: nowrap; /* Evita que el texto se parta */
 }
 
 th {
     background-color: rgba(255,255,255,0.05);
-    color: var(--text-secondary);
-    font-weight: 600;
+    color: var(--primary);
+    font-weight: 700;
     text-transform: uppercase;
-    font-size: 0.8em;
-    letter-spacing: 1px;
+    font-size: 0.85rem;
+    padding: 15px;
+    text-align: left;
 }
 
-tbody tr:hover {
-    background-color: rgba(255,255,255,0.02);
+td {
+    padding: 15px;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    font-size: 0.95rem;
 }
 
-/* Columna de acciones en tablas */
-.actions-cell button {
-    padding: 5px 10px;
-    font-size: 0.75em;
-    margin-right: 5px;
-}
+tbody tr:hover { background-color: rgba(255,255,255,0.02); }
 
-/* Alineación de números */
-td:nth-child(n+4) { text-align: right; } /* Asumiendo que del 4 en adelante son montos */
-#sales-report-table td { text-align: left; }
-#sales-report-table td:nth-child(n+5) { text-align: right; font-family: monospace; font-size: 1.1em; }
-
-/* --- Panel Financiero --- */
+/* --- PANELES FINANCIEROS --- */
 .finance-panel {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); /* Automático */
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
     gap: 20px;
     width: 100%;
     margin-bottom: 40px;
 }
 
 .finance-card {
-    background-color: var(--surface-color);
+    background: var(--bg-panel);
     padding: 25px;
-    border-radius: var(--border-radius-md);
-    border-left: 4px solid var(--primary-accent);
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
     position: relative;
     overflow: hidden;
+}
+.finance-card::after { /* Barrita de color decorativa */
+    content: ''; position: absolute; top: 0; left: 0; width: 4px; height: 100%;
+    background: var(--primary);
+}
+.finance-card h3 { font-size: 0.9rem; color: var(--text-muted); text-transform: uppercase; margin-bottom: 10px; }
+.finance-card p { font-size: 2rem; font-weight: bold; color: var(--text-main); }
+
+/* --- FORMULARIOS --- */
+input, select, textarea {
+    width: 100%;
+    padding: 15px;
+    margin-bottom: 15px;
+    background-color: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: white;
+    font-size: 1rem;
+}
+input:focus, select:focus, textarea:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 2px rgba(225, 78, 202, 0.2);
+}
+label { display: block; margin-bottom: 8px; color: var(--text-muted); font-size: 0.9rem; }
+
+/* --- BOTONES GENERALES --- */
+button {
+    cursor: pointer;
+    border: none;
+    padding: 12px 25px;
+    border-radius: var(--radius);
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.9rem;
+    background-color: var(--primary);
+    color: white;
     transition: 0.3s;
 }
-.finance-card:hover { transform: translateY(-5px); box-shadow: var(--shadow-md); }
-.finance-card h3 { font-size: 0.8em; color: var(--text-secondary); margin: 0; text-transform: uppercase; letter-spacing: 1px; }
-.finance-card p { font-size: 1.8em; font-weight: 700; color: var(--text-primary); margin-top: 10px; }
+button:hover { background-color: var(--primary-hover); }
 
-/* Colores específicos para finanzas */
-.finance-card:nth-child(1) { border-color: var(--status-blue); } /* Ventas */
-.finance-card:nth-child(2) { border-color: var(--status-red); } /* Gastos */
-.finance-card:nth-child(3) { border-color: var(--status-green); } /* Utilidad */
-.finance-card:nth-child(4) { border-color: var(--status-yellow); } /* Capital */
+.btn-delete { background-color: var(--danger); padding: 5px 10px; font-size: 0.8rem; }
+.btn-edit { background-color: var(--warning); color: #1a1a2e; padding: 5px 10px; font-size: 0.8rem; margin-right: 5px; }
+.close-button { background: transparent; border: 1px solid var(--border); color: var(--text-muted); margin-top: 20px; width: 100%; }
+.close-button:hover { background: var(--surface); color: white; }
 
-/* --- Listas (Cards) --- */
-ul { list-style: none; padding: 0; width: 100%; }
-.card-item, .order-item, .sale-item, .sales-history-item {
-    background-color: var(--surface-color);
+/* --- LISTAS (ACORDEÓN Y PEDIDOS) --- */
+.category-group, .order-item, .sale-item {
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
     margin-bottom: 15px;
-    border-radius: var(--border-radius-sm);
-    border: 1px solid var(--border-color);
-    transition: 0.2s;
+    border-radius: var(--radius);
     overflow: hidden;
 }
-.card-item:hover { border-color: var(--primary-accent); }
-
-.card-header, .order-summary, .sale-summary {
-    padding: 15px 20px;
+.category-title, .order-summary, .sale-summary {
+    padding: 20px;
+    cursor: pointer;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    cursor: pointer;
     background: rgba(255,255,255,0.02);
 }
-.card-content, .order-details, .sale-details {
-    padding: 20px;
-    border-top: 1px solid var(--border-color);
-    display: none;
-    font-size: 0.9em;
-    color: var(--text-secondary);
-}
-.order-details p strong { color: var(--text-primary); }
+.product-item { padding: 15px 20px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; }
+.product-details, .order-details, .sale-details { padding: 20px; background: rgba(0,0,0,0.1); border-top: 1px solid var(--border); display: none; }
+.visible { display: block; } /* Clase auxiliar para JS */
 
-/* --- Etiquetas de Estado --- */
-.order-status { padding: 4px 12px; border-radius: 20px; font-size: 0.8em; font-weight: bold; }
-.status-Confirmado { background: rgba(29, 140, 248, 0.2); color: var(--status-blue); }
-.status-Entregado { background: rgba(0, 242, 195, 0.2); color: var(--status-green); }
-.status-Pendiente { background: rgba(255, 141, 114, 0.2); color: var(--status-yellow); }
-.status-Cancelado { background: rgba(253, 93, 147, 0.2); color: var(--status-red); }
-
-/* --- Acordeón Inventario --- */
-.category-group { margin-bottom: 20px; border: 1px solid var(--border-color); border-radius: var(--border-radius-sm); overflow: hidden; }
-.category-title { background-color: var(--surface-color); padding: 15px 20px; margin: 0; font-size: 1.1em; }
-.product-item {
-    padding: 15px 20px;
-    border-top: 1px solid var(--border-color);
-    display: flex;
-    justify-content: space-between;
-    cursor: pointer;
-}
-.product-item:hover { background-color: rgba(255,255,255,0.02); }
-.product-details {
-    padding: 20px;
-    background-color: rgba(0,0,0,0.2);
-    display: none;
-    border-top: 1px solid var(--border-color);
-}
-.product-details.visible { display: grid; grid-template-columns: 80px 1fr; gap: 20px; }
-.product-image-container img { width: 80px; height: 80px; object-fit: cover; border-radius: 4px; }
-
-/* --- Modales --- */
-.modal-content {
-    background-color: var(--bg-dark-secondary);
-    border: 1px solid var(--border-color);
-    box-shadow: 0 0 50px rgba(0,0,0,0.5);
-    max-width: 600px;
-}
-
-/* --- Utilidades --- */
-.amount-positive { color: var(--status-green); font-weight: bold; }
-.amount-negative { color: var(--status-red); font-weight: bold; }
-
-/* Responsive para Móvil */
+/* --- AJUSTES MÓVIL --- */
 @media (max-width: 768px) {
-    body { padding: 10px; align-items: flex-start; }
-    .container { padding: 20px 15px; width: 100%; border: none; }
-    h1 { font-size: 1.5em; }
-    .main-menu-buttons { grid-template-columns: 1fr; }
-    .finance-panel { grid-template-columns: 1fr 1fr; }
-    
-    /* Ajuste para tablas en móvil */
-    th, td { padding: 10px; font-size: 0.85em; }
-    .btn-edit, .btn-delete { padding: 8px; }
+    h1 { font-size: 1.8rem; }
+    .container { padding: 15px; }
+    .main-menu-buttons { grid-template-columns: 1fr; } /* 1 columna en cel */
+    .finance-panel { grid-template-columns: 1fr 1fr; } /* 2 columnas en cel */
+    th, td { padding: 10px; font-size: 0.8rem; }
 }
