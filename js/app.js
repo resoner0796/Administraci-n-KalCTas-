@@ -920,11 +920,93 @@ async function loadMovementsHistory() {
     });
 }
 
+// =============================================================================
+// FUNCIÓN MAESTRA DE ELIMINAR PEDIDO (REVIERTE STOCK Y FINANZAS)
+// =============================================================================
 async function deleteOrder(id) {
-    if(!confirm('Seguro?')) return;
-    await db.collection('pedidos').doc(id).delete();
-    loadOrders();
+    if(!confirm('¿Estás seguro de eliminar este pedido? \n\n⚠️ ESTA ACCIÓN:\n1. Devolverá los productos al inventario.\n2. Restará la venta y utilidad de las finanzas.\n3. Borrará los movimientos del historial.')) return;
+
+    try {
+        // 1. Obtener datos del pedido antes de borrarlo
+        const doc = await db.collection('pedidos').doc(id).get();
+        if (!doc.exists) { showMessage("El pedido no existe."); return; }
+        
+        const p = doc.data();
+        const batch = db.batch();
+
+        // --- SOLO SI EL PEDIDO YA AFECTÓ FINANZAS (ESTADO ENTREGADO) ---
+        if (p.estado === 'Entregado') {
+            // A. Leer configuración actual para calcular reversión exacta
+            // (Usamos los costos actuales como referencia, o idealmente deberían guardarse en el pedido, 
+            // pero usaremos la lógica estándar de tu negocio).
+            const confRef = await db.collection('configuracion').doc('tienda').get();
+            const costPerItem = confRef.exists ? (confRef.data().costoPorProducto || 42) : 42;
+            const shipCost = confRef.exists ? (confRef.data().costoEnvio || 70) : 70;
+
+            // B. Recalcular montos a restar
+            const totalVenta = p.montoTotal || 0;
+            const totalItems = p.productos.reduce((acc, item) => acc + (item.cantidad || 1), 0);
+            const isShip = p.datosEntrega?.tipo === 'Envío a domicilio';
+            
+            const gastoEnvio = isShip ? shipCost : 0;
+            const capital = totalItems * costPerItem;
+            const utilidad = totalVenta - capital - gastoEnvio;
+
+            const uNegocio = utilidad * 0.50;
+            const uUlises = utilidad * 0.25;
+            const uDariana = utilidad * 0.25;
+
+            // C. Restar de Finanzas Globales (Incrementos negativos)
+            const finRef = db.collection('finanzas').doc('resumen');
+            batch.update(finRef, {
+                ventas: firebase.firestore.FieldValue.increment(-totalVenta),
+                gastos: firebase.firestore.FieldValue.increment(-gastoEnvio),
+                capital: firebase.firestore.FieldValue.increment(-capital),
+                utilidad: firebase.firestore.FieldValue.increment(-utilidad),
+                utilidadNegocioTotal: firebase.firestore.FieldValue.increment(-uNegocio),
+                utilidadUlisesTotal: firebase.firestore.FieldValue.increment(-uUlises),
+                utilidadDarianaTotal: firebase.firestore.FieldValue.increment(-uDariana)
+            });
+
+            // D. Borrar Movimientos individuales (Log)
+            // Buscamos todos los movimientos vinculados a este ID de pedido
+            const movsSnap = await db.collection('movimientos').where('relatedOrderId', '==', id).get();
+            movsSnap.forEach(mov => {
+                batch.delete(mov.ref);
+            });
+        }
+
+        // --- SIEMPRE: DEVOLVER STOCK ---
+        // (Incluso si no estaba entregado, por si acaso se apartó)
+        p.productos.forEach(item => {
+            if (item.id) {
+                const prodRef = db.collection('productos').doc(item.id);
+                batch.update(prodRef, {
+                    stock: firebase.firestore.FieldValue.increment(item.cantidad || 1),
+                    cantidadVendida: firebase.firestore.FieldValue.increment(-(item.cantidad || 1))
+                });
+            }
+        });
+
+        // --- BORRAR DOCUMENTO DEL PEDIDO ---
+        batch.delete(db.collection('pedidos').doc(id));
+
+        // Ejecutar todo junto
+        await batch.commit();
+
+        showMessage("✅ Pedido eliminado. Stock devuelto y dinero ajustado.");
+        
+        // Recargar pantalla actual
+        if (getEl('sales-history-screen').style.display === 'block') loadSalesHistory();
+        if (getEl('orders-screen').style.display === 'block') loadOrders();
+        if (getEl('sales-screen').style.display === 'block') loadSalesData();
+
+    } catch (e) {
+        console.error(e);
+        showMessage("Error al eliminar: " + e.message);
+    }
 }
+
 async function deleteProduct(id) { await db.collection('productos').doc(id).delete(); loadInventory(); }
 // --- FUNCIONES DE RESTOCK (QUE FALTABAN) ---
 function addRestockLine() {
