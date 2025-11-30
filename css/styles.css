@@ -1,249 +1,424 @@
+/* =========================================
+   1. VARIABLES Y SISTEMA DE DISEÑO
+   ========================================= */
 :root {
-    --bg-body: #0f0f13;       /* Fondo ultra oscuro */
-    --bg-panel: #1a1a2e;      /* Fondo de tarjetas/paneles */
-    --surface: #252540;       /* Inputs y elementos */
-    --primary: #e14eca;       /* Rosa Neón (Tu marca) */
-    --primary-hover: #b53ea2;
-    --text-main: #ffffff;
-    --text-muted: #a0a0b0;
-    --border: #2b3553;
+    /* Paleta de Colores "Midnight Pro" */
+    --bg-app: #09090b;       /* Fondo casi negro */
+    --bg-panel: #18181b;     /* Tarjetas */
+    --bg-surface: #27272a;   /* Inputs/Hover */
     
-    --success: #00f2c3;
-    --warning: #ff8d72;
-    --info: #1d8cf8;
-    --danger: #fd5d93;
+    --primary: #d946ef;      /* Tu Rosa Neón (Fucsia) */
+    --primary-hover: #c026d3;
+    --secondary: #8b5cf6;    /* Violeta para acentos */
     
-    --radius: 8px;
-    --shadow: 0 4px 20px 0px rgba(0, 0, 0, 0.4);
+    --text-main: #f4f4f5;    /* Blanco casi puro */
+    --text-muted: #a1a1aa;   /* Gris claro */
+    
+    --border: #3f3f46;       /* Bordes sutiles */
+    
+    --success: #10b981;      /* Verde esmeralda */
+    --warning: #f59e0b;      /* Ambar */
+    --danger: #ef4444;       /* Rojo */
+    
+    /* Espaciado y Formas */
+    --radius-lg: 16px;
+    --radius-md: 8px;
+    --radius-sm: 4px;
+    
+    --shadow-card: 0 4px 6px -1px rgba(0, 0, 0, 0.5), 0 2px 4px -1px rgba(0, 0, 0, 0.3);
+    --shadow-glow: 0 0 15px rgba(217, 70, 239, 0.15); /* Resplandor rosa */
 }
 
-/* RESET BÁSICO */
+/* =========================================
+   2. RESET Y BASES
+   ========================================= */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 body {
-    font-family: 'Inter', system-ui, sans-serif;
-    background-color: var(--bg-body);
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    background-color: var(--bg-app);
     color: var(--text-main);
-    width: 100%;
-    min-height: 100vh;
-    overflow-x: hidden; /* Evita scroll horizontal en la página entera */
+    line-height: 1.6;
+    font-size: 16px;
+    overflow-x: hidden; /* Evita scroll lateral */
 }
 
-/* SCROLLBAR PERSONALIZADO (Estilo Hacker) */
-::-webkit-scrollbar { width: 10px; height: 10px; }
-::-webkit-scrollbar-track { background: var(--bg-body); }
-::-webkit-scrollbar-thumb { background: var(--surface); border-radius: 5px; border: 1px solid var(--border); }
+/* Scrollbar Moderna */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: var(--bg-app); }
+::-webkit-scrollbar-thumb { background: var(--bg-surface); border-radius: 4px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--primary); }
 
-/* --- CONTENEDOR FULL SCREEN (WALL STREET MODE) --- */
+/* =========================================
+   3. LAYOUT PRINCIPAL (FULL SCREEN)
+   ========================================= */
 .container {
     width: 100%;
-    max-width: 100%; /* Ocupa todo el ancho disponible */
     min-height: 100vh;
-    padding: 30px 5%; /* Un poco de margen a los lados para que respire */
-    background-color: var(--bg-body);
+    padding: 2rem;
+    max-width: 1600px; /* Tope en monitores gigantes */
+    margin: 0 auto;
     position: relative;
     display: flex;
     flex-direction: column;
-    align-items: center; /* Centra el contenido verticalmente */
 }
 
-/* --- ESTILOS DE LOS MODALES (CORRECCIÓN URGENTE) --- */
-/* Esto arregla que el modal aparezca pegado en el fondo */
-.edit-modal, .confirm-modal, .message-box, .image-modal, .sales-history-modal {
-    display: none; /* OCULTO POR DEFECTO */
-    position: fixed; /* FLOTANTE SIEMPRE */
-    top: 0; left: 0;
-    width: 100vw; height: 100vh;
-    background-color: rgba(0, 0, 0, 0.85); /* Fondo oscuro transparente */
-    backdrop-filter: blur(5px);
-    z-index: 9999; /* Encima de todo */
-    justify-content: center;
-    align-items: center;
+/* Barra de Navegación (Logout) */
+.admin-nav {
+    position: absolute;
+    top: 1.5rem;
+    right: 2rem;
+    z-index: 50;
 }
 
-/* El contenido del modal */
-.modal-content {
-    background-color: var(--bg-panel);
-    padding: 40px;
-    border-radius: var(--radius);
-    border: 1px solid var(--primary); /* Borde neón para resaltar */
-    box-shadow: 0 0 50px rgba(225, 78, 202, 0.2);
-    width: 90%;
-    max-width: 500px; /* Ancho máximo del modal */
-    max-height: 90vh;
-    overflow-y: auto;
-    position: relative;
-}
-
-/* --- NAVEGACIÓN Y LOGO --- */
-.admin-nav { position: absolute; top: 20px; right: 20px; z-index: 100; }
 .btn-icon {
-    background: var(--surface); color: white; border: none; width: 40px; height: 40px; border-radius: 50%;
-    cursor: pointer; display: flex; justify-content: center; align-items: center; transition: 0.3s;
+    background: var(--bg-surface);
+    color: var(--text-muted);
+    border: 1px solid var(--border);
+    width: 45px; height: 45px;
+    border-radius: 50%;
+    display: grid; place-items: center;
+    cursor: pointer;
+    transition: all 0.2s;
 }
-.btn-icon:hover { background: var(--danger); transform: rotate(90deg); }
+.btn-icon:hover { 
+    background: var(--danger); 
+    color: white; 
+    border-color: var(--danger);
+    transform: rotate(90deg);
+}
 
-.logo-container { margin: 20px 0 40px 0; }
-.logo { max-width: 250px; height: auto; filter: drop-shadow(0 0 10px rgba(225, 78, 202, 0.3)); }
+/* =========================================
+   4. TIPOGRAFÍA Y LOGO
+   ========================================= */
+.logo-container {
+    margin: 0 auto 2rem auto;
+    text-align: center;
+}
+.logo {
+    height: 60px; /* Controla el tamaño del logo aquí */
+    width: auto;
+    filter: drop-shadow(0 0 10px rgba(217, 70, 239, 0.3));
+}
 
-/* --- TIPOGRAFÍA --- */
-h1 { font-size: 2.5rem; text-align: center; margin-bottom: 40px; text-transform: uppercase; letter-spacing: 2px; }
-h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: 10px; margin-bottom: 20px; color: var(--text-muted); }
+h1 {
+    font-size: 2.5rem;
+    font-weight: 800;
+    text-align: center;
+    margin-bottom: 2rem;
+    background: linear-gradient(to right, #fff, #a1a1aa);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    letter-spacing: -1px;
+}
 
-/* --- GRID DE BOTONES (MENÚ PRINCIPAL) --- */
+h2 {
+    font-size: 1.5rem;
+    color: var(--text-main);
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 0.5rem;
+    margin-bottom: 1.5rem;
+    margin-top: 2rem;
+}
+
+/* =========================================
+   5. MENU PRINCIPAL (GRID)
+   ========================================= */
 .main-menu-buttons {
     display: grid;
-    /* Esto asegura columnas responsivas: Mínimo 300px, si cabe más, pone más columnas */
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); 
-    gap: 25px;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1.5rem;
     width: 100%;
-    max-width: 1200px; /* Para que no se estiren infinitamente en monitores gigantes */
 }
 
 .main-menu-buttons button {
-    background-color: var(--bg-panel);
+    background: var(--bg-panel);
     border: 1px solid var(--border);
-    padding: 30px;
-    font-size: 1.2rem;
+    padding: 1.5rem;
+    border-radius: var(--radius-lg);
     text-align: left;
+    font-size: 1.1rem;
+    color: var(--text-main);
     display: flex;
     align-items: center;
-    gap: 15px;
-    border-radius: var(--radius);
-    transition: all 0.3s ease;
-    color: var(--text-main);
+    gap: 1rem;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: var(--shadow-card);
 }
 
 .main-menu-buttons button:hover {
     border-color: var(--primary);
-    background-color: rgba(225, 78, 202, 0.05);
-    transform: translateY(-5px);
-    box-shadow: 0 10px 20px rgba(0,0,0,0.3);
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-glow);
+    background: linear-gradient(145deg, var(--bg-panel), rgba(217, 70, 239, 0.05));
 }
 
-/* --- TABLAS (SOLUCIÓN AL DESBORDE) --- */
+/* =========================================
+   6. FORMULARIOS E INPUTS
+   ========================================= */
+form {
+    display: grid;
+    gap: 1.2rem;
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+label {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    font-weight: 500;
+    margin-bottom: 0.2rem;
+    display: block;
+}
+
+input, select, textarea {
+    width: 100%;
+    background: var(--bg-app);
+    border: 1px solid var(--border);
+    padding: 1rem;
+    border-radius: var(--radius-md);
+    color: white;
+    font-size: 1rem;
+    transition: all 0.2s;
+    font-family: inherit;
+}
+
+input:focus, select:focus, textarea:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 2px rgba(217, 70, 239, 0.2);
+    background: var(--bg-panel);
+}
+
+button[type="submit"], .btn-add {
+    background: var(--primary);
+    color: white;
+    font-weight: 700;
+    padding: 1rem;
+    border-radius: var(--radius-md);
+    border: none;
+    cursor: pointer;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-top: 1rem;
+    transition: 0.2s;
+}
+button[type="submit"]:hover, .btn-add:hover {
+    background: var(--primary-hover);
+    transform: scale(1.02);
+}
+
+.btn-delete { background: var(--danger); color: white; border: none; padding: 0.5rem 1rem; border-radius: var(--radius-sm); cursor: pointer; }
+.btn-edit { background: var(--warning); color: #000; border: none; padding: 0.5rem 1rem; border-radius: var(--radius-sm); cursor: pointer; }
+.close-button { width: 100%; padding: 1rem; background: transparent; border: 1px solid var(--border); color: var(--text-muted); border-radius: var(--radius-md); margin-top: 2rem; cursor: pointer; }
+.close-button:hover { background: var(--bg-surface); color: white; }
+
+/* =========================================
+   7. INVENTARIO (EL ACORDEÓN MEJORADO)
+   ========================================= */
+#inventory-accordion {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.category-group {
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+}
+
+.category-title {
+    background: var(--bg-surface);
+    padding: 1rem 1.5rem;
+    margin: 0;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--primary);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.product-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.2rem 1.5rem;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    transition: background 0.2s;
+}
+.product-item:last-child { border-bottom: none; }
+.product-item:hover { background: rgba(255,255,255,0.03); }
+
+/* Detalles del producto (Desplegable) */
+.product-details {
+    display: none; /* JS lo muestra */
+    background: #00000030;
+    padding: 1.5rem;
+    border-top: 1px solid var(--border);
+    /* Grid layout para la info interna */
+    grid-template-columns: 100px 1fr auto; 
+    gap: 1.5rem;
+    align-items: center;
+}
+.product-details.visible { display: grid; }
+
+.product-details img {
+    width: 100px; height: 100px;
+    object-fit: cover;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border);
+}
+
+.product-actions {
+    display: flex;
+    gap: 0.5rem;
+    flex-direction: column; /* Botones apilados en escritorio */
+}
+
+/* =========================================
+   8. TABLAS MODERNAS (REPORTE DE VENTAS)
+   ========================================= */
 .table-container {
     width: 100%;
-    overflow-x: auto; /* Scroll horizontal si no cabe */
-    background: var(--bg-panel);
-    border-radius: var(--radius);
+    overflow-x: auto;
+    border-radius: var(--radius-lg);
     border: 1px solid var(--border);
-    margin-top: 20px;
-    box-shadow: var(--shadow);
+    background: var(--bg-panel);
+    margin-top: 1.5rem;
 }
 
 table {
     width: 100%;
     border-collapse: collapse;
-    white-space: nowrap; /* Evita que el texto se parta */
+    white-space: nowrap; /* Mantiene todo en una línea */
+}
+
+thead {
+    background: var(--bg-surface);
 }
 
 th {
-    background-color: rgba(255,255,255,0.05);
-    color: var(--primary);
-    font-weight: 700;
-    text-transform: uppercase;
-    font-size: 0.85rem;
-    padding: 15px;
+    padding: 1rem 1.5rem;
     text-align: left;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text-muted);
+    font-weight: 600;
 }
 
 td {
-    padding: 15px;
-    border-bottom: 1px solid rgba(255,255,255,0.05);
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid var(--border);
     font-size: 0.95rem;
 }
 
-tbody tr:hover { background-color: rgba(255,255,255,0.02); }
+tbody tr:hover { background: rgba(255,255,255,0.02); }
 
-/* --- PANELES FINANCIEROS --- */
+/* Columnas de dinero alineadas a la derecha */
+td:nth-child(n+5) { text-align: right; font-family: 'Menlo', monospace; }
+
+/* =========================================
+   9. PANELES FINANCIEROS (DASHBOARD)
+   ========================================= */
 .finance-panel {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 20px;
-    width: 100%;
-    margin-bottom: 40px;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 3rem;
 }
 
 .finance-card {
     background: var(--bg-panel);
-    padding: 25px;
-    border-radius: var(--radius);
+    padding: 1.5rem;
+    border-radius: var(--radius-lg);
     border: 1px solid var(--border);
     position: relative;
     overflow: hidden;
 }
-.finance-card::after { /* Barrita de color decorativa */
-    content: ''; position: absolute; top: 0; left: 0; width: 4px; height: 100%;
+
+.finance-card::before {
+    content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 4px;
     background: var(--primary);
 }
-.finance-card h3 { font-size: 0.9rem; color: var(--text-muted); text-transform: uppercase; margin-bottom: 10px; }
-.finance-card p { font-size: 2rem; font-weight: bold; color: var(--text-main); }
+.finance-card:nth-child(2)::before { background: var(--danger); }
+.finance-card:nth-child(3)::before { background: var(--success); }
+.finance-card:nth-child(4)::before { background: var(--warning); }
 
-/* --- FORMULARIOS --- */
-input, select, textarea {
-    width: 100%;
-    padding: 15px;
-    margin-bottom: 15px;
-    background-color: var(--surface);
+.finance-card h3 { font-size: 0.85rem; color: var(--text-muted); text-transform: uppercase; margin-bottom: 0.5rem; }
+.finance-card p { font-size: 2rem; font-weight: 800; color: white; }
+
+/* =========================================
+   10. MODALES (SOLUCIÓN FULL SCREEN)
+   ========================================= */
+.edit-modal, .confirm-modal, .message-box, .image-modal, .sales-history-modal {
+    display: none; /* Controlado por JS */
+    position: fixed;
+    top: 0; left: 0; width: 100vw; height: 100vh;
+    background: rgba(0,0,0,0.8);
+    backdrop-filter: blur(8px); /* Efecto vidrio */
+    z-index: 9999;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+}
+
+.modal-content {
+    background: var(--bg-panel);
+    padding: 2rem;
+    border-radius: var(--radius-lg);
     border: 1px solid var(--border);
-    border-radius: var(--radius);
-    color: white;
-    font-size: 1rem;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    width: 100%;
+    max-width: 550px;
+    max-height: 90vh;
+    overflow-y: auto;
+    animation: modalPop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
-input:focus, select:focus, textarea:focus {
-    outline: none;
-    border-color: var(--primary);
-    box-shadow: 0 0 0 2px rgba(225, 78, 202, 0.2);
+
+@keyframes modalPop {
+    from { opacity: 0; transform: scale(0.9); }
+    to { opacity: 1; transform: scale(1); }
 }
-label { display: block; margin-bottom: 8px; color: var(--text-muted); font-size: 0.9rem; }
 
-/* --- BOTONES GENERALES --- */
-button {
-    cursor: pointer;
-    border: none;
-    padding: 12px 25px;
-    border-radius: var(--radius);
-    font-weight: 600;
-    text-transform: uppercase;
-    font-size: 0.9rem;
-    background-color: var(--primary);
-    color: white;
-    transition: 0.3s;
+/* =========================================
+   11. VIDEOS Y LISTAS
+   ========================================= */
+#video-list, #packaging-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1rem;
+    margin-top: 1rem;
 }
-button:hover { background-color: var(--primary-hover); }
 
-.btn-delete { background-color: var(--danger); padding: 5px 10px; font-size: 0.8rem; }
-.btn-edit { background-color: var(--warning); color: #1a1a2e; padding: 5px 10px; font-size: 0.8rem; margin-right: 5px; }
-.close-button { background: transparent; border: 1px solid var(--border); color: var(--text-muted); margin-top: 20px; width: 100%; }
-.close-button:hover { background: var(--surface); color: white; }
-
-/* --- LISTAS (ACORDEÓN Y PEDIDOS) --- */
-.category-group, .order-item, .sale-item {
+.visibility-item {
     background: var(--bg-panel);
     border: 1px solid var(--border);
-    margin-bottom: 15px;
-    border-radius: var(--radius);
-    overflow: hidden;
-}
-.category-title, .order-summary, .sale-summary {
-    padding: 20px;
-    cursor: pointer;
+    padding: 1rem;
+    border-radius: var(--radius-md);
     display: flex;
     justify-content: space-between;
     align-items: center;
-    background: rgba(255,255,255,0.02);
 }
-.product-item { padding: 15px 20px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; }
-.product-details, .order-details, .sale-details { padding: 20px; background: rgba(0,0,0,0.1); border-top: 1px solid var(--border); display: none; }
-.visible { display: block; } /* Clase auxiliar para JS */
 
-/* --- AJUSTES MÓVIL --- */
+/* =========================================
+   12. RESPONSIVE (MÓVIL)
+   ========================================= */
 @media (max-width: 768px) {
+    .container { padding: 1rem; }
     h1 { font-size: 1.8rem; }
-    .container { padding: 15px; }
-    .main-menu-buttons { grid-template-columns: 1fr; } /* 1 columna en cel */
-    .finance-panel { grid-template-columns: 1fr 1fr; } /* 2 columnas en cel */
-    th, td { padding: 10px; font-size: 0.8rem; }
+    
+    .product-details.visible {
+        grid-template-columns: 1fr; /* Columna única en móvil */
+        text-align: center;
+    }
+    .product-details img { margin: 0 auto; }
+    .product-actions { flex-direction: row; justify-content: center; }
+    
+    .finance-panel { grid-template-columns: 1fr 1fr; }
+    
+    .main-menu-buttons { grid-template-columns: 1fr; }
 }
