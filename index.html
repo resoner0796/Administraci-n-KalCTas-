@@ -155,11 +155,19 @@
                     <button class="btn-neutral" onclick="addNewExpenseConcept()">+ Concepto</button>
                 </div>
                 <div class="form-card">
-                    <h3>⚙️ Costos</h3>
+                    <h3>⚙️ Configuración de Costos</h3>
                     <form id="cost-config-form">
-                        <label>Costo Producto</label>
-                        <input type="number" id="product-cost-input" step="0.01">
-                        <button type="submit" class="btn-edit">Actualizar</button>
+                        <label>Costo Base Producto ($)</label>
+                        <div style="display:flex; gap:10px; margin-bottom: 10px;">
+                            <input type="number" id="product-cost-input" step="0.01" placeholder="Ej. 42">
+                        </div>
+                        
+                        <label>Costo de Envío ($)</label>
+                        <div style="display:flex; gap:10px;">
+                            <input type="number" id="shipping-cost-input" step="0.01" placeholder="Ej. 70">
+                        </div>
+
+                        <button type="submit" class="btn-edit" style="margin-top:10px;">Guardar Configuración</button>
                     </form>
                 </div>
             </div>

@@ -19,10 +19,9 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
-// const messaging = firebase.messaging(); // Descomentar si usas notificaciones
+// const messaging = firebase.messaging(); 
 
 const IMAGES_BASE_URL = 'https://kalctas.com/';
-
 let actionToConfirm = null;
 let unsubscribes = [];
 let productModels = [];
@@ -30,7 +29,6 @@ let expenseConcepts = [];
 let salesChart;
 let CAPITAL_PER_PRODUCT = 42;
 let SHIPPING_COST = 70;
-let deferredInstallPrompt = null;
 
 const getEl = (id) => document.getElementById(id);
 
@@ -68,10 +66,9 @@ async function showScreen(screenId) {
         case 'restock-screen': 
             await loadProductModels(); 
             loadRestockHistory();
-            if(getEl('restock-items')) {
-                getEl('restock-items').innerHTML = '';
-                addRestockLine();
-            }
+            // Reiniciar formulario de restock si existe
+            const rItems = getEl('restock-items');
+            if(rItems) { rItems.innerHTML = ''; addRestockLine(); }
             break;
         case 'sales-screen': loadSalesData(); break;
         case 'sales-report-table-screen': loadSalesReportTable(); break;
@@ -85,25 +82,25 @@ async function showScreen(screenId) {
             getEl('manual-order-items').innerHTML = '';
             addManualOrderLine();
             getEl('manual-order-form').reset();
-            toggleManualDeliveryFields(); 
-            calculateManualOrderTotal();
+            toggleManualDeliveryFields();
             break;
         case 'raw-materials-screen': loadRawMaterials(); break;
         case 'movements-history-screen': 
             loadMovementCategories();
-            loadMovementsHistory();
+            // Si se llamó desde el menú, carga todo. Si viene de tarjeta, ya tiene filtro.
+            if(getEl('movement-filter-category').value === 'all') loadMovementsHistory();
             break;
     }
 }
 
 // ====================================================================================
-// 3. INVENTARIO (DISEÑO TARJETAS)
+// 3. INVENTARIO
 // ====================================================================================
 async function loadInventory() {
     const container = getEl('inventory-accordion');
     const controls = getEl('category-visibility-controls');
     container.innerHTML = '<p style="text-align:center; padding:20px;">Cargando inventario...</p>';
-    controls.innerHTML = ''; // Limpiar controles previos
+    controls.innerHTML = '<h2>Visibilidad</h2>';
 
     try {
         const visibilitySnap = await db.collection('categorias').get();
@@ -118,12 +115,11 @@ async function loadInventory() {
             if (productsByCat[p.categoria]) productsByCat[p.categoria].push(p);
         });
 
-        // Controles Superiores
         Object.keys(productsByCat).forEach(cat => {
             const isVisible = visibility[cat] !== false;
             const btn = document.createElement('button');
             btn.className = 'btn';
-            btn.style.backgroundColor = 'var(--bg-input)';
+            btn.style.backgroundColor = 'var(--bg-card)';
             btn.style.border = isVisible ? '1px solid var(--success)' : '1px solid var(--text-muted)';
             btn.style.color = isVisible ? 'var(--success)' : 'var(--text-muted)';
             btn.style.marginRight = '10px';
@@ -139,7 +135,7 @@ async function loadInventory() {
             separator.className = 'category-separator';
             separator.textContent = cat;
             separator.style.gridColumn = "1 / -1";
-            separator.style.margin = "30px 0 10px 0";
+            separator.style.margin = "20px 0 10px 0";
             separator.style.borderBottom = "1px solid var(--border)";
             separator.style.color = "var(--primary)";
             separator.style.fontWeight = "bold";
@@ -189,7 +185,6 @@ async function loadInventory() {
     }
 }
 
-// FUNCIONES AUXILIARES DE INVENTARIO
 async function getCategoryVisibility() {
     const v = {};
     const s = await db.collection('categorias').get();
@@ -205,7 +200,7 @@ async function toggleProductVisibility(id, vis) {
     loadInventory();
 }
 
-// AGREGAR PRODUCTO
+// PRODUCTOS
 const addProductForm = getEl('add-product-form');
 if (addProductForm) {
     addProductForm.addEventListener('submit', async (e) => {
@@ -213,7 +208,6 @@ if (addProductForm) {
         try {
             const imageUrl = getEl('product-image-url').value;
             if (!imageUrl) { showMessage('Falta la imagen.'); return; }
-
             await db.collection('productos').add({
                 nombre: getEl('product-name').value,
                 categoria: getEl('product-category').value,
@@ -226,10 +220,7 @@ if (addProductForm) {
             showMessage('¡Producto agregado!');
             e.target.reset();
             showScreen('inventory-screen');
-        } catch (error) {
-            console.error(error);
-            showMessage('Error al agregar producto.');
-        }
+        } catch (error) { showMessage('Error al agregar producto.'); }
     });
 }
 
@@ -271,7 +262,7 @@ if (editProductForm) {
 }
 
 // ====================================================================================
-// 4. VENTA MANUAL (CORREGIDO ID MATCHING)
+// 4. VENTA MANUAL (CORREGIDA)
 // ====================================================================================
 async function loadProductModels() {
     const snap = await db.collection('productos').orderBy('nombre').get();
@@ -282,9 +273,7 @@ function addManualOrderLine() {
     const container = getEl('manual-order-items');
     const div = document.createElement('div');
     div.className = 'manual-line'; 
-    
-    const options = productModels.map(p => `<option value="${p.id}" data-price="${p.precio}">${p.nombre} (Stock: ${p.stock})</option>`).join('');
-
+    const options = productModels.map(p => `<option value="${p.id}" data-price="${p.precio}">${p.nombre} (${p.stock})</option>`).join('');
     div.innerHTML = `
         <select class="manual-order-product" onchange="calculateManualOrderTotal()" required style="margin:0;">
             <option value="" data-price="0" disabled selected>Modelo...</option>
@@ -308,29 +297,24 @@ function calculateManualOrderTotal() {
             total += price * qty;
         }
     });
-
     const deliveryMethod = getEl('manual-delivery-method').value;
     if (deliveryMethod === 'domicilio') total += SHIPPING_COST;
-
     getEl('manual-order-total').value = total.toFixed(2);
 }
 
 function toggleManualDeliveryFields() {
     const method = getEl('manual-delivery-method').value;
-    // CORRECCIÓN: IDs actualizados según tu HTML
     const homeDetails = getEl('manual-home-details'); 
     const pickupDetails = getEl('manual-pickup-details');
-
-    if (method === 'domicilio') {
-        if(homeDetails) homeDetails.style.display = 'flex';
-        if(pickupDetails) pickupDetails.style.display = 'none';
-        getEl('manual-delivery-street').required = true;
-        getEl('manual-delivery-date').required = false;
-    } else {
-        if(homeDetails) homeDetails.style.display = 'none';
-        if(pickupDetails) pickupDetails.style.display = 'flex';
-        getEl('manual-delivery-street').required = false;
-        getEl('manual-delivery-date').required = true;
+    // Validamos que existan antes de acceder a style
+    if(homeDetails && pickupDetails) {
+        if (method === 'domicilio') {
+            homeDetails.style.display = 'flex';
+            pickupDetails.style.display = 'none';
+        } else {
+            homeDetails.style.display = 'none';
+            pickupDetails.style.display = 'flex';
+        }
     }
     calculateManualOrderTotal();
 }
@@ -362,6 +346,7 @@ if (manualOrderForm) {
             showMessage("Agrega productos."); btn.disabled = false; btn.textContent = "✅ CONFIRMAR VENTA"; return;
         }
 
+        // Corrección de lectura de inputs
         const client = getEl('manual-order-client').value;
         const phone = getEl('manual-order-phone').value;
         const channel = getEl('manual-order-channel').value;
@@ -390,6 +375,7 @@ if (manualOrderForm) {
 
         try {
             await db.runTransaction(async (t) => {
+                // Leer Config
                 const confRef = db.collection('configuracion').doc('tienda');
                 const confDoc = await t.get(confRef);
                 const costPerItem = confDoc.exists && confDoc.data().costoPorProducto ? confDoc.data().costoPorProducto : CAPITAL_PER_PRODUCT;
@@ -412,6 +398,7 @@ if (manualOrderForm) {
                     datosEntrega: deliveryData, comentarios: comments || null
                 });
 
+                // Finanzas
                 const isShip = deliveryData.tipo === 'Envío a domicilio';
                 const gastoEnvio = isShip ? shipCost : 0;
                 const totalItems = items.reduce((s, i) => s + i.cantidad, 0);
@@ -467,7 +454,6 @@ if (manualOrderForm) {
             getEl('manual-order-items').innerHTML = '';
             addManualOrderLine();
             calculateManualOrderTotal();
-            toggleManualDeliveryFields();
 
         } catch (err) {
             console.error(err);
@@ -486,13 +472,11 @@ async function loadVideoManagement() {
     container.innerHTML = '<p>Cargando...</p>';
     try {
         const snap = await db.collection('videos').orderBy('fechaCreacion', 'desc').get();
-        if(snap.empty) { container.innerHTML = '<p class="text-muted">Sin videos.</p>'; return; }
-        
-        container.innerHTML = '';
+        container.innerHTML = snap.empty ? '<p class="text-muted">Sin videos.</p>' : '';
         snap.forEach(doc => {
             const v = {id: doc.id, ...doc.data()};
             const div = document.createElement('div');
-            div.className = 'data-card'; // CSS nuevo
+            div.className = 'data-card'; 
             div.style.display = 'flex'; div.style.justifyContent='space-between'; div.style.background='var(--bg-card)'; div.style.padding='15px'; div.style.marginBottom='10px'; div.style.border='1px solid var(--border)'; div.style.borderRadius='var(--radius)';
             div.innerHTML = `
                 <div style="flex:1;"><strong style="color:white;">${v.nombre}</strong><p style="font-size:0.8rem; color:var(--text-muted); overflow:hidden;">${v.videoUrl}</p></div>
@@ -510,9 +494,7 @@ async function loadPackagingVisibility() {
     container.innerHTML = '<p>Cargando...</p>';
     try {
         const snap = await db.collection('empaques').orderBy('fechaCreacion', 'desc').get();
-        if(snap.empty) { container.innerHTML = '<p class="text-muted">Sin empaques.</p>'; return; }
-        
-        container.innerHTML = '';
+        container.innerHTML = snap.empty ? '<p class="text-muted">Sin empaques.</p>' : '';
         snap.forEach(doc => {
             const e = {id: doc.id, ...doc.data()};
             const isVisible = e.visible !== false;
@@ -529,7 +511,6 @@ async function loadPackagingVisibility() {
         });
     } catch(e) { console.error(e); container.innerHTML = 'Error'; }
 }
-
 async function togglePackagingVisibility(id, state) { await db.collection('empaques').doc(id).update({visible: !state}); loadPackagingVisibility(); }
 async function deletePackaging(id) { if(confirm('Borrar?')) { await db.collection('empaques').doc(id).delete(); loadPackagingVisibility(); } }
 async function toggleVideoInPlaylist(id, state) { await db.collection('videos').doc(id).update({enPlaylist: state}); }
@@ -550,9 +531,9 @@ function loadOrders() {
             const p = doc.data();
             if(p.canalVenta) return; // Ignorar manuales
             const div = document.createElement('div');
-            div.className = 'finance-card'; // Usamos tarjeta visual
+            div.className = 'finance-card'; 
             div.style.borderLeft = '4px solid var(--info)';
-            div.style.marginBottom = '10px';
+            div.style.marginBottom = '15px';
             
             div.innerHTML = `
                 <div style="display:flex; justify-content:space-between;"><strong>${p.folio} - ${p.datosCliente?.nombre}</strong><span class="order-status status-${p.estado}">${p.estado}</span></div>
@@ -570,7 +551,7 @@ function loadOrders() {
 }
 
 // ====================================================================================
-// 7. FINANZAS E INSUMOS
+// 7. FINANZAS
 // ====================================================================================
 function loadFinancialSummary() {
     const unsub = db.collection('finanzas').doc('resumen').onSnapshot(doc => {
@@ -586,6 +567,20 @@ function loadFinancialSummary() {
     unsubscribes.push(unsub);
 }
 
+// CORRECCIÓN: Agregada la función showMovementsHistory que faltaba
+async function showMovementsHistory(category, socio = null) {
+    // Cambiamos a la pantalla de movimientos
+    showScreen('movements-history-screen');
+    // Esperamos un poco a que renderice el select y lo seteamos
+    setTimeout(() => {
+        const select = getEl('movement-filter-category');
+        if(select) {
+            select.value = category;
+            loadMovementsHistory();
+        }
+    }, 100);
+}
+
 async function loadExpenseConcepts() {
     const s = getEl('expense-concept');
     if(!s) return;
@@ -594,7 +589,7 @@ async function loadExpenseConcepts() {
     snap.forEach(d => s.innerHTML += `<option value="${d.data().nombre}">${d.data().nombre}</option>`);
 }
 async function addNewExpenseConcept() {
-    const n = prompt("Concepto:");
+    const n = prompt("Nuevo concepto:");
     if(n) { await db.collection('conceptosGastos').add({nombre: n.trim()}); loadExpenseConcepts(); }
 }
 async function loadProductCost() {
@@ -612,15 +607,49 @@ async function loadShippingCost() {
     }
 }
 
-// Listeners Costos
+// Listeners Costos (Corregido para guardar también el envío)
 const costConfigForm = getEl('cost-config-form');
-if(costConfigForm) costConfigForm.addEventListener('submit', async(e)=>{ e.preventDefault(); const v=parseFloat(getEl('product-cost-input').value); await db.collection('configuracion').doc('tienda').set({costoPorProducto:v},{merge:true}); CAPITAL_PER_PRODUCT=v; showMessage('Guardado.'); });
-const shipConfigForm = getEl('shipping-cost-config-form');
-if(shipConfigForm) shipConfigForm.addEventListener('submit', async(e)=>{ e.preventDefault(); const v=parseFloat(getEl('shipping-cost-input').value); await db.collection('configuracion').doc('tienda').set({costoEnvio:v},{merge:true}); SHIPPING_COST=v; showMessage('Guardado.'); });
-const addExpenseForm = getEl('add-expense-form');
-if(addExpenseForm) addExpenseForm.addEventListener('submit', async(e)=>{ e.preventDefault(); const m=parseFloat(getEl('expense-amount').value); const c=getEl('expense-concept').value; const n=getEl('expense-note').value; const b=db.batch(); b.set(db.collection('movimientos').doc(),{monto:-m,concepto:c,tipo:'Gastos',nota:n,fecha:new Date()}); b.update(db.collection('finanzas').doc('resumen'),{gastos:firebase.firestore.FieldValue.increment(m),utilidad:firebase.firestore.FieldValue.increment(-m)}); await b.commit(); showMessage('Gasto ok.'); e.target.reset(); });
+if (costConfigForm) {
+    costConfigForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const val = parseFloat(getEl('product-cost-input').value);
+        const ship = parseFloat(getEl('shipping-cost-input').value); // Ahora sí lo leemos
+        
+        if(!isNaN(val)) {
+            await db.collection('configuracion').doc('tienda').set({ costoPorProducto: val }, { merge: true });
+            CAPITAL_PER_PRODUCT = val;
+        }
+        if(!isNaN(ship)) {
+            await db.collection('configuracion').doc('tienda').set({ costoEnvio: ship }, { merge: true });
+            SHIPPING_COST = ship;
+        }
+        showMessage('Costos guardados.');
+    });
+}
 
-// Insumos
+const addExpenseForm = getEl('add-expense-form');
+if(addExpenseForm) {
+    addExpenseForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const monto = parseFloat(getEl('expense-amount').value);
+        const concepto = getEl('expense-concept').value;
+        const nota = getEl('expense-note').value;
+        
+        const batch = db.batch();
+        const ref = db.collection('movimientos').doc();
+        batch.set(ref, { monto: -monto, concepto, tipo: 'Gastos', nota, fecha: firebase.firestore.FieldValue.serverTimestamp() });
+        batch.update(db.collection('finanzas').doc('resumen'), {
+            gastos: firebase.firestore.FieldValue.increment(monto),
+            utilidad: firebase.firestore.FieldValue.increment(-monto)
+        });
+        await batch.commit();
+        showMessage('Gasto registrado.'); e.target.reset();
+    });
+}
+
+// ====================================================================================
+// 8. INSUMOS Y RESTOCK
+// ====================================================================================
 function loadRawMaterials() {
     const tbody = getEl('raw-materials-table-body');
     tbody.innerHTML = '<tr><td colspan="3">Cargando...</td></tr>';
@@ -641,32 +670,87 @@ function editRawMaterial(id, d, q) { getEl('raw-material-id').value=id; getEl('r
 function cancelEditRawMaterial() { getEl('add-raw-material-form').reset(); getEl('raw-material-id').value=''; getEl('add-raw-material-btn').textContent="Agregar"; getEl('cancel-edit-raw-material-btn').style.display='none'; }
 async function deleteRawMaterial(id) { await db.collection('inventarioInsumos').doc(id).delete(); loadRawMaterials(); }
 
-// ====================================================================================
-// 8. RESTOCK & REPORTES
-// ====================================================================================
+function loadSupplies() {
+    const tbody = getEl('supplies-table-body');
+    tbody.innerHTML = '<tr><td colspan="4">Cargando...</td></tr>';
+    const unsub = db.collection('insumos').orderBy('fecha', 'desc').onSnapshot(snap => {
+        if(snap.empty) { tbody.innerHTML = '<tr><td colspan="4">Vacío.</td></tr>'; return; }
+        let html = '';
+        snap.forEach(doc => {
+            const s = doc.data();
+            html += `<tr><td>${s.descripcion}</td><td>${s.cantidad}</td><td>$${s.costoTotal.toFixed(2)}</td><td><button class="btn-delete" onclick="deleteSupply('${doc.id}')">X</button></td></tr>`;
+        });
+        tbody.innerHTML = html;
+    });
+    unsubscribes.push(unsub);
+}
+const addSupplyForm = getEl('add-supply-form');
+if(addSupplyForm) {
+    addSupplyForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const desc = getEl('supply-description').value;
+        const qty = parseInt(getEl('supply-quantity').value);
+        const cost = parseFloat(getEl('supply-cost').value);
+        const total = qty * cost;
+        
+        const batch = db.batch();
+        batch.set(db.collection('insumos').doc(), { descripcion: desc, cantidad: qty, costoUnidad: cost, costoTotal: total, fecha: firebase.firestore.FieldValue.serverTimestamp() });
+        batch.set(db.collection('movimientos').doc(), { monto: -total, concepto: 'Compra Insumos', tipo: 'Gastos', nota: `${qty} x ${desc}`, fecha: firebase.firestore.FieldValue.serverTimestamp() });
+        batch.update(db.collection('finanzas').doc('resumen'), { gastos: firebase.firestore.FieldValue.increment(total), utilidad: firebase.firestore.FieldValue.increment(-total) });
+        
+        await batch.commit();
+        showMessage('Registrado.'); e.target.reset();
+    });
+}
+async function deleteSupply(id) {
+    if(!confirm('Borrar?')) return;
+    const doc = await db.collection('insumos').doc(id).get();
+    if(!doc.exists) return;
+    const cost = doc.data().costoTotal;
+    const batch = db.batch();
+    batch.delete(db.collection('insumos').doc(id));
+    batch.update(db.collection('finanzas').doc('resumen'), { gastos: firebase.firestore.FieldValue.increment(-cost), utilidad: firebase.firestore.FieldValue.increment(cost) });
+    await batch.commit();
+    showMessage('Eliminado.');
+}
+
+// Restock
 function loadRestockHistory() {
     const list = getEl('restock-history-list');
     list.innerHTML = '<p>Cargando...</p>';
     const unsub = db.collection('restocks').orderBy('fecha', 'desc').onSnapshot(snap => {
-        if(snap.empty) { list.innerHTML = '<p>Vacío.</p>'; return; }
+        if(snap.empty) { list.innerHTML = '<p>Sin historial.</p>'; return; }
         list.innerHTML = ''; list.className = 'inventory-grid';
         snap.forEach(doc => {
-            const r = {id:doc.id, ...doc.data()};
-            const items = r.items.map(i=>`<li>${i.nombre} x${i.cantidad}</li>`).join('');
+            const r = { id: doc.id, ...doc.data() };
+            const items = r.items.map(i => `<li>${i.nombre} x${i.cantidad}</li>`).join('');
             const div = document.createElement('div');
             div.className = 'finance-card'; div.style.borderLeft='4px solid var(--warning)';
-            div.innerHTML = `<div><strong>${r.folio}</strong><p>${r.fecha?.toDate().toLocaleDateString()}</p><ul>${items}</ul></div><div style="text-align:right;"><span style="color:var(--danger); font-weight:bold;">-$${r.costoTotal.toFixed(2)}</span><button class="btn-delete" style="margin-top:5px;" onclick="deleteRestock('${r.id}')">Revertir</button></div>`;
+            div.innerHTML = `<div style="margin-bottom:10px;"><span style="font-weight:bold; color:white; font-size:0.9rem;">Folio: ${r.folio||'N/A'}</span><br><span style="font-size:0.8rem; color:var(--text-muted);">${r.fecha?.toDate().toLocaleDateString()}</span></div><div style="font-size:0.85rem; color:var(--text-muted); margin-bottom:15px;"><ul style="padding-left:15px;">${items}</ul></div><div style="display:flex; justify-content:space-between; align-items:center;"><span style="color:var(--danger); font-weight:bold; font-size:1.2rem;">-$${r.costoTotal.toFixed(2)}</span><button class="btn-delete" style="padding:5px 10px; font-size:0.7rem;" onclick="deleteRestock('${r.id}')">Revertir</button></div>`;
             list.appendChild(div);
         });
     });
     unsubscribes.push(unsub);
 }
-async function deleteRestock(id) { if(!confirm('Revertir?')) return; const doc=await db.collection('restocks').doc(id).get(); const d=doc.data(); const b=db.batch(); d.items.forEach(i=>b.update(db.collection('productos').doc(i.id), {stock:firebase.firestore.FieldValue.increment(-i.cantidad)})); b.update(db.collection('finanzas').doc('resumen'),{capital:firebase.firestore.FieldValue.increment(d.costoTotal)}); b.delete(db.collection('restocks').doc(id)); await b.commit(); showMessage('Revertido.'); }
+async function deleteRestock(id) {
+    if(!confirm('Eliminar?')) return;
+    const doc = await db.collection('restocks').doc(id).get();
+    if(!doc.exists) return;
+    const d = doc.data();
+    const batch = db.batch();
+    d.items.forEach(i => batch.update(db.collection('productos').doc(i.id), { stock: firebase.firestore.FieldValue.increment(-i.cantidad) }));
+    batch.update(db.collection('finanzas').doc('resumen'), { capital: firebase.firestore.FieldValue.increment(d.costoTotal) });
+    batch.delete(db.collection('restocks').doc(id));
+    await batch.commit(); showMessage('Revertido.');
+}
 
+// ====================================================================================
+// 9. REPORTES Y TABLAS
+// ====================================================================================
 function loadSalesData() {
     const container = getEl('sales-list');
     container.innerHTML = '<p class="text-center">Cargando...</p>';
-    const q = db.collection('pedidos').where('estado','==','Entregado').orderBy('fechaActualizacion','desc').limit(50);
+    const q = db.collection('pedidos').where('estado', '==', 'Entregado').orderBy('fechaActualizacion', 'desc').limit(50);
     const unsub = q.onSnapshot(snap => {
         const salesByDate = {};
         if(snap.empty) { container.innerHTML='<p class="text-center">Sin ventas.</p>'; return; }
@@ -688,7 +772,7 @@ async function loadSalesReportTable() {
     const tbody = getEl('sales-report-table-body');
     tbody.innerHTML = '<tr><td colspan="11">Cargando...</td></tr>';
     try {
-        const snap = await db.collection('pedidos').where('estado','==','Entregado').orderBy('fechaActualizacion','desc').get();
+        const snap = await db.collection('pedidos').where('estado', '==', 'Entregado').orderBy('fechaActualizacion', 'desc').get();
         if(snap.empty) { tbody.innerHTML='<tr><td colspan="11">Vacío.</td></tr>'; return; }
         const conf = await db.collection('configuracion').doc('tienda').get();
         const cost = conf.data()?.costoPorProducto || CAPITAL_PER_PRODUCT;
@@ -708,6 +792,7 @@ async function loadSalesReportTable() {
     } catch(e) { console.error(e); tbody.innerHTML = '<tr><td colspan="11">Error</td></tr>'; }
 }
 
+// Movimientos Historial
 async function loadMovementCategories() {
     const s = getEl('movement-filter-category');
     s.innerHTML = '<option value="all">Todas</option>';
@@ -733,19 +818,25 @@ async function loadMovementsHistory() {
 }
 
 // ====================================================================================
-// 9. AUTH, PDF Y TEMAS
+// 10. FUNCIONES GLOBALES Y HELPERS
 // ====================================================================================
-auth.onAuthStateChanged(user => {
-    unsubscribes.forEach(u => u());
-    if(user) showScreen('main-menu'); else showScreen('login-screen');
-});
-function logout() { auth.signOut(); }
-const loginForm = getEl('login-form');
-if(loginForm) loginForm.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    try { await auth.signInWithEmailAndPassword(getEl('login-email').value, getEl('login-password').value); }
-    catch(e) { showMessage('Error login'); }
-});
+function updateChart(data) {
+    const ctx = getEl('sales-chart').getContext('2d');
+    if (salesChart) salesChart.destroy();
+    salesChart = new Chart(ctx, {
+        type: 'line',
+        data: { labels: Object.keys(data).sort(), datasets: [{ label: 'Ventas ($)', data: Object.values(data), borderColor: '#d946ef', tension: 0.3, fill: true, backgroundColor: 'rgba(217,70,239,0.1)' }] },
+        options: { responsive: true, maintainAspectRatio: false }
+    });
+}
+
+async function descargarReportePDF() {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF('l'); 
+    doc.setFontSize(18); doc.text("Reporte KalCTas", 14, 20);
+    doc.autoTable({ html: '#sales-report-table', startY: 30, theme: 'grid', headStyles: { fillColor: [217, 70, 239] }, styles: { fontSize: 8 } });
+    doc.save(`Reporte_${Date.now()}.pdf`);
+}
 
 async function loadCurrentTheme() {
     const el = getEl('current-theme-status');
@@ -760,42 +851,22 @@ async function setTheme(name) {
     showMessage(`Tema: ${name}`);
 }
 
-async function descargarReportePDF() {
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF('l'); 
-    doc.setFontSize(18); doc.text("Reporte KalCTas", 14, 20);
-    doc.autoTable({ html: '#sales-report-table', startY: 30, theme: 'grid', headStyles: { fillColor: [217, 70, 239] }, styles: { fontSize: 8 } });
-    doc.save(`Reporte_${Date.now()}.pdf`);
-}
+auth.onAuthStateChanged(user => {
+    unsubscribes.forEach(u => u());
+    if(user) showScreen('main-menu'); else showScreen('login-screen');
+});
 
-function updateChart(data) {
-    const ctx = getEl('sales-chart').getContext('2d');
-    if (salesChart) salesChart.destroy();
-    salesChart = new Chart(ctx, {
-        type: 'line',
-        data: { labels: Object.keys(data).sort(), datasets: [{ label: 'Ventas', data: Object.values(data), borderColor: '#d946ef', tension: 0.3, fill: true, backgroundColor: 'rgba(217,70,239,0.1)' }] },
-        options: { responsive: true, maintainAspectRatio: false }
-    });
-}
+function logout() { auth.signOut(); }
+const loginForm = getEl('login-form');
+if(loginForm) loginForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    try { await auth.signInWithEmailAndPassword(getEl('login-email').value, getEl('login-password').value); }
+    catch(e) { showMessage('Error de acceso'); }
+});
 
-// HELPERS Y MODALES
 function showMessage(text) { getEl('message-text').textContent = text; getEl('message-box').style.display = 'flex'; }
 function closeMessage() { getEl('message-box').style.display = 'none'; }
 function closeEditModal() { getEl('edit-modal').style.display = 'none'; }
-function loadSalesHistory() { /* Reutilizada en historial de pedidos */ 
-    const list = getEl('sales-history-list'); list.innerHTML = '<p class="text-center">Cargando...</p>';
-    const q = db.collection('pedidos').orderBy('fechaCreacion', 'desc').limit(20);
-    q.onSnapshot(snap => {
-        if(snap.empty){list.innerHTML='<p class="text-center">Sin historial</p>'; return;}
-        list.innerHTML='';
-        snap.forEach(doc=>{
-            const p=doc.data();
-            const div=document.createElement('div'); div.className='finance-card'; div.style.borderLeft='4px solid var(--info)'; div.style.marginBottom='10px';
-            div.innerHTML=`<div style="display:flex; justify-content:space-between;"><strong>${p.folio||'MANUAL'}</strong><span>$${(p.montoTotal||0).toFixed(2)}</span></div><div style="font-size:0.8rem; color:#aaa;"><p>${p.fechaActualizacion?.toDate().toLocaleDateString()}</p><p>${p.datosCliente?.nombre||p.clienteManual}</p></div><div style="text-align:right;"><button class="btn-delete" style="font-size:0.7rem; padding:5px;" onclick="showConfirmModal('order','${doc.id}','Eliminar?')">Eliminar</button></div>`;
-            list.appendChild(div);
-        });
-    });
-}
 function showConfirmModal(type, id, text) { 
     getEl('confirm-text').textContent = text;
     actionToConfirm = () => {
@@ -828,11 +899,12 @@ async function updateOrderStatus(pedidoId, newStatus, event) {
                 const gastoEnvio = hasShipping ? shippingCost : 0;
                 const capitalMonto = numeroProductos * costPerProduct;
                 const utilidadTotal = totalVenta - capitalMonto - gastoEnvio;
+
                 const utilidadNegocio = utilidadTotal * 0.50;
                 const utilidadUlises = utilidadTotal * 0.25;
                 const utilidadDariana = utilidadTotal * 0.25;
 
-                if (hasShipping) t.set(db.collection('movimientos').doc(), { monto: -gastoEnvio, concepto: 'Gasto Envío', tipo: 'Gastos', fecha: new Date(), relatedOrderId: pedidoId });
+                if (hasShipping) t.set(db.collection('movimientos').doc(), { monto: -gastoEnvio, concepto: 'Gasto de Envío', tipo: 'Gastos', fecha: new Date(), relatedOrderId: pedidoId });
                 if (capitalMonto > 0) t.set(db.collection('movimientos').doc(), { monto: capitalMonto, concepto: 'Ingreso Capital', tipo: 'Capital', fecha: new Date(), relatedOrderId: pedidoId });
                 
                 const addP = (m,c,s) => { if(m!==0) t.set(db.collection('movimientos').doc(), {monto:m, concepto:c, tipo:c, socio:s, fecha:new Date(), relatedOrderId:pedidoId}) };
@@ -861,3 +933,28 @@ async function deleteOrder(id) {
     loadOrders();
 }
 async function deleteProduct(id) { await db.collection('productos').doc(id).delete(); loadInventory(); }
+
+// Función que faltaba para ver historial en tarjeta
+function loadSalesHistory() {
+    const list = getEl('sales-history-list');
+    list.innerHTML = '<p>Cargando...</p>';
+    const q = db.collection('pedidos').orderBy('fechaCreacion', 'desc').limit(20);
+    const unsub = q.onSnapshot(snap => {
+        if(snap.empty) { list.innerHTML = '<p>Sin historial.</p>'; return; }
+        list.innerHTML = '';
+        snap.forEach(doc => {
+            const p = doc.data();
+            const div = document.createElement('li');
+            div.className = 'finance-card';
+            div.style.marginBottom = '10px';
+            div.style.borderLeft = '4px solid var(--info)';
+            div.innerHTML = `
+                <div style="display:flex; justify-content:space-between;"><strong>${p.folio||'MANUAL'}</strong><span>$${(p.montoTotal||0).toFixed(2)}</span></div>
+                <div style="font-size:0.8rem; color:#aaa;"><p>${p.fechaActualizacion?.toDate().toLocaleDateString()}</p><p>${p.datosCliente?.nombre||p.clienteManual}</p></div>
+                <div style="text-align:right;"><button class="btn-delete" style="font-size:0.7rem; padding:5px;" onclick="showConfirmModal('order','${doc.id}','Eliminar?')">Eliminar</button></div>
+            `;
+            list.appendChild(div);
+        });
+    });
+    unsubscribes.push(unsub);
+}
