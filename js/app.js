@@ -400,8 +400,8 @@ async function loadSalesReportTable() {
 async function loadInventory() {
     const accordionContainer = getEl('inventory-accordion');
     const categoryControlsContainer = getEl('category-visibility-controls');
-    accordionContainer.innerHTML = '<p>Cargando inventario...</p>';
-    categoryControlsContainer.innerHTML = '<h2>Visibilidad de Categorías</h2>';
+    accordionContainer.innerHTML = '<p style="text-align:center;">Cargando inventario...</p>';
+    categoryControlsContainer.innerHTML = '<h2>Visibilidad</h2>';
 
     try {
         const categoryVisibility = await getCategoryVisibility();
@@ -410,9 +410,8 @@ async function loadInventory() {
         const productsByCategory = {};
         const definedCategories = ['KalCTas2-4', 'KalCTas3-4', 'KalCTasLargas'];
 
-        definedCategories.forEach(cat => {
-            productsByCategory[cat] = [];
-        });
+        // Inicializar categorías
+        definedCategories.forEach(cat => productsByCategory[cat] = []);
 
         if (!snapshot.empty) {
             snapshot.forEach(doc => {
@@ -425,79 +424,72 @@ async function loadInventory() {
 
         accordionContainer.innerHTML = '';
 
+        // Controles de Visibilidad
         definedCategories.forEach(categoryName => {
             const isVisible = categoryVisibility[categoryName] !== false;
             const controlItem = document.createElement('div');
-            controlItem.className = 'visibility-item';
-
-            const btnText = isVisible ? 'Ocultar' : 'Mostrar';
-            const btnClass = isVisible ? 'status-blue' : 'status-green';
+            controlItem.className = 'visibility-item'; // Usará estilo del CSS nuevo
+            controlItem.style.display = 'flex'; 
+            controlItem.style.justifyContent = 'space-between';
+            controlItem.style.padding = '10px';
+            controlItem.style.marginBottom = '10px';
+            controlItem.style.background = 'var(--bg-panel)';
+            controlItem.style.borderRadius = 'var(--radius)';
 
             controlItem.innerHTML = `
-                <span>${categoryName}</span>
-                <div class="actions">
-                   <button class="btn" style="background-color: var(--${btnClass});" onclick="toggleCategoryVisibility('${categoryName}', ${isVisible})">${btnText}</button>
-                </div>
+                <span style="font-weight:bold;">${categoryName}</span>
+                <button class="btn" style="padding:5px 10px; font-size:0.8rem; background-color: var(--${isVisible ? 'info' : 'success'});" onclick="toggleCategoryVisibility('${categoryName}', ${isVisible})">
+                    ${isVisible ? 'Ocultar' : 'Mostrar'}
+                </button>
             `;
             categoryControlsContainer.appendChild(controlItem);
         });
 
+        // Generar Grid de Productos
         for (const category in productsByCategory) {
-            const isCategoryVisible = categoryVisibility[category] !== false;
-            const groupDiv = document.createElement('div');
-            groupDiv.className = 'category-group';
-            if (!isCategoryVisible) {
-                groupDiv.classList.add('hidden-category');
-            }
-            groupDiv.innerHTML = `<h3 class="category-title">${category} ${!isCategoryVisible ? '(Oculta)' : ''}</h3>`;
+            // Separador de categoría
+            const separator = document.createElement('div');
+            separator.className = 'category-separator';
+            separator.textContent = category;
+            accordionContainer.appendChild(separator);
+
+            // Contenedor Grid
+            const gridDiv = document.createElement('div');
+            gridDiv.className = 'inventory-grid';
 
             if (productsByCategory[category].length === 0) {
-                groupDiv.innerHTML += '<div class="product-item" style="justify-content:center; color: var(--text-secondary);">No hay productos en esta categoría.</div>';
+                gridDiv.innerHTML = '<p style="grid-column:1/-1; text-align:center; color:#666;">Sin productos.</p>';
             } else {
                 productsByCategory[category].forEach(product => {
                     const isVisible = product.visible !== false;
+                    const agotadoClass = product.stock === 0 ? 'agotado' : '';
+                    const imageUrl = product.imagenUrl.startsWith('http') ? product.imagenUrl : IMAGES_BASE_URL + product.imagenUrl;
 
-                    const itemDiv = document.createElement('div');
-                    itemDiv.className = 'product-item';
-                    if (product.stock === 0) itemDiv.classList.add('agotado');
-                    if (!isVisible) itemDiv.classList.add('hidden');
-
-                    itemDiv.innerHTML = `
-                        <span>${product.nombre} ${!isVisible ? '<span style="color:var(--status-yellow); font-size:0.8em;">(Oculto)</span>' : ''}</span>
-                        <span style="font-size: 0.9em; font-weight: normal;">
-                            ${product.stock > 0 ? `Stock: ${product.stock}` : 'Agotado'}
-                        </span>`;
-
-                    itemDiv.onclick = (e) => e.currentTarget.nextElementSibling.classList.toggle('visible');
-
-                    const detailsDiv = document.createElement('div');
-                    detailsDiv.className = 'product-details';
-
-                    const toggleBtnText = isVisible ? 'Ocultar' : 'Mostrar';
-                    const toggleBtnColorClass = isVisible ? 'status-blue' : 'status-green';
-
-                    const imageUrl = IMAGES_BASE_URL + product.imagenUrl;
-
-                    detailsDiv.innerHTML = `
-                        <div class="product-image-container" onclick="verImagen('${imageUrl}')" style="cursor: pointer;">
-                            <img src="${imageUrl}" alt="${product.nombre}" onerror="this.onerror=null; this.src='https://via.placeholder.com/100?text=No+Img';">
+                    const card = document.createElement('div');
+                    card.className = `product-card ${agotadoClass}`;
+                    
+                    card.innerHTML = `
+                        <div class="product-img-wrapper">
+                            <img src="${imageUrl}" alt="${product.nombre}" onerror="this.src='https://placehold.co/200x200?text=No+Img'">
                         </div>
                         <div class="product-info">
-                            <p><strong>Stock:</strong> ${product.stock}</p>
-                            <p><strong>Vendidos:</strong> ${product.cantidadVendida || 0}</p>
-                            <p><strong>Precio:</strong> $${product.precio.toFixed(2)}</p>
+                            <div class="product-title">${product.nombre}</div>
+                            <div class="product-meta">
+                                <span class="product-stock">Stock: ${product.stock}</span>
+                                <span>$${product.precio}</span>
+                            </div>
+                            <div class="product-actions">
+                                <button class="btn-edit" onclick="editProduct('${product.id}')">Editar</button>
+                                <button class="btn-neutral" onclick="toggleProductVisibility('${product.id}', ${isVisible})">
+                                    ${isVisible ? '👁️' : '🙈'}
+                                </button>
+                            </div>
                         </div>
-                        <div class="product-actions">
-                            <button class="btn btn-edit" onclick="event.stopPropagation(); editProduct('${product.id}')">Editar</button>
-                            <button class="btn" style="background-color: var(--${toggleBtnColorClass});" onclick="event.stopPropagation(); toggleProductVisibility('${product.id}', ${isVisible})">${toggleBtnText}</button>
-                            <button class="btn btn-delete" onclick="event.stopPropagation(); showConfirmModal('product', '${product.id}', '¿Eliminar producto \\'${product.nombre}\\'?')">Eliminar</button>
-                        </div>`;
-
-                    groupDiv.appendChild(itemDiv);
-                    groupDiv.appendChild(detailsDiv);
+                    `;
+                    gridDiv.appendChild(card);
                 });
             }
-            accordionContainer.appendChild(groupDiv);
+            accordionContainer.appendChild(gridDiv);
         }
     } catch (error) {
         console.error("Error al cargar inventario:", error);
@@ -1308,24 +1300,67 @@ async function deleteRestock(id) {
 }
 
 function loadSalesData() {
-    const list = getEl('sales-list');
-    list.innerHTML = '<p>Cargando datos de ventas...</p>';
-    const q = db.collection('pedidos').where('estado', '==', 'Entregado').orderBy('fechaActualizacion', 'desc');
+    const container = getEl('sales-list'); // Reutilizamos el ID aunque ahora será tabla
+    container.innerHTML = '<p>Cargando datos...</p>';
+    
+    const q = db.collection('pedidos').where('estado', '==', 'Entregado').orderBy('fechaActualizacion', 'desc').limit(50); // Limitamos a 50 para no saturar
+    
     const unsubscribe = q.onSnapshot(snapshot => {
         const salesByDate = {};
-        list.innerHTML = snapshot.empty ? '<p>No hay ventas registradas.</p>' : '';
+        
+        if (snapshot.empty) {
+            container.innerHTML = '<p>No hay ventas registradas.</p>';
+            return;
+        }
+
+        // Construimos tabla
+        let htmlTable = `
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Folio</th>
+                            <th>Cliente</th>
+                            <th>Canal</th>
+                            <th>Fecha</th>
+                            <th>Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+        `;
+
         snapshot.forEach(doc => {
             const pedido = doc.data();
             const total = pedido.montoTotal || 0;
-            const fecha = pedido.fechaActualizacion?.toDate().toISOString().split('T')[0];
-            if (fecha) {
-                salesByDate[fecha] = (salesByDate[fecha] || 0) + total;
+            const fechaRaw = pedido.fechaActualizacion?.toDate();
+            const fechaStr = fechaRaw ? fechaRaw.toLocaleDateString() : 'N/A';
+            const fechaISO = fechaRaw ? fechaRaw.toISOString().split('T')[0] : '';
+            
+            // Datos para gráfica
+            if (fechaISO) {
+                salesByDate[fechaISO] = (salesByDate[fechaISO] || 0) + total;
             }
-            const cliente = `${pedido.datosCliente?.nombre || ''} ${pedido.datosCliente?.apellido || ''}`.trim() || pedido.clienteManual;
-            list.innerHTML += `<li class="sales-history-item"><div class="sales-summary"><span>#${pedido.folio || 'Manual'}</span><span>${cliente}</span><span>$${total.toFixed(2)}</span></div></li>`;
+
+            const cliente = `${pedido.datosCliente?.nombre || ''} ${pedido.datosCliente?.apellido || ''}`.trim() || pedido.clienteManual || 'Anon';
+            const folio = pedido.folio || 'MANUAL';
+
+            htmlTable += `
+                <tr>
+                    <td style="font-weight:bold;">${folio}</td>
+                    <td>${cliente}</td>
+                    <td>${pedido.canalVenta || 'Web'}</td>
+                    <td>${fechaStr}</td>
+                    <td style="color:var(--success); font-weight:bold;">$${total.toFixed(2)}</td>
+                </tr>
+            `;
         });
+
+        htmlTable += `</tbody></table></div>`;
+        container.innerHTML = htmlTable;
+        
         updateChart(salesByDate);
     });
+    
     unsubscribes.push(unsubscribe);
 }
 
