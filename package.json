@@ -17,5 +17,9 @@
   "bugs": {
     "url": "https://github.com/resoner0796/Administraci-n-KalCTas-/issues"
   },
-  "homepage": "https://github.com/resoner0796/Administraci-n-KalCTas-#readme"
+  "homepage": "https://github.com/resoner0796/Administraci-n-KalCTas-#readme",
+  "dependencies": {
+    "firebase-admin": "^13.6.0",
+    "resend": "^6.5.2"
+  }
 }
