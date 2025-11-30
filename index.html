@@ -326,6 +326,9 @@
         
         <section id="sales-report-table-screen" style="display: none;">
             <h1>Reporte Detallado de Ventas</h1>
+            <button onclick="descargarReportePDF()" style="background-color: #e74c3c; margin-bottom: 15px;">
+    📄 Descargar en PDF
+</button>
             <div class="table-container">
                 <table id="sales-report-table">
                     <thead>
@@ -413,7 +416,8 @@
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging-compat.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
     <script src="js/app.js"></script>
 
 </body>

@@ -2144,3 +2144,38 @@ async function deleteVideo(id) {
         console.error(error);
     }
 }
+// ==============================================
+// --- GENERADOR DE PDF ---
+// ==============================================
+async function descargarReportePDF() {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+
+    // 1. Título del documento
+    doc.setFontSize(18);
+    doc.text("Reporte de Ventas - KalCTas", 14, 22);
+    
+    // 2. Fecha de generación
+    doc.setFontSize(11);
+    doc.setTextColor(100);
+    const fecha = new Date().toLocaleDateString('es-MX');
+    doc.text(`Generado el: ${fecha}`, 14, 30);
+
+    // 3. Generar la tabla automática
+    // Toma los datos directo de tu tabla HTML id="sales-report-table"
+    doc.autoTable({
+        html: '#sales-report-table',
+        startY: 35,
+        theme: 'grid', // Estilo tipo Excel limpio
+        styles: { fontSize: 7, cellPadding: 2 }, // Letra chiquita para que quepa todo
+        headStyles: { fillColor: [26, 26, 46] }, // Color de encabezado (Azul oscuro de tu marca)
+        columnStyles: {
+            0: { fontStyle: 'bold' }, // Folio en negritas
+            4: { halign: 'right' },   // Total alineado a la derecha
+            7: { fontStyle: 'bold', fillColor: [230, 255, 230] } // Utilidad resaltada
+        }
+    });
+
+    // 4. Guardar archivo
+    doc.save(`Reporte_Ventas_${fecha.replace(/\//g, '-')}.pdf`);
+}
