@@ -36,7 +36,7 @@
             <div class="main-menu-buttons">
                 <button onclick="showScreen('inventory-screen')">📦 Inventario</button>
                 <button onclick="showScreen('manual-order-screen')">📝 Punto de Venta (POS)</button>
-                <button onclick="showScreen('orders-screen')">📬 Pedidos Web</button>
+                <button onclick="showScreen('restock-screen')">🔄 Re-Stock de Inventario</button> <button onclick="showScreen('orders-screen')">📬 Pedidos Web</button>
                 <button onclick="showScreen('finance-screen')">📈 Finanzas</button>
                 <button onclick="showScreen('sales-screen')">📊 Reporte Gráfico</button>
                 <button onclick="showScreen('sales-report-table-screen')">📄 Reporte Tabla</button>
@@ -55,9 +55,9 @@
                 <button onclick="showScreen('add-product-screen')" class="btn-add" style="flex:1">+ Nuevo Modelo</button>
                 <button class="btn-neutral" onclick="showScreen('main-menu')">Volver</button>
             </div>
-            
             <div id="category-visibility-controls" style="display: flex; gap: 10px; overflow-x: auto; padding-bottom: 10px;"></div>
-            <div id="inventory-accordion"></div> </section>
+            <div id="inventory-accordion"></div> 
+        </section>
 
         <section id="add-product-screen" style="display: none;">
             <h1>Nuevo Producto</h1>
@@ -101,20 +101,25 @@
                             <option value="punto-medio">Punto Medio</option>
                             <option value="domicilio">Domicilio</option>
                         </select>
+                        
                         <div id="manual-pickup-details">
                             <input type="date" id="manual-delivery-date" required>
-                            <select id="manual-delivery-location">
+                            <select id="manual-delivery-location" onchange="toggleOtherManualLocation()">
                                 <option value="Mi tienda Jarachina">Jarachina</option>
                                 <option value="La Portillo">La Portillo</option>
                                 <option value="Periférico">Periférico</option>
                                 <option value="Otro">Otro...</option>
                             </select>
+                            <textarea id="manual-other-location-note" placeholder="Escribe el lugar..." style="display:none; min-height: 60px;"></textarea>
                         </div>
-                        <div id="manual-home-details" style="display:none;">
+                        
+                        <div id="manual-home-details" style="display:none; flex-direction: column; gap: 10px;">
                             <input type="text" id="manual-delivery-street" placeholder="Calle">
                             <input type="text" id="manual-delivery-neighborhood" placeholder="Colonia">
+                            <textarea id="manual-delivery-description" placeholder="Referencias..." style="min-height: 60px;"></textarea>
                         </div>
-                        <textarea id="manual-delivery-comments" placeholder="Notas..." style="height: 60px;"></textarea>
+                        
+                        <textarea id="manual-delivery-comments" placeholder="Comentarios extra..." style="min-height: 60px; margin-top: 10px;"></textarea>
                     </div>
 
                     <div class="total-display">
@@ -126,7 +131,7 @@
                     <div class="form-card full-width">
                         <h3>🧦 Carrito</h3>
                         <div id="manual-order-items"></div>
-                        <button type="button" class="btn-neutral" onclick="addManualOrderLine()">+ Agregar Producto</button>
+                        <button type="button" class="btn-neutral" onclick="addManualOrderLine()" style="width: 100%; margin-top: 10px;">+ Agregar Producto</button>
                     </div>
                 </div>
             </form>
@@ -149,45 +154,25 @@
                     <h3>💸 Registrar Gasto</h3>
                     <form id="add-expense-form">
                         <input type="number" id="expense-amount" placeholder="Monto" required>
-                        <select id="expense-concept" required><option value="">Concepto</option></select>
+                        <div style="display:flex; gap:10px;">
+                            <select id="expense-concept" required><option value="">Concepto</option></select>
+                            <button type="button" class="btn-neutral" onclick="addNewExpenseConcept()">+</button>
+                        </div>
                         <button type="submit" class="btn-danger">Registrar</button>
                     </form>
-                    <button class="btn-neutral" onclick="addNewExpenseConcept()">+ Concepto</button>
                 </div>
                 <div class="form-card">
-                    <h3>⚙️ Configuración de Costos</h3>
+                    <h3>⚙️ Costos</h3>
                     <form id="cost-config-form">
-                        <label>Costo Base Producto ($)</label>
-                        <div style="display:flex; gap:10px; margin-bottom: 10px;">
-                            <input type="number" id="product-cost-input" step="0.01" placeholder="Ej. 42">
-                        </div>
+                        <label>Costo Producto</label>
+                        <input type="number" id="product-cost-input" step="0.01">
                         
-                        <label>Costo de Envío ($)</label>
-                        <div style="display:flex; gap:10px;">
-                            <input type="number" id="shipping-cost-input" step="0.01" placeholder="Ej. 70">
-                        </div>
-
-                        <button type="submit" class="btn-edit" style="margin-top:10px;">Guardar Configuración</button>
+                        <label>Costo Envío</label>
+                        <input type="number" id="shipping-cost-input" step="0.01">
+                        
+                        <button type="submit" class="btn-edit">Guardar Cambios</button>
                     </form>
                 </div>
-            </div>
-            <button class="close-button" onclick="showScreen('main-menu')">Volver</button>
-        </section>
-
-        <section id="orders-screen" style="display: none;">
-            <h1>Pedidos Web</h1>
-            <div id="orders-list" class="card-grid"></div>
-            <button class="close-button" onclick="showScreen('main-menu')">Volver</button>
-        </section>
-
-        <section id="sales-report-table-screen" style="display: none;">
-            <h1>Reporte Detallado</h1>
-            <button onclick="descargarReportePDF()" class="btn-danger" style="margin-bottom: 15px;">📄 Descargar PDF</button>
-            <div class="table-wrapper">
-                <table id="sales-report-table">
-                    <thead><tr><th>Folio</th><th>Cliente</th><th>Canal</th><th>Fecha</th><th>Venta</th><th>Capital</th><th>Envío</th><th>Utilidad</th><th>Negocio</th><th>Ulises</th><th>Dariana</th></tr></thead>
-                    <tbody id="sales-report-table-body"></tbody>
-                </table>
             </div>
             <button class="close-button" onclick="showScreen('main-menu')">Volver</button>
         </section>
@@ -208,7 +193,25 @@
             </div>
             <h2 style="margin-top: 30px;">Historial</h2>
             <div id="restock-history-list" class="card-grid"></div>
-            <button class="close-button" onclick="showScreen('finance-screen')">Volver</button>
+            <button class="close-button" onclick="showScreen('main-menu')">Volver</button>
+        </section>
+
+        <section id="orders-screen" style="display: none;">
+            <h1>Pedidos Web</h1>
+            <div id="orders-list" class="card-grid"></div>
+            <button class="close-button" onclick="showScreen('main-menu')">Volver</button>
+        </section>
+
+        <section id="sales-report-table-screen" style="display: none;">
+            <h1>Reporte Detallado</h1>
+            <button onclick="descargarReportePDF()" class="btn-danger" style="margin-bottom: 15px;">📄 Descargar PDF</button>
+            <div class="table-wrapper">
+                <table id="sales-report-table">
+                    <thead><tr><th>Folio</th><th>Cliente</th><th>Canal</th><th>Fecha</th><th>Venta</th><th>Capital</th><th>Envío</th><th>Utilidad</th><th>Negocio</th><th>Ulises</th><th>Dariana</th></tr></thead>
+                    <tbody id="sales-report-table-body"></tbody>
+                </table>
+            </div>
+            <button class="close-button" onclick="showScreen('main-menu')">Volver</button>
         </section>
 
         <section id="sales-screen" style="display: none;">
@@ -317,7 +320,9 @@
                     <label>Nombre</label><input type="text" id="edit-name" required>
                     <label>Categoría</label>
                     <select id="edit-category" required>
-                        <option value="KalCTas2-4">2/4</option><option value="KalCTas3-4">3/4</option><option value="KalCTasLargas">Largas</option>
+                        <option value="KalCTas2-4">KalCTas 2/4</option>
+                        <option value="KalCTas3-4">KalCTas 3/4</option>
+                        <option value="KalCTasLargas">KalCTas Largas</option>
                     </select>
                     <label>Imagen</label><input type="text" id="edit-image-url">
                     <div style="display:flex; gap:10px;"><input type="number" id="edit-stock" placeholder="Stock"><input type="number" id="edit-price" placeholder="Precio"></div>
@@ -357,7 +362,6 @@
         <div id="image-modal" class="image-modal" onclick="cerrarModal()">
             <img class="modal-content-img" id="modal-image" style="max-width:90%; border-radius:12px;">
         </div>
-
     </div>
 
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>

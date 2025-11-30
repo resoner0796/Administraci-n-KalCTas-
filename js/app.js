@@ -19,7 +19,6 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
-// const messaging = firebase.messaging(); 
 
 const IMAGES_BASE_URL = 'https://kalctas.com/';
 let actionToConfirm = null;
@@ -31,6 +30,8 @@ let CAPITAL_PER_PRODUCT = 42;
 let SHIPPING_COST = 70;
 
 const getEl = (id) => document.getElementById(id);
+// HELPER SEGURO PARA LEER INPUTS (EVITA EL ERROR DE NULL)
+const getVal = (id) => { const el = document.getElementById(id); return el ? el.value : ''; };
 
 const empaqueInsumoMap = {
     'Frankie': 'Empaque frankie',
@@ -39,14 +40,13 @@ const empaqueInsumoMap = {
 };
 
 // ====================================================================================
-// 2. NAVEGACIÓN Y PANTALLAS
+// 2. NAVEGACIÓN
 // ====================================================================================
 async function showScreen(screenId) {
     document.querySelectorAll('section').forEach(s => s.style.display = 'none');
     const screen = getEl(screenId);
     if (screen) screen.style.display = 'block';
     
-    // Reset logo
     document.querySelectorAll('.logo-img').forEach(img => img.src = IMAGES_BASE_URL + 'LOGO.png');
 
     unsubscribes.forEach(u => u());
@@ -66,7 +66,6 @@ async function showScreen(screenId) {
         case 'restock-screen': 
             await loadProductModels(); 
             loadRestockHistory();
-            // Reiniciar formulario de restock si existe
             const rItems = getEl('restock-items');
             if(rItems) { rItems.innerHTML = ''; addRestockLine(); }
             break;
@@ -83,24 +82,24 @@ async function showScreen(screenId) {
             addManualOrderLine();
             getEl('manual-order-form').reset();
             toggleManualDeliveryFields();
+            calculateManualOrderTotal();
             break;
         case 'raw-materials-screen': loadRawMaterials(); break;
         case 'movements-history-screen': 
             loadMovementCategories();
-            // Si se llamó desde el menú, carga todo. Si viene de tarjeta, ya tiene filtro.
             if(getEl('movement-filter-category').value === 'all') loadMovementsHistory();
             break;
     }
 }
 
 // ====================================================================================
-// 3. INVENTARIO
+// 3. INVENTARIO (MODO TARJETAS)
 // ====================================================================================
 async function loadInventory() {
     const container = getEl('inventory-accordion');
     const controls = getEl('category-visibility-controls');
-    container.innerHTML = '<p style="text-align:center; padding:20px;">Cargando inventario...</p>';
-    controls.innerHTML = '<h2>Visibilidad</h2>';
+    container.innerHTML = '<p style="text-align:center;">Cargando...</p>';
+    controls.innerHTML = '';
 
     try {
         const visibilitySnap = await db.collection('categorias').get();
@@ -119,10 +118,10 @@ async function loadInventory() {
             const isVisible = visibility[cat] !== false;
             const btn = document.createElement('button');
             btn.className = 'btn';
-            btn.style.backgroundColor = 'var(--bg-card)';
+            btn.style.marginRight = '10px';
+            btn.style.background = isVisible ? 'var(--bg-input)' : 'var(--bg-input)';
             btn.style.border = isVisible ? '1px solid var(--success)' : '1px solid var(--text-muted)';
             btn.style.color = isVisible ? 'var(--success)' : 'var(--text-muted)';
-            btn.style.marginRight = '10px';
             btn.innerHTML = `${cat} ${isVisible ? '👁️' : '🙈'}`;
             btn.onclick = () => toggleCategoryVisibility(cat, isVisible);
             controls.appendChild(btn);
@@ -179,62 +178,53 @@ async function loadInventory() {
             }
             container.appendChild(grid);
         }
-    } catch (e) {
-        console.error(e);
-        container.innerHTML = '<p>Error al cargar inventario.</p>';
-    }
+    } catch (e) { container.innerHTML = 'Error'; }
 }
 
 async function getCategoryVisibility() {
-    const v = {};
-    const s = await db.collection('categorias').get();
-    s.forEach(d => v[d.id] = d.data().visible);
-    return v;
+    const v = {}; const s = await db.collection('categorias').get();
+    s.forEach(d => v[d.id] = d.data().visible); return v;
 }
 async function toggleCategoryVisibility(cat, vis) {
-    await db.collection('categorias').doc(cat).set({ visible: !vis }, { merge: true });
-    loadInventory();
+    await db.collection('categorias').doc(cat).set({ visible: !vis }, { merge: true }); loadInventory();
 }
 async function toggleProductVisibility(id, vis) {
-    await db.collection('productos').doc(id).update({ visible: !vis });
-    loadInventory();
+    await db.collection('productos').doc(id).update({ visible: !vis }); loadInventory();
 }
 
-// PRODUCTOS
+// PRODUCTO ADD/EDIT
 const addProductForm = getEl('add-product-form');
 if (addProductForm) {
     addProductForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         try {
-            const imageUrl = getEl('product-image-url').value;
-            if (!imageUrl) { showMessage('Falta la imagen.'); return; }
             await db.collection('productos').add({
-                nombre: getEl('product-name').value,
-                categoria: getEl('product-category').value,
-                imagenUrl: imageUrl,
-                stock: parseInt(getEl('product-stock').value),
-                precio: parseFloat(getEl('product-price').value),
+                nombre: getVal('product-name'),
+                categoria: getVal('product-category'),
+                imagenUrl: getVal('product-image-url'),
+                stock: parseInt(getVal('product-stock')),
+                precio: parseFloat(getVal('product-price')),
                 cantidadVendida: 0,
                 visible: true
             });
             showMessage('¡Producto agregado!');
             e.target.reset();
             showScreen('inventory-screen');
-        } catch (error) { showMessage('Error al agregar producto.'); }
+        } catch (error) { showMessage('Error.'); }
     });
 }
 
 async function editProduct(id) {
-    const docSnap = await db.collection('productos').doc(id).get();
-    if (docSnap.exists) {
-        const data = docSnap.data();
+    const doc = await db.collection('productos').doc(id).get();
+    if (doc.exists) {
+        const d = doc.data();
         getEl('edit-product-id').value = id;
-        getEl('edit-name').value = data.nombre;
-        getEl('edit-category').value = data.categoria;
-        getEl('edit-image-url').value = data.imagenUrl;
-        getEl('edit-stock').value = data.stock;
-        getEl('edit-price').value = data.precio;
-        getEl('edit-visible').checked = data.visible !== false;
+        getEl('edit-name').value = d.nombre;
+        getEl('edit-category').value = d.categoria;
+        getEl('edit-image-url').value = d.imagenUrl;
+        getEl('edit-stock').value = d.stock;
+        getEl('edit-price').value = d.precio;
+        getEl('edit-visible').checked = d.visible !== false;
         getEl('edit-modal').style.display = 'flex';
     }
 }
@@ -243,26 +233,25 @@ const editProductForm = getEl('edit-product-form');
 if (editProductForm) {
     editProductForm.addEventListener('submit', async (e) => {
         e.preventDefault();
-        const id = getEl('edit-product-id').value;
+        const id = getVal('edit-product-id');
         try {
-            const updates = {
-                nombre: getEl('edit-name').value,
-                categoria: getEl('edit-category').value,
-                stock: parseInt(getEl('edit-stock').value),
-                precio: parseFloat(getEl('edit-price').value),
+            await db.collection('productos').doc(id).update({
+                nombre: getVal('edit-name'),
+                categoria: getVal('edit-category'),
+                stock: parseInt(getVal('edit-stock')),
+                precio: parseFloat(getVal('edit-price')),
                 visible: getEl('edit-visible').checked,
-                imagenUrl: getEl('edit-image-url').value
-            };
-            await db.collection('productos').doc(id).update(updates);
-            showMessage('Producto actualizado.');
+                imagenUrl: getVal('edit-image-url')
+            });
+            showMessage('Actualizado.');
             closeEditModal();
             loadInventory();
-        } catch (error) { showMessage('Error al actualizar.'); }
+        } catch (error) { showMessage('Error.'); }
     });
 }
 
 // ====================================================================================
-// 4. VENTA MANUAL (CORREGIDA)
+// 4. VENTA MANUAL (BLINDADA)
 // ====================================================================================
 async function loadProductModels() {
     const snap = await db.collection('productos').orderBy('nombre').get();
@@ -273,14 +262,14 @@ function addManualOrderLine() {
     const container = getEl('manual-order-items');
     const div = document.createElement('div');
     div.className = 'manual-line'; 
+    
     const options = productModels.map(p => `<option value="${p.id}" data-price="${p.precio}">${p.nombre} (${p.stock})</option>`).join('');
     div.innerHTML = `
         <select class="manual-order-product" onchange="calculateManualOrderTotal()" required style="margin:0;">
-            <option value="" data-price="0" disabled selected>Modelo...</option>
-            ${options}
+            <option value="" data-price="0" disabled selected>Modelo...</option>${options}
         </select>
         <input type="number" class="manual-order-quantity" placeholder="1" min="1" value="1" oninput="calculateManualOrderTotal()" required style="margin:0;">
-        <button type="button" class="btn-delete" onclick="this.parentNode.remove(); calculateManualOrderTotal()" style="height:100%; padding:0;">X</button>
+        <button type="button" class="btn-delete" onclick="this.parentNode.remove(); calculateManualOrderTotal()">X</button>
     `;
     container.appendChild(div);
     calculateManualOrderTotal();
@@ -297,34 +286,30 @@ function calculateManualOrderTotal() {
             total += price * qty;
         }
     });
-    const deliveryMethod = getEl('manual-delivery-method').value;
-    if (deliveryMethod === 'domicilio') total += SHIPPING_COST;
+    if (getVal('manual-delivery-method') === 'domicilio') total += SHIPPING_COST;
     getEl('manual-order-total').value = total.toFixed(2);
 }
 
 function toggleManualDeliveryFields() {
-    const method = getEl('manual-delivery-method').value;
-    const homeDetails = getEl('manual-home-details'); 
-    const pickupDetails = getEl('manual-pickup-details');
-    // Validamos que existan antes de acceder a style
-    if(homeDetails && pickupDetails) {
-        if (method === 'domicilio') {
-            homeDetails.style.display = 'flex';
-            pickupDetails.style.display = 'none';
-        } else {
-            homeDetails.style.display = 'none';
-            pickupDetails.style.display = 'flex';
-        }
+    const method = getVal('manual-delivery-method');
+    const home = getEl('manual-home-details'); 
+    const pickup = getEl('manual-pickup-details');
+    if(home && pickup) {
+        home.style.display = method === 'domicilio' ? 'flex' : 'none';
+        pickup.style.display = method === 'domicilio' ? 'none' : 'flex';
     }
     calculateManualOrderTotal();
 }
 
 function toggleOtherManualLocation() {
-    const isOther = getEl('manual-delivery-location').value === 'Otro';
-    getEl('manual-other-location-note').style.display = isOther ? 'block' : 'none';
+    const isOther = getVal('manual-delivery-location') === 'Otro';
+    const note = getEl('manual-other-location-note');
+    if(note) {
+        note.style.display = isOther ? 'block' : 'none';
+        note.required = isOther;
+    }
 }
 
-// SUBMIT VENTA MANUAL
 const manualOrderForm = getEl('manual-order-form');
 if (manualOrderForm) {
     manualOrderForm.addEventListener('submit', async (e) => {
@@ -346,40 +331,38 @@ if (manualOrderForm) {
             showMessage("Agrega productos."); btn.disabled = false; btn.textContent = "✅ CONFIRMAR VENTA"; return;
         }
 
-        // Corrección de lectura de inputs
-        const client = getEl('manual-order-client').value;
-        const phone = getEl('manual-order-phone').value;
-        const channel = getEl('manual-order-channel').value;
-        const total = parseFloat(getEl('manual-order-total').value);
-        const comments = getEl('manual-delivery-comments').value;
+        // Recolección segura usando getVal
+        const client = getVal('manual-order-client');
+        const phone = getVal('manual-order-phone');
+        const channel = getVal('manual-order-channel');
+        const total = parseFloat(getVal('manual-order-total'));
+        const comments = getVal('manual-delivery-comments');
         
-        const method = getEl('manual-delivery-method').value;
+        const method = getVal('manual-delivery-method');
         let deliveryData = {};
         
         if(method === 'domicilio') {
             deliveryData = {
                 tipo: 'Envío a domicilio',
-                calle: getEl('manual-delivery-street').value,
-                colonia: getEl('manual-delivery-neighborhood').value,
-                descripcion: getEl('manual-delivery-description').value
+                calle: getVal('manual-delivery-street'),
+                colonia: getVal('manual-delivery-neighborhood'),
+                descripcion: getVal('manual-delivery-description')
             };
         } else {
-            const locSelect = getEl('manual-delivery-location').value;
-            const locOther = getEl('manual-other-location-note').value;
+            const locSelect = getVal('manual-delivery-location');
+            const locOther = getVal('manual-other-location-note');
             deliveryData = {
                 tipo: 'Punto medio',
                 lugar: locSelect === 'Otro' ? locOther : locSelect,
-                fecha: getEl('manual-delivery-date').value
+                fecha: getVal('manual-delivery-date')
             };
         }
 
         try {
             await db.runTransaction(async (t) => {
-                // Leer Config
-                const confRef = db.collection('configuracion').doc('tienda');
-                const confDoc = await t.get(confRef);
-                const costPerItem = confDoc.exists && confDoc.data().costoPorProducto ? confDoc.data().costoPorProducto : CAPITAL_PER_PRODUCT;
-                const shipCost = confDoc.exists && confDoc.data().costoEnvio ? confDoc.data().costoEnvio : SHIPPING_COST;
+                const confDoc = await t.get(db.collection('configuracion').doc('tienda'));
+                const costPerItem = confDoc.exists ? (confDoc.data().costoPorProducto || CAPITAL_PER_PRODUCT) : CAPITAL_PER_PRODUCT;
+                const shipCost = confDoc.exists ? (confDoc.data().costoEnvio || SHIPPING_COST) : SHIPPING_COST;
 
                 const countRef = db.collection('contadores').doc('pedidos');
                 const countDoc = await t.get(countRef);
@@ -398,7 +381,6 @@ if (manualOrderForm) {
                     datosEntrega: deliveryData, comentarios: comments || null
                 });
 
-                // Finanzas
                 const isShip = deliveryData.tipo === 'Envío a domicilio';
                 const gastoEnvio = isShip ? shipCost : 0;
                 const totalItems = items.reduce((s, i) => s + i.cantidad, 0);
@@ -409,29 +391,17 @@ if (manualOrderForm) {
                 const uUlises = utilidad * 0.25;
                 const uDariana = utilidad * 0.25;
 
-                if(isShip) {
-                    const movRef = db.collection('movimientos').doc();
-                    t.set(movRef, { monto: -gastoEnvio, concepto: 'Gasto Envío', tipo: 'Gastos', fecha: new Date(), nota: `Envío ${folio}`, relatedOrderId: orderRef.id });
-                }
-                if(capital > 0) {
-                    const movRef = db.collection('movimientos').doc();
-                    t.set(movRef, { monto: capital, concepto: 'Ingreso Capital', tipo: 'Capital', fecha: new Date(), nota: `Capital ${folio}`, relatedOrderId: orderRef.id });
-                }
+                if(isShip) t.set(db.collection('movimientos').doc(), { monto: -gastoEnvio, concepto: 'Gasto Envío', tipo: 'Gastos', fecha: new Date(), nota: `Envío ${folio}`, relatedOrderId: orderRef.id });
+                if(capital > 0) t.set(db.collection('movimientos').doc(), { monto: capital, concepto: 'Ingreso Capital', tipo: 'Capital', fecha: new Date(), nota: `Capital ${folio}`, relatedOrderId: orderRef.id });
                 
-                const addProfit = (amount, type, socio) => {
-                    if(amount !== 0) {
-                        const r = db.collection('movimientos').doc();
-                        const d = { monto: amount, concepto: type, tipo: type, fecha: new Date(), nota: `Utilidad ${folio}`, relatedOrderId: orderRef.id };
-                        if(socio) d.socio = socio;
-                        t.set(r, d);
-                    }
+                const addProfit = (m, type, s) => {
+                    if(m!==0) t.set(db.collection('movimientos').doc(), { monto: m, concepto: type, tipo: type, fecha: new Date(), nota: `Utilidad ${folio}`, relatedOrderId: orderRef.id, socio:s });
                 };
                 addProfit(uNegocio, 'Utilidad Negocio');
                 addProfit(uUlises, 'Utilidad Socio', 'Ulises');
                 addProfit(uDariana, 'Utilidad Socio', 'Dariana');
 
-                const finRef = db.collection('finanzas').doc('resumen');
-                t.update(finRef, {
+                t.update(db.collection('finanzas').doc('resumen'), {
                     ventas: firebase.firestore.FieldValue.increment(total),
                     gastos: firebase.firestore.FieldValue.increment(gastoEnvio),
                     capital: firebase.firestore.FieldValue.increment(capital),
@@ -441,12 +411,7 @@ if (manualOrderForm) {
                     utilidadDarianaTotal: firebase.firestore.FieldValue.increment(uDariana)
                 });
 
-                items.forEach(i => {
-                    t.update(db.collection('productos').doc(i.id), {
-                        stock: firebase.firestore.FieldValue.increment(-i.cantidad),
-                        cantidadVendida: firebase.firestore.FieldValue.increment(i.cantidad)
-                    });
-                });
+                items.forEach(i => t.update(db.collection('productos').doc(i.id), { stock: firebase.firestore.FieldValue.increment(-i.cantidad) }));
             });
 
             showMessage(`✅ Venta registrada!`);
@@ -486,7 +451,7 @@ async function loadVideoManagement() {
                 </div>`;
             container.appendChild(div);
         });
-    } catch(e) { console.error(e); container.innerHTML = 'Error'; }
+    } catch(e) { container.innerHTML = 'Error'; }
 }
 
 async function loadPackagingVisibility() {
@@ -509,15 +474,16 @@ async function loadPackagingVisibility() {
                 </div>`;
             container.appendChild(div);
         });
-    } catch(e) { console.error(e); container.innerHTML = 'Error'; }
+    } catch(e) { container.innerHTML = 'Error'; }
 }
+
 async function togglePackagingVisibility(id, state) { await db.collection('empaques').doc(id).update({visible: !state}); loadPackagingVisibility(); }
 async function deletePackaging(id) { if(confirm('Borrar?')) { await db.collection('empaques').doc(id).delete(); loadPackagingVisibility(); } }
 async function toggleVideoInPlaylist(id, state) { await db.collection('videos').doc(id).update({enPlaylist: state}); }
 async function deleteVideo(id) { if(confirm('Borrar?')) { await db.collection('videos').doc(id).delete(); loadVideoManagement(); } }
 
 // ====================================================================================
-// 6. PEDIDOS WEB Y HISTORIALES
+// 6. PEDIDOS WEB
 // ====================================================================================
 function loadOrders() {
     const list = getEl('orders-list');
@@ -529,7 +495,7 @@ function loadOrders() {
         list.innerHTML = '';
         snap.forEach(doc => {
             const p = doc.data();
-            if(p.canalVenta) return; // Ignorar manuales
+            if(p.canalVenta) return; 
             const div = document.createElement('div');
             div.className = 'finance-card'; 
             div.style.borderLeft = '4px solid var(--info)';
@@ -551,7 +517,7 @@ function loadOrders() {
 }
 
 // ====================================================================================
-// 7. FINANZAS
+// 7. FINANZAS E INSUMOS
 // ====================================================================================
 function loadFinancialSummary() {
     const unsub = db.collection('finanzas').doc('resumen').onSnapshot(doc => {
@@ -567,17 +533,11 @@ function loadFinancialSummary() {
     unsubscribes.push(unsub);
 }
 
-// CORRECCIÓN: Agregada la función showMovementsHistory que faltaba
 async function showMovementsHistory(category, socio = null) {
-    // Cambiamos a la pantalla de movimientos
     showScreen('movements-history-screen');
-    // Esperamos un poco a que renderice el select y lo seteamos
     setTimeout(() => {
         const select = getEl('movement-filter-category');
-        if(select) {
-            select.value = category;
-            loadMovementsHistory();
-        }
+        if(select) { select.value = category; loadMovementsHistory(); }
     }, 100);
 }
 
@@ -589,7 +549,7 @@ async function loadExpenseConcepts() {
     snap.forEach(d => s.innerHTML += `<option value="${d.data().nombre}">${d.data().nombre}</option>`);
 }
 async function addNewExpenseConcept() {
-    const n = prompt("Nuevo concepto:");
+    const n = prompt("Concepto:");
     if(n) { await db.collection('conceptosGastos').add({nombre: n.trim()}); loadExpenseConcepts(); }
 }
 async function loadProductCost() {
@@ -607,13 +567,12 @@ async function loadShippingCost() {
     }
 }
 
-// Listeners Costos (Corregido para guardar también el envío)
 const costConfigForm = getEl('cost-config-form');
 if (costConfigForm) {
     costConfigForm.addEventListener('submit', async (e) => {
         e.preventDefault();
-        const val = parseFloat(getEl('product-cost-input').value);
-        const ship = parseFloat(getEl('shipping-cost-input').value); // Ahora sí lo leemos
+        const val = parseFloat(getVal('product-cost-input'));
+        const ship = parseFloat(getVal('shipping-cost-input')); // Corregido para leer envío
         
         if(!isNaN(val)) {
             await db.collection('configuracion').doc('tienda').set({ costoPorProducto: val }, { merge: true });
@@ -631,25 +590,17 @@ const addExpenseForm = getEl('add-expense-form');
 if(addExpenseForm) {
     addExpenseForm.addEventListener('submit', async (e) => {
         e.preventDefault();
-        const monto = parseFloat(getEl('expense-amount').value);
-        const concepto = getEl('expense-concept').value;
-        const nota = getEl('expense-note').value;
-        
-        const batch = db.batch();
-        const ref = db.collection('movimientos').doc();
-        batch.set(ref, { monto: -monto, concepto, tipo: 'Gastos', nota, fecha: firebase.firestore.FieldValue.serverTimestamp() });
-        batch.update(db.collection('finanzas').doc('resumen'), {
-            gastos: firebase.firestore.FieldValue.increment(monto),
-            utilidad: firebase.firestore.FieldValue.increment(-monto)
-        });
-        await batch.commit();
+        const m = parseFloat(getEl('expense-amount').value);
+        const c = getEl('expense-concept').value;
+        const n = getEl('expense-note').value;
+        const b=db.batch();
+        b.set(db.collection('movimientos').doc(), { monto: -m, concepto:c, tipo:'Gastos', nota:n, fecha: new Date() });
+        b.update(db.collection('finanzas').doc('resumen'), { gastos: firebase.firestore.FieldValue.increment(m), utilidad: firebase.firestore.FieldValue.increment(-m) });
+        await b.commit();
         showMessage('Gasto registrado.'); e.target.reset();
     });
 }
 
-// ====================================================================================
-// 8. INSUMOS Y RESTOCK
-// ====================================================================================
 function loadRawMaterials() {
     const tbody = getEl('raw-materials-table-body');
     tbody.innerHTML = '<tr><td colspan="3">Cargando...</td></tr>';
@@ -665,7 +616,7 @@ function loadRawMaterials() {
     unsubscribes.push(unsub);
 }
 const addRawMatForm = getEl('add-raw-material-form');
-if(addRawMatForm) addRawMatForm.addEventListener('submit', async(e)=>{ e.preventDefault(); const id=getEl('raw-material-id').value; const d=getEl('raw-material-description').value; const q=parseInt(getEl('raw-material-quantity').value); if(id) await db.collection('inventarioInsumos').doc(id).update({descripcion:d,cantidad:q}); else await db.collection('inventarioInsumos').add({descripcion:d,cantidad:q}); showMessage('Guardado.'); cancelEditRawMaterial(); });
+if(addRawMatForm) addRawMatForm.addEventListener('submit', async(e)=>{ e.preventDefault(); const id=getVal('raw-material-id'); const d=getVal('raw-material-description'); const q=parseInt(getVal('raw-material-quantity')); if(id) await db.collection('inventarioInsumos').doc(id).update({descripcion:d,cantidad:q}); else await db.collection('inventarioInsumos').add({descripcion:d,cantidad:q}); showMessage('Guardado.'); cancelEditRawMaterial(); });
 function editRawMaterial(id, d, q) { getEl('raw-material-id').value=id; getEl('raw-material-description').value=d; getEl('raw-material-quantity').value=q; getEl('add-raw-material-btn').textContent="Actualizar"; getEl('cancel-edit-raw-material-btn').style.display='block'; }
 function cancelEditRawMaterial() { getEl('add-raw-material-form').reset(); getEl('raw-material-id').value=''; getEl('add-raw-material-btn').textContent="Agregar"; getEl('cancel-edit-raw-material-btn').style.display='none'; }
 async function deleteRawMaterial(id) { await db.collection('inventarioInsumos').doc(id).delete(); loadRawMaterials(); }
@@ -688,33 +639,23 @@ const addSupplyForm = getEl('add-supply-form');
 if(addSupplyForm) {
     addSupplyForm.addEventListener('submit', async (e) => {
         e.preventDefault();
-        const desc = getEl('supply-description').value;
-        const qty = parseInt(getEl('supply-quantity').value);
-        const cost = parseFloat(getEl('supply-cost').value);
+        const desc = getVal('supply-description');
+        const qty = parseInt(getVal('supply-quantity'));
+        const cost = parseFloat(getVal('supply-cost'));
         const total = qty * cost;
-        
         const batch = db.batch();
-        batch.set(db.collection('insumos').doc(), { descripcion: desc, cantidad: qty, costoUnidad: cost, costoTotal: total, fecha: firebase.firestore.FieldValue.serverTimestamp() });
-        batch.set(db.collection('movimientos').doc(), { monto: -total, concepto: 'Compra Insumos', tipo: 'Gastos', nota: `${qty} x ${desc}`, fecha: firebase.firestore.FieldValue.serverTimestamp() });
+        batch.set(db.collection('insumos').doc(), { descripcion: desc, cantidad: qty, costoUnidad: cost, costoTotal: total, fecha: new Date() });
+        batch.set(db.collection('movimientos').doc(), { monto: -total, concepto: 'Compra Insumos', tipo: 'Gastos', nota: `${qty} x ${desc}`, fecha: new Date() });
         batch.update(db.collection('finanzas').doc('resumen'), { gastos: firebase.firestore.FieldValue.increment(total), utilidad: firebase.firestore.FieldValue.increment(-total) });
-        
         await batch.commit();
         showMessage('Registrado.'); e.target.reset();
     });
 }
-async function deleteSupply(id) {
-    if(!confirm('Borrar?')) return;
-    const doc = await db.collection('insumos').doc(id).get();
-    if(!doc.exists) return;
-    const cost = doc.data().costoTotal;
-    const batch = db.batch();
-    batch.delete(db.collection('insumos').doc(id));
-    batch.update(db.collection('finanzas').doc('resumen'), { gastos: firebase.firestore.FieldValue.increment(-cost), utilidad: firebase.firestore.FieldValue.increment(cost) });
-    await batch.commit();
-    showMessage('Eliminado.');
-}
+async function deleteSupply(id) { if(!confirm('Borrar?')) return; const doc = await db.collection('insumos').doc(id).get(); if(!doc.exists) return; const cost = doc.data().costoTotal; const batch = db.batch(); batch.delete(db.collection('insumos').doc(id)); batch.update(db.collection('finanzas').doc('resumen'), { gastos: firebase.firestore.FieldValue.increment(-cost), utilidad: firebase.firestore.FieldValue.increment(cost) }); await batch.commit(); showMessage('Eliminado.'); }
 
-// Restock
+// ====================================================================================
+// 8. RESTOCK Y REPORTES
+// ====================================================================================
 function loadRestockHistory() {
     const list = getEl('restock-history-list');
     list.innerHTML = '<p>Cargando...</p>';
@@ -725,7 +666,7 @@ function loadRestockHistory() {
             const r = { id: doc.id, ...doc.data() };
             const items = r.items.map(i => `<li>${i.nombre} x${i.cantidad}</li>`).join('');
             const div = document.createElement('div');
-            div.className = 'finance-card'; div.style.borderLeft='4px solid var(--warning)';
+            div.className = 'finance-card'; div.style.cursor='default'; div.style.borderLeft='4px solid var(--warning)';
             div.innerHTML = `<div style="margin-bottom:10px;"><span style="font-weight:bold; color:white; font-size:0.9rem;">Folio: ${r.folio||'N/A'}</span><br><span style="font-size:0.8rem; color:var(--text-muted);">${r.fecha?.toDate().toLocaleDateString()}</span></div><div style="font-size:0.85rem; color:var(--text-muted); margin-bottom:15px;"><ul style="padding-left:15px;">${items}</ul></div><div style="display:flex; justify-content:space-between; align-items:center;"><span style="color:var(--danger); font-weight:bold; font-size:1.2rem;">-$${r.costoTotal.toFixed(2)}</span><button class="btn-delete" style="padding:5px 10px; font-size:0.7rem;" onclick="deleteRestock('${r.id}')">Revertir</button></div>`;
             list.appendChild(div);
         });
@@ -744,9 +685,6 @@ async function deleteRestock(id) {
     await batch.commit(); showMessage('Revertido.');
 }
 
-// ====================================================================================
-// 9. REPORTES Y TABLAS
-// ====================================================================================
 function loadSalesData() {
     const container = getEl('sales-list');
     container.innerHTML = '<p class="text-center">Cargando...</p>';
@@ -792,33 +730,8 @@ async function loadSalesReportTable() {
     } catch(e) { console.error(e); tbody.innerHTML = '<tr><td colspan="11">Error</td></tr>'; }
 }
 
-// Movimientos Historial
-async function loadMovementCategories() {
-    const s = getEl('movement-filter-category');
-    s.innerHTML = '<option value="all">Todas</option>';
-    const snap = await db.collection('movimientos').where('tipo', '==', 'Gastos').get();
-    const cats = new Set(['Ventas', 'Gastos', 'Utilidad', 'Capital', 'Utilidad Negocio', 'Utilidad Socio']);
-    snap.forEach(d => { if(d.data().concepto) cats.add(d.data().concepto); });
-    Array.from(cats).sort().forEach(c => s.innerHTML += `<option value="${c}">${c}</option>`);
-}
-async function loadMovementsHistory() {
-    const list = getEl('movements-list');
-    list.innerHTML = '<p>Cargando...</p>';
-    const cat = getEl('movement-filter-category').value;
-    const snap = await db.collection('movimientos').orderBy('fecha', 'desc').limit(100).get();
-    list.innerHTML = '';
-    snap.forEach(doc => {
-        const d = doc.data();
-        if(cat !== 'all' && d.tipo !== cat && d.concepto !== cat) return;
-        const div = document.createElement('li');
-        div.className = 'data-card'; div.style.display='flex'; div.style.justifyContent='space-between'; div.style.padding='15px'; div.style.background='var(--bg-card)'; div.style.marginBottom='10px'; div.style.border='1px solid var(--border)';
-        div.innerHTML = `<div><strong>${d.concepto||d.tipo}</strong><p style="font-size:0.8rem; color:var(--text-muted);">${d.fecha?.toDate().toLocaleDateString()} - ${d.nota||''}</p></div><span style="color:${d.monto>=0?'var(--success)':'var(--danger)'};">$${Math.abs(d.monto).toFixed(2)}</span>`;
-        list.appendChild(div);
-    });
-}
-
 // ====================================================================================
-// 10. FUNCIONES GLOBALES Y HELPERS
+// 9. AUTH Y FUNCIONES GLOBALES
 // ====================================================================================
 function updateChart(data) {
     const ctx = getEl('sales-chart').getContext('2d');
@@ -855,7 +768,6 @@ auth.onAuthStateChanged(user => {
     unsubscribes.forEach(u => u());
     if(user) showScreen('main-menu'); else showScreen('login-screen');
 });
-
 function logout() { auth.signOut(); }
 const loginForm = getEl('login-form');
 if(loginForm) loginForm.addEventListener('submit', async (e) => {
@@ -899,7 +811,6 @@ async function updateOrderStatus(pedidoId, newStatus, event) {
                 const gastoEnvio = hasShipping ? shippingCost : 0;
                 const capitalMonto = numeroProductos * costPerProduct;
                 const utilidadTotal = totalVenta - capitalMonto - gastoEnvio;
-
                 const utilidadNegocio = utilidadTotal * 0.50;
                 const utilidadUlises = utilidadTotal * 0.25;
                 const utilidadDariana = utilidadTotal * 0.25;
@@ -927,34 +838,38 @@ async function updateOrderStatus(pedidoId, newStatus, event) {
     } catch (e) { console.error(e); showMessage('Error'); }
 }
 
+async function loadMovementCategories() {
+    const s = getEl('movement-filter-category');
+    s.innerHTML = '<option value="all">Todas</option>';
+    const snap = await db.collection('movimientos').where('tipo', '==', 'Gastos').get();
+    const cats = new Set(['Ventas', 'Gastos', 'Utilidad', 'Capital', 'Utilidad Negocio', 'Utilidad Socio']);
+    snap.forEach(d => { if(d.data().concepto) cats.add(d.data().concepto); });
+    Array.from(cats).sort().forEach(c => s.innerHTML += `<option value="${c}">${c}</option>`);
+}
+async function loadMovementsHistory() {
+    const list = getEl('movements-list');
+    list.innerHTML = '<p>Cargando...</p>';
+    const cat = getEl('movement-filter-category').value;
+    const snap = await db.collection('movimientos').orderBy('fecha', 'desc').limit(100).get();
+    list.innerHTML = '';
+    snap.forEach(doc => {
+        const d = doc.data();
+        if(cat !== 'all' && d.tipo !== cat && d.concepto !== cat) return;
+        const div = document.createElement('li');
+        div.className = 'data-card';
+        div.style.justifyContent = 'space-between';
+        div.style.background = 'var(--bg-card)'; div.style.padding='15px'; div.style.marginBottom='10px'; div.style.borderRadius='var(--radius)'; div.style.display='flex';
+        div.innerHTML = `
+            <div><strong style="color:white;">${d.concepto || d.tipo}</strong><p style="font-size:0.8rem; color:var(--text-muted);">${d.fecha?.toDate().toLocaleDateString()} - ${d.nota||''}</p></div>
+            <span style="color:${d.monto>=0?'var(--success)':'var(--danger)'}; font-weight:bold;">$${Math.abs(d.monto).toFixed(2)}</span>
+        `;
+        list.appendChild(div);
+    });
+}
+
 async function deleteOrder(id) {
     if(!confirm('Seguro?')) return;
     await db.collection('pedidos').doc(id).delete();
     loadOrders();
 }
 async function deleteProduct(id) { await db.collection('productos').doc(id).delete(); loadInventory(); }
-
-// Función que faltaba para ver historial en tarjeta
-function loadSalesHistory() {
-    const list = getEl('sales-history-list');
-    list.innerHTML = '<p>Cargando...</p>';
-    const q = db.collection('pedidos').orderBy('fechaCreacion', 'desc').limit(20);
-    const unsub = q.onSnapshot(snap => {
-        if(snap.empty) { list.innerHTML = '<p>Sin historial.</p>'; return; }
-        list.innerHTML = '';
-        snap.forEach(doc => {
-            const p = doc.data();
-            const div = document.createElement('li');
-            div.className = 'finance-card';
-            div.style.marginBottom = '10px';
-            div.style.borderLeft = '4px solid var(--info)';
-            div.innerHTML = `
-                <div style="display:flex; justify-content:space-between;"><strong>${p.folio||'MANUAL'}</strong><span>$${(p.montoTotal||0).toFixed(2)}</span></div>
-                <div style="font-size:0.8rem; color:#aaa;"><p>${p.fechaActualizacion?.toDate().toLocaleDateString()}</p><p>${p.datosCliente?.nombre||p.clienteManual}</p></div>
-                <div style="text-align:right;"><button class="btn-delete" style="font-size:0.7rem; padding:5px;" onclick="showConfirmModal('order','${doc.id}','Eliminar?')">Eliminar</button></div>
-            `;
-            list.appendChild(div);
-        });
-    });
-    unsubscribes.push(unsub);
-}
