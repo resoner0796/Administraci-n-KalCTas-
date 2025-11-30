@@ -1,17 +1,16 @@
 import { Resend } from 'resend';
 import admin from 'firebase-admin';
 
-// 1. Inicializar Firebase Admin (Con la llave maestra que guardaste en Vercel)
+// 1. Inicializar Firebase Admin
 if (!admin.apps.length) {
   try {
-    // Truco: Leemos el JSON secreto desde las variables de Vercel
     const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
     
     admin.initializeApp({
       credential: admin.credential.cert(serviceAccount)
     });
   } catch (e) {
-    console.error("Error iniciando Firebase Admin. ¿Pusiste la variable en Vercel?", e);
+    console.error("Error iniciando Firebase Admin:", e);
   }
 }
 
@@ -21,17 +20,13 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 export default async function handler(req, res) {
   try {
     const hoy = new Date();
-    // Ajustamos a zona horaria de México (Monterrey/Reynosa)
     const fechaReporte = hoy.toLocaleDateString('es-MX', { timeZone: 'America/Monterrey' });
     
-    // --- A. CALCULAR VENTAS DEL DÍA ---
-    // Calculamos el inicio y fin del día actual en tiempo real
     const startOfDay = new Date();
     startOfDay.setHours(0,0,0,0);
     const endOfDay = new Date();
     endOfDay.setHours(23,59,59,999);
 
-    // Buscamos pedidos creados HOY
     const ventasSnapshot = await db.collection('pedidos')
       .where('fechaCreacion', '>=', startOfDay)
       .where('fechaCreacion', '<=', endOfDay)
@@ -43,12 +38,9 @@ export default async function handler(req, res) {
 
     ventasSnapshot.forEach(doc => {
         const venta = doc.data();
-        // Solo contamos ventas reales (no canceladas)
         if (venta.estado !== 'Cancelado') {
             totalVentas += (venta.montoTotal || 0);
             cantidadPedidos++;
-            
-            // Creamos la fila para la tabla del correo
             ventasDetalleHTML += `
                 <tr>
                     <td style="padding:8px; border-bottom:1px solid #eee;">${venta.folio || 'Manual'}</td>
@@ -59,8 +51,6 @@ export default async function handler(req, res) {
         }
     });
 
-    // --- B. DETECTAR STOCK BAJO (El Ojo del Dueño) ---
-    // Buscamos productos con 5 o menos piezas
     const stockBajoSnapshot = await db.collection('productos')
       .where('stock', '<=', 5) 
       .where('visible', '==', true)
@@ -70,14 +60,13 @@ export default async function handler(req, res) {
     if (!stockBajoSnapshot.empty) {
         stockBajoSnapshot.forEach(doc => {
             const prod = doc.data();
-            const color = prod.stock === 0 ? '#e74c3c' : '#f39c12'; // Rojo si es 0, Naranja si es bajo
+            const color = prod.stock === 0 ? '#e74c3c' : '#f39c12'; 
             alertasStockHTML += `<li style="color:${color}; margin-bottom: 5px;"><strong>${prod.nombre}</strong>: Quedan ${prod.stock}</li>`;
         });
     } else {
         alertasStockHTML = '<li style="color: green;">✅ Todo el inventario está saludable.</li>';
     }
 
-    // --- C. EL DISEÑO DEL CORREO (TICKET DIARIO) ---
     const htmlEmail = `
       <div style="font-family: 'Helvetica Neue', Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #ddd; border-radius: 12px; overflow: hidden;">
         <div style="background-color: #1a1a2e; color: white; padding: 25px; text-align: center;">
@@ -123,7 +112,17 @@ export default async function handler(req, res) {
       </div>
     `;
 
-    // --- D. ENVIAR EL CORREO A TI ---
     await resend.emails.send({
       from: 'KalCTas Bot <reportes@kalctas.com>',
-      to: ['ulisees.luna96@gmail.com'],
+      to: ['ulisees.luna96@gmail.com'], 
+      subject: `📊 Corte del Día: $${totalVentas.toFixed(2)} - ${fechaReporte}`,
+      html: htmlEmail
+    });
+
+    return res.status(200).json({ message: 'Reporte generado y enviado con éxito' });
+
+  } catch (error) {
+    console.error('Error generando reporte:', error);
+    return res.status(500).json({ error: error.message });
+  }
+}
