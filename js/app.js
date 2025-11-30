@@ -310,6 +310,7 @@ function toggleOtherManualLocation() {
     }
 }
 
+// CORRECCIÓN VENTA MANUAL
 const manualOrderForm = getEl('manual-order-form');
 if (manualOrderForm) {
     manualOrderForm.addEventListener('submit', async (e) => {
@@ -328,41 +329,43 @@ if (manualOrderForm) {
         });
 
         if (items.length === 0) {
-            showMessage("Agrega productos."); btn.disabled = false; btn.textContent = "✅ CONFIRMAR VENTA"; return;
+            showMessage("Debes agregar al menos un producto.");
+            btn.disabled = false; btn.textContent = "✅ CONFIRMAR VENTA"; return;
         }
 
-        // Recolección segura usando getVal
-        const client = getVal('manual-order-client');
-        const phone = getVal('manual-order-phone');
-        const channel = getVal('manual-order-channel');
-        const total = parseFloat(getVal('manual-order-total'));
-        const comments = getVal('manual-delivery-comments');
+        // Usamos getVal para evitar errores de null
+        const client = getEl('manual-order-client').value;
+        const phone = getEl('manual-order-phone').value;
+        const channel = getEl('manual-order-channel').value;
+        const total = parseFloat(getEl('manual-order-total').value);
+        const comments = getEl('manual-delivery-comments').value;
         
-        const method = getVal('manual-delivery-method');
+        const method = getEl('manual-delivery-method').value;
         let deliveryData = {};
         
         if(method === 'domicilio') {
             deliveryData = {
                 tipo: 'Envío a domicilio',
-                calle: getVal('manual-delivery-street'),
-                colonia: getVal('manual-delivery-neighborhood'),
-                descripcion: getVal('manual-delivery-description')
+                calle: getEl('manual-delivery-street').value,
+                colonia: getEl('manual-delivery-neighborhood').value,
+                descripcion: getEl('manual-delivery-description').value
             };
         } else {
-            const locSelect = getVal('manual-delivery-location');
-            const locOther = getVal('manual-other-location-note');
+            const locSelect = getEl('manual-delivery-location').value;
+            const locOther = getEl('manual-other-location-note').value;
             deliveryData = {
                 tipo: 'Punto medio',
                 lugar: locSelect === 'Otro' ? locOther : locSelect,
-                fecha: getVal('manual-delivery-date')
+                fecha: getEl('manual-delivery-date').value
             };
         }
 
         try {
             await db.runTransaction(async (t) => {
-                const confDoc = await t.get(db.collection('configuracion').doc('tienda'));
-                const costPerItem = confDoc.exists ? (confDoc.data().costoPorProducto || CAPITAL_PER_PRODUCT) : CAPITAL_PER_PRODUCT;
-                const shipCost = confDoc.exists ? (confDoc.data().costoEnvio || SHIPPING_COST) : SHIPPING_COST;
+                const confRef = db.collection('configuracion').doc('tienda');
+                const confDoc = await t.get(confRef);
+                const costPerItem = confDoc.exists && confDoc.data().costoPorProducto ? confDoc.data().costoPorProducto : CAPITAL_PER_PRODUCT;
+                const shipCost = confDoc.exists && confDoc.data().costoEnvio ? confDoc.data().costoEnvio : SHIPPING_COST;
 
                 const countRef = db.collection('contadores').doc('pedidos');
                 const countDoc = await t.get(countRef);
@@ -391,17 +394,30 @@ if (manualOrderForm) {
                 const uUlises = utilidad * 0.25;
                 const uDariana = utilidad * 0.25;
 
-                if(isShip) t.set(db.collection('movimientos').doc(), { monto: -gastoEnvio, concepto: 'Gasto Envío', tipo: 'Gastos', fecha: new Date(), nota: `Envío ${folio}`, relatedOrderId: orderRef.id });
-                if(capital > 0) t.set(db.collection('movimientos').doc(), { monto: capital, concepto: 'Ingreso Capital', tipo: 'Capital', fecha: new Date(), nota: `Capital ${folio}`, relatedOrderId: orderRef.id });
+                if(isShip) {
+                    const movRef = db.collection('movimientos').doc();
+                    t.set(movRef, { monto: -gastoEnvio, concepto: 'Gasto Envío', tipo: 'Gastos', fecha: new Date(), nota: `Envío ${folio}`, relatedOrderId: orderRef.id });
+                }
+                if(capital > 0) {
+                    const movRef = db.collection('movimientos').doc();
+                    t.set(movRef, { monto: capital, concepto: 'Ingreso Capital', tipo: 'Capital', fecha: new Date(), nota: `Capital ${folio}`, relatedOrderId: orderRef.id });
+                }
                 
-                const addProfit = (m, type, s) => {
-                    if(m!==0) t.set(db.collection('movimientos').doc(), { monto: m, concepto: type, tipo: type, fecha: new Date(), nota: `Utilidad ${folio}`, relatedOrderId: orderRef.id, socio:s });
+                // --- AQUÍ ESTABA EL ERROR DE UNDEFINED (CORREGIDO) ---
+                const addProfit = (amount, type, socio) => {
+                    if(amount !== 0) {
+                        const r = db.collection('movimientos').doc();
+                        const data = { monto: amount, concepto: type, tipo: type, fecha: new Date(), nota: `Utilidad ${folio}`, relatedOrderId: orderRef.id };
+                        if (socio) data.socio = socio; // Solo agregamos socio si existe
+                        t.set(r, data);
+                    }
                 };
                 addProfit(uNegocio, 'Utilidad Negocio');
                 addProfit(uUlises, 'Utilidad Socio', 'Ulises');
                 addProfit(uDariana, 'Utilidad Socio', 'Dariana');
 
-                t.update(db.collection('finanzas').doc('resumen'), {
+                const finRef = db.collection('finanzas').doc('resumen');
+                t.update(finRef, {
                     ventas: firebase.firestore.FieldValue.increment(total),
                     gastos: firebase.firestore.FieldValue.increment(gastoEnvio),
                     capital: firebase.firestore.FieldValue.increment(capital),
@@ -411,7 +427,12 @@ if (manualOrderForm) {
                     utilidadDarianaTotal: firebase.firestore.FieldValue.increment(uDariana)
                 });
 
-                items.forEach(i => t.update(db.collection('productos').doc(i.id), { stock: firebase.firestore.FieldValue.increment(-i.cantidad) }));
+                items.forEach(i => {
+                    t.update(db.collection('productos').doc(i.id), {
+                        stock: firebase.firestore.FieldValue.increment(-i.cantidad),
+                        cantidadVendida: firebase.firestore.FieldValue.increment(i.cantidad)
+                    });
+                });
             });
 
             showMessage(`✅ Venta registrada!`);
@@ -428,7 +449,6 @@ if (manualOrderForm) {
         }
     });
 }
-
 // ====================================================================================
 // 5. EMPAQUES Y VIDEO
 // ====================================================================================
@@ -586,18 +606,51 @@ if (costConfigForm) {
     });
 }
 
+// CORRECCIÓN GASTOS (DESCUENTA A NEGOCIO)
 const addExpenseForm = getEl('add-expense-form');
 if(addExpenseForm) {
     addExpenseForm.addEventListener('submit', async (e) => {
         e.preventDefault();
-        const m = parseFloat(getEl('expense-amount').value);
-        const c = getEl('expense-concept').value;
-        const n = getEl('expense-note').value;
-        const b=db.batch();
-        b.set(db.collection('movimientos').doc(), { monto: -m, concepto:c, tipo:'Gastos', nota:n, fecha: new Date() });
-        b.update(db.collection('finanzas').doc('resumen'), { gastos: firebase.firestore.FieldValue.increment(m), utilidad: firebase.firestore.FieldValue.increment(-m) });
-        await b.commit();
-        showMessage('Gasto registrado.'); e.target.reset();
+        const montoInput = getEl('expense-amount');
+        const conceptoInput = getEl('expense-concept');
+        const notaInput = getEl('expense-note');
+
+        // Validación para evitar el error NULL
+        if(!montoInput || !conceptoInput) return;
+
+        const monto = parseFloat(montoInput.value);
+        const concepto = conceptoInput.value;
+        const nota = notaInput ? notaInput.value : '';
+        
+        if(!monto || !concepto) { showMessage("Faltan datos."); return; }
+
+        try {
+            const batch = db.batch();
+            const ref = db.collection('movimientos').doc();
+            
+            // 1. Crear el movimiento
+            batch.set(ref, { 
+                monto: -monto, 
+                concepto: concepto, 
+                tipo: 'Gastos', // O 'Gasto General' para diferenciar
+                nota: nota, 
+                fecha: firebase.firestore.FieldValue.serverTimestamp() 
+            });
+
+            // 2. Actualizar Finanzas (Utilidad Global + Gastos + Utilidad Negocio)
+            batch.update(db.collection('finanzas').doc('resumen'), {
+                gastos: firebase.firestore.FieldValue.increment(monto),
+                utilidad: firebase.firestore.FieldValue.increment(-monto),
+                utilidadNegocioTotal: firebase.firestore.FieldValue.increment(-monto) // <--- AQUÍ ESTÁ LA LÓGICA QUE PEDISTE
+            });
+
+            await batch.commit();
+            showMessage('Gasto registrado y descontado del Negocio.'); 
+            e.target.reset();
+        } catch (err) {
+            console.error(err);
+            showMessage("Error al guardar gasto.");
+        }
     });
 }
 
@@ -873,3 +926,166 @@ async function deleteOrder(id) {
     loadOrders();
 }
 async function deleteProduct(id) { await db.collection('productos').doc(id).delete(); loadInventory(); }
+// --- FUNCIONES DE RESTOCK (QUE FALTABAN) ---
+function addRestockLine() {
+    const container = getEl('restock-items');
+    const newLine = document.createElement('div');
+    newLine.className = 'restock-line'; // Reutilizamos estilo o creamos uno simple
+    // Estilo inline para asegurar grid
+    newLine.style.display = 'grid';
+    newLine.style.gridTemplateColumns = '1fr 80px 80px 40px';
+    newLine.style.gap = '10px';
+    newLine.style.marginBottom = '10px';
+
+    const options = productModels.map(p => `<option value="${p.id}" data-price="${p.precio}">${p.nombre} (${p.categoria})</option>`).join('');
+    
+    newLine.innerHTML = `
+        <select class="restock-product-select" required style="margin:0;">
+            <option value="" disabled selected>Modelo</option>
+            ${options}
+        </select>
+        <input type="number" class="restock-quantity-input" placeholder="Cant." min="1" value="1" oninput="calculateRestockTotal()" required style="margin:0;">
+        <input type="number" class="restock-cost-input" placeholder="Costo $" step="0.01" min="0" oninput="calculateRestockTotal()" required style="margin:0;">
+        <button type="button" class="btn-delete" onclick="this.parentNode.remove(); calculateRestockTotal()" style="height:100%; padding:0;">X</button>
+    `;
+    container.appendChild(newLine);
+    // Asegurar que se calcule al inicio también
+    newLine.querySelector('.restock-quantity-input').addEventListener('input', calculateRestockTotal);
+    newLine.querySelector('.restock-cost-input').addEventListener('input', calculateRestockTotal);
+}
+
+function calculateRestockTotal() {
+    const lines = document.querySelectorAll('.restock-line'); // Busca por clase restock-line
+    let total = parseFloat(getEl('shipping-cost').value) || 0;
+    
+    lines.forEach(line => {
+        const quantity = parseInt(line.querySelector('.restock-quantity-input').value) || 0;
+        const cost = parseFloat(line.querySelector('.restock-cost-input').value) || 0;
+        total += quantity * cost;
+    });
+    
+    const totalEl = getEl('restock-total');
+    if(totalEl) totalEl.textContent = `$${total.toFixed(2)}`;
+}
+
+// Listener para el envío en Restock
+const shippingRestockEl = getEl('shipping-cost');
+if(shippingRestockEl) {
+    shippingRestockEl.addEventListener('input', calculateRestockTotal);
+}
+
+// Listener del Formulario Restock
+const addRestockForm = getEl('add-restock-form');
+if (addRestockForm) {
+    addRestockForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const lines = document.querySelectorAll('.restock-line');
+        const restockItems = [];
+        let totalCost = parseFloat(getEl('shipping-cost').value) || 0;
+
+        lines.forEach(line => {
+            const productId = line.querySelector('.restock-product-select').value;
+            const quantity = parseInt(line.querySelector('.restock-quantity-input').value);
+            const cost = parseFloat(line.querySelector('.restock-cost-input').value);
+            
+            if (productId && quantity > 0) {
+                const product = productModels.find(p => p.id === productId);
+                if (product) {
+                    restockItems.push({ id: productId, nombre: product.nombre, cantidad: quantity, costoUnidad: cost });
+                    totalCost += quantity * cost;
+                }
+            }
+        });
+
+        if (restockItems.length === 0) { showMessage("Agrega productos."); return; }
+
+        try {
+            const restockRef = await db.collection('restocks').add({
+                items: restockItems,
+                costoTotal: totalCost,
+                costoEnvio: parseFloat(getEl('shipping-cost').value) || 0,
+                fecha: firebase.firestore.FieldValue.serverTimestamp(),
+                folio: `RS-${Date.now()}`
+            });
+
+            const batch = db.batch();
+            
+            // Aumentar stock
+            restockItems.forEach(item => {
+                const productRef = db.collection('productos').doc(item.id);
+                batch.update(productRef, { stock: firebase.firestore.FieldValue.increment(item.cantidad) });
+            });
+
+            // Descontar de Capital
+            const finanzasRef = db.collection('finanzas').doc('resumen');
+            batch.update(finanzasRef, {
+                capital: firebase.firestore.FieldValue.increment(-totalCost)
+            });
+
+            // Registrar Movimiento de Gasto (Opcional si quieres verlo en historial de movimientos)
+            const movRef = db.collection('movimientos').doc();
+            batch.set(movRef, {
+                monto: -totalCost,
+                concepto: 'Re-Stock Inventario',
+                tipo: 'Gasto Re-Stock',
+                fecha: firebase.firestore.FieldValue.serverTimestamp(),
+                nota: `Folio RS-${Date.now()}`
+            });
+
+            await batch.commit();
+            showMessage('Re-stock registrado y stock actualizado.');
+            e.target.reset();
+            getEl('restock-items').innerHTML = '';
+            addRestockLine();
+            calculateRestockTotal();
+            loadRestockHistory();
+            
+        } catch (error) {
+            console.error(error);
+            showMessage('Error al registrar restock.');
+        }
+    });
+}
+// FUNCIÓN HISTORIAL DE PEDIDOS
+function loadSalesHistory() {
+    const list = getEl('sales-history-list');
+    if(!list) return;
+    
+    list.innerHTML = '<p style="text-align:center;">Cargando historial...</p>';
+    
+    const q = db.collection('pedidos').orderBy('fechaCreacion', 'desc').limit(30);
+    
+    const unsub = q.onSnapshot(snap => {
+        if(snap.empty) { list.innerHTML = '<p style="text-align:center;">Sin historial.</p>'; return; }
+        list.innerHTML = '';
+        
+        snap.forEach(doc => {
+            const p = doc.data();
+            const div = document.createElement('div');
+            // Usamos el estilo de tarjeta del CSS nuevo
+            div.className = 'finance-card'; 
+            div.style.borderLeft = '4px solid var(--info)';
+            div.style.marginBottom = '15px';
+            div.style.cursor = 'default';
+            
+            const cliente = p.datosCliente?.nombre || p.clienteManual || 'Cliente';
+            const total = p.montoTotal || 0;
+
+            div.innerHTML = `
+                <div style="display:flex; justify-content:space-between; margin-bottom:5px;">
+                    <strong style="color:white;">${p.folio || 'MANUAL'}</strong>
+                    <span class="order-status status-${p.estado}">${p.estado}</span>
+                </div>
+                <div style="color:var(--text-muted); font-size:0.9rem;">
+                    <p>${cliente} - $${total.toFixed(2)}</p>
+                    <p style="font-size:0.8rem;">${p.fechaCreacion?.toDate().toLocaleDateString()}</p>
+                </div>
+                <div style="text-align:right; margin-top:10px;">
+                    <button class="btn-delete" style="padding:5px 10px; font-size:0.7rem;" onclick="showConfirmModal('order', '${doc.id}', '¿Eliminar este pedido?')">Eliminar</button>
+                </div>
+            `;
+            list.appendChild(div);
+        });
+    });
+    unsubscribes.push(unsub);
+}
