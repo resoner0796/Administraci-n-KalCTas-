@@ -30,7 +30,7 @@ const messaging = firebase.messaging();
 const vapidKey = "BCI7mLN5SS6nZLTIC4BZNusMu2TCEYs_-XBvVrqQahBscDElMQBcfBU0lcnSPQDRItA-3g-3cbdATal2jywf1os";
 
 // --- URL BASE DEFINITIVA PARA IMÁGENES ---
-const IMAGES_BASE_URL = 'https://resoner0796.github.io/Tienda-KalCTas/';
+const IMAGES_BASE_URL = 'https://kalctas.com/';
 
 let actionToConfirm = null;
 let unsubscribes = [];
