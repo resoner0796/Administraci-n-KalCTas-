@@ -1171,3 +1171,111 @@ function loadSalesHistory() {
     });
     unsubscribes.push(unsub);
 }
+
+// =============================================================================
+// LÓGICA DE CANCELACIÓN DE PEDIDOS (WEB)
+// =============================================================================
+let orderIdToCancel = null;
+
+// 1. Al dar click en "Cancelar" en la lista de pedidos
+function promptCancelOrder(id, event) {
+    if(event) event.stopPropagation();
+    orderIdToCancel = id;
+    
+    // Limpiamos y mostramos modal
+    const input = getEl('cancel-reason');
+    if(input) input.value = '';
+    
+    const modal = getEl('cancel-modal');
+    if(modal) modal.style.display = 'flex';
+}
+
+function closeCancelModal() {
+    const modal = getEl('cancel-modal');
+    if(modal) modal.style.display = 'none';
+    orderIdToCancel = null;
+}
+
+// 2. Al confirmar en el modal
+async function confirmCancelOrder() {
+    const reasonInput = getEl('cancel-reason');
+    const reason = reasonInput ? reasonInput.value : 'Sin motivo';
+    
+    if (!orderIdToCancel) return;
+
+    // Botón loading...
+    const btn = document.querySelector('#cancel-modal .btn-danger');
+    const originalText = btn.textContent;
+    btn.disabled = true; btn.textContent = "Procesando...";
+
+    try {
+        const pedidoRef = db.collection('pedidos').doc(orderIdToCancel);
+        
+        await db.runTransaction(async (t) => {
+            const doc = await t.get(pedidoRef);
+            if (!doc.exists) throw new Error("Pedido no encontrado");
+            
+            const p = doc.data();
+            
+            // A. SIEMPRE DEVOLVER STOCK (Porque se descontó al comprar en la tienda)
+            if (p.productos && Array.isArray(p.productos)) {
+                p.productos.forEach(item => {
+                    if (item.id) {
+                        const prodRef = db.collection('productos').doc(item.id);
+                        t.update(prodRef, {
+                            stock: firebase.firestore.FieldValue.increment(item.cantidad || 1),
+                            cantidadVendida: firebase.firestore.FieldValue.increment(-(item.cantidad || 1))
+                        });
+                    }
+                });
+            }
+
+            // B. SI ESTABA ENTREGADO -> REVERTIR DINERO (Solo en este caso)
+            if (p.estado === 'Entregado') {
+                const confRef = await t.get(db.collection('configuracion').doc('tienda'));
+                const cost = confRef.data()?.costoPorProducto || CAPITAL_PER_PRODUCT;
+                const ship = confRef.data()?.costoEnvio || SHIPPING_COST;
+
+                const total = p.montoTotal || 0;
+                const count = p.productos?.reduce((s,i)=>s+(i.cantidad||1),0)||0;
+                const isShip = p.datosEntrega?.tipo === 'Envío a domicilio';
+                const gEnvio = isShip ? ship : 0;
+                const cap = count * cost;
+                const util = total - cap - gEnvio;
+
+                // Restar de globales
+                const finRef = db.collection('finanzas').doc('resumen');
+                t.update(finRef, {
+                    ventas: firebase.firestore.FieldValue.increment(-total),
+                    gastos: firebase.firestore.FieldValue.increment(-gEnvio),
+                    capital: firebase.firestore.FieldValue.increment(-cap),
+                    utilidad: firebase.firestore.FieldValue.increment(-util),
+                    utilidadNegocioTotal: firebase.firestore.FieldValue.increment(-(util*0.5)),
+                    utilidadUlisesTotal: firebase.firestore.FieldValue.increment(-(util*0.25)),
+                    utilidadDarianaTotal: firebase.firestore.FieldValue.increment(-(util*0.25))
+                });
+
+                // Borrar movimientos financieros del historial
+                const movs = await db.collection('movimientos').where('relatedOrderId', '==', orderIdToCancel).get();
+                movs.forEach(m => t.delete(m.ref));
+            }
+
+            // C. MARCAR COMO CANCELADO
+            t.update(pedidoRef, {
+                estado: 'Cancelado',
+                motivoCancelacion: reason,
+                fechaCancelacion: firebase.firestore.FieldValue.serverTimestamp()
+            });
+        });
+
+        showMessage("Pedido cancelado y stock devuelto.");
+        closeCancelModal();
+        loadOrders(); // Recargar la lista
+
+    } catch (error) {
+        console.error(error);
+        showMessage("Error: " + error.message);
+    } finally {
+        btn.disabled = false; btn.textContent = originalText;
+    }
+}
