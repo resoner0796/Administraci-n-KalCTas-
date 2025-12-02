@@ -363,6 +363,23 @@
             <img class="modal-content-img" id="modal-image" style="max-width:90%; border-radius:12px;">
         </div>
     </div>
+    <div id="cancel-modal" class="confirm-modal">
+    <div class="modal-content">
+        <h3 style="color: var(--danger);">🛑 Cancelar Pedido</h3>
+        <p>¿Por qué vas a cancelar este pedido?</p>
+        <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 15px;">
+            Se devolverá el stock automáticamente.
+        </p>
+        
+        <textarea id="cancel-reason" placeholder="Escribe el motivo (ej. Cliente canceló)..." 
+                  style="width: 100%; min-height: 80px; margin-bottom: 20px; background: var(--bg-input); color: white; border: 1px solid var(--border); border-radius: 8px; padding: 10px;"></textarea>
+        
+        <div style="display: flex; gap: 10px; justify-content: center;">
+            <button class="btn-danger" onclick="confirmCancelOrder()">Confirmar Cancelación</button>
+            <button class="btn-neutral" onclick="closeCancelModal()">Atrás</button>
+        </div>
+    </div>
+</div>
 
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
