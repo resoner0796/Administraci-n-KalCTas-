@@ -84,6 +84,7 @@ async function showScreen(screenId) {
             toggleManualDeliveryFields();
             calculateManualOrderTotal();
             break;
+            case 'customers-screen': loadCustomers(); break;
         case 'raw-materials-screen': loadRawMaterials(); break;
         case 'movements-history-screen': 
             loadMovementCategories();
@@ -1278,4 +1279,122 @@ async function confirmCancelOrder() {
     } finally {
         btn.disabled = false; btn.textContent = originalText;
     }
+}// ====================================================================================
+// MÓDULO DE CLIENTES Y MARKETING
+// ====================================================================================
+async function loadCustomers() {
+    const tbody = getEl('customers-table-body');
+    const countEl = getEl('total-customers-count');
+    tbody.innerHTML = '<tr><td colspan="5">Cargando clientes...</td></tr>';
+    
+    try {
+        const snapshot = await db.collection('usuarios').get();
+        const customers = [];
+        
+        snapshot.forEach(doc => {
+            const data = doc.data();
+            // Calculamos items en carrito
+            const cartCount = (data.carrito && Array.isArray(data.carrito)) ? data.carrito.length : 0;
+            customers.push({ id: doc.id, ...data, cartCount });
+        });
+
+        countEl.textContent = customers.length;
+
+        if (customers.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="5">No hay clientes registrados.</td></tr>';
+            return;
+        }
+
+        let html = '';
+        customers.forEach(c => {
+            // Detectamos si tiene carrito para resaltarlo
+            const cartStatus = c.cartCount > 0 
+                ? `<span style="color: var(--warning); font-weight: bold;">🛒 ${c.cartCount} items</span>` 
+                : '<span style="color: var(--text-muted);">Vacío</span>';
+
+            html += `
+                <tr>
+                    <td><input type="checkbox" class="customer-checkbox" value="${c.email}"></td>
+                    <td>${c.nombre || ''} ${c.apellido || ''}</td>
+                    <td>${c.email}</td>
+                    <td>${c.telefono || 'N/A'}</td>
+                    <td>${cartStatus}</td>
+                </tr>
+            `;
+        });
+        tbody.innerHTML = html;
+
+        // Lógica "Seleccionar Todos"
+        getEl('select-all-customers').onclick = (e) => {
+            document.querySelectorAll('.customer-checkbox').forEach(cb => cb.checked = e.target.checked);
+        };
+
+    } catch (error) {
+        console.error(error);
+        tbody.innerHTML = '<tr><td colspan="5">Error al cargar clientes.</td></tr>';
+    }
+}
+
+// --- MODAL DE MARKETING ---
+function openMarketingModal() {
+    const selected = Array.from(document.querySelectorAll('.customer-checkbox:checked')).map(cb => cb.value);
+    
+    if (selected.length === 0) {
+        showMessage("Selecciona al menos un cliente de la lista.");
+        return;
+    }
+    
+    getEl('marketing-recipient-count').textContent = `Se enviará a: ${selected.length} clientes`;
+    getEl('marketing-modal').style.display = 'flex';
+}
+
+function closeMarketingModal() {
+    getEl('marketing-modal').style.display = 'none';
+}
+
+// ENVÍO DE CAMPAÑA
+const marketingForm = getEl('marketing-form');
+if (marketingForm) {
+    marketingForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const btn = e.target.querySelector('button[type="submit"]');
+        const originalText = btn.textContent;
+        
+        btn.disabled = true;
+        btn.textContent = "Enviando...";
+
+        const selectedEmails = Array.from(document.querySelectorAll('.customer-checkbox:checked')).map(cb => cb.value);
+        const subject = getEl('marketing-subject').value;
+        const message = getEl('marketing-message').value;
+
+        try {
+            const response = await fetch('/api/marketing', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    destinatarios: selectedEmails,
+                    asunto: subject,
+                    mensaje: message
+                })
+            });
+
+            const result = await response.json();
+
+            if (response.ok) {
+                showMessage("✅ Campaña enviada con éxito!");
+                closeMarketingModal();
+                e.target.reset();
+                // Deseleccionar todos
+                document.querySelectorAll('.customer-checkbox').forEach(cb => cb.checked = false);
+                getEl('select-all-customers').checked = false;
+            } else {
+                throw new Error(result.message || "Error en el servidor");
+            }
+        } catch (error) {
+            showMessage("Error al enviar: " + error.message);
+        } finally {
+            btn.disabled = false;
+            btn.textContent = originalText;
+        }
+    });
 }

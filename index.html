@@ -41,6 +41,7 @@
                 <button onclick="showScreen('sales-screen')">📊 Reporte Gráfico</button>
                 <button onclick="showScreen('sales-report-table-screen')">📄 Reporte Tabla</button>
                 
+                <button onclick="showScreen('customers-screen')" style="background: linear-gradient(135deg, #8b5cf6, #6366f1);">👥 Clientes & Marketing</button>
                 <button onclick="showScreen('raw-materials-screen')" class="btn-neutral">🏷️ Insumos</button>
                 <button onclick="showScreen('sales-history-screen')" class="btn-neutral">💰 Historial Global</button>
                 <button onclick="showScreen('theme-screen')" class="btn-neutral">🎨 Tema Tienda</button>
@@ -177,6 +178,8 @@
             <button class="close-button" onclick="showScreen('main-menu')">Volver</button>
         </section>
 
+
+        
         <section id="restock-screen" style="display: none;">
             <h1>Re-Stock</h1>
             <div class="form-card">
@@ -311,6 +314,51 @@
             </div>
             <button class="close-button" onclick="showScreen('finance-screen')">Volver</button>
         </section>
+        <section id="customers-screen" style="display: none;">
+            <h1>Gestión de Clientes</h1>
+            
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <div class="finance-card" style="padding: 15px; min-width: 200px;">
+                    <h3>Total Clientes</h3>
+                    <p id="total-customers-count">0</p>
+                </div>
+                <button class="btn-primary" onclick="openMarketingModal()">📢 Nueva Campaña</button>
+            </div>
+
+            <div class="table-wrapper">
+                <table id="customers-table">
+                    <thead>
+                        <tr>
+                            <th><input type="checkbox" id="select-all-customers"></th>
+                            <th>Nombre</th>
+                            <th>Correo</th>
+                            <th>Teléfono</th>
+                            <th>Carrito Activo</th>
+                        </tr>
+                    </thead>
+                    <tbody id="customers-table-body"></tbody>
+                </table>
+            </div>
+            <button class="close-button" onclick="showScreen('main-menu')">Volver</button>
+        </section>
+
+        <div id="marketing-modal" class="edit-modal">
+            <div class="modal-content">
+                <h2 style="color: var(--primary);">📢 Enviar Correo Masivo</h2>
+                <p id="marketing-recipient-count" style="color: var(--success); margin-bottom: 15px;">Seleccionados: 0</p>
+                
+                <form id="marketing-form">
+                    <label>Asunto del Correo</label>
+                    <input type="text" id="marketing-subject" placeholder="Ej: ¡Llegaron modelos de Navidad! 🎄" required>
+                    
+                    <label>Mensaje</label>
+                    <textarea id="marketing-message" placeholder="Escribe aquí tu mensaje para los clientes..." style="height: 150px;" required></textarea>
+                    
+                    <button type="submit" class="btn-primary">🚀 Enviar Campaña</button>
+                </form>
+                <button class="btn-neutral" onclick="closeMarketingModal()" style="width: 100%; margin-top: 10px;">Cancelar</button>
+            </div>
+        </div>
 
         <div id="edit-modal" class="edit-modal">
             <div class="modal-content">
