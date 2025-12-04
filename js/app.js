@@ -452,42 +452,147 @@ if (manualOrderForm) {
     });
 }
 // ====================================================================================
-// 5. EMPAQUES Y VIDEO
+// 5. EMPAQUES Y VIDEO (CORREGIDO Y ORGANIZADO)
 // ====================================================================================
+
+// --- A. GESTIÓN DE VIDEOS (FIX RECARGA DE PÁGINA) ---
 async function loadVideoManagement() {
     const container = getEl('video-list');
-    container.innerHTML = '<p>Cargando...</p>';
+    if (!container) return;
+    container.innerHTML = '<p>Cargando videos...</p>';
+    
     try {
         const snap = await db.collection('videos').orderBy('fechaCreacion', 'desc').get();
-        container.innerHTML = snap.empty ? '<p class="text-muted">Sin videos.</p>' : '';
+        container.innerHTML = snap.empty ? '<p class="text-muted">Sin videos cargados.</p>' : '';
+        
         snap.forEach(doc => {
             const v = {id: doc.id, ...doc.data()};
             const div = document.createElement('div');
-            div.className = 'data-card'; 
-            div.style.display = 'flex'; div.style.justifyContent='space-between'; div.style.background='var(--bg-card)'; div.style.padding='15px'; div.style.marginBottom='10px'; div.style.border='1px solid var(--border)'; div.style.borderRadius='var(--radius)';
+            div.className = 'data-card';
+            div.style.cssText = 'display:flex; justify-content:space-between; align-items:center; background:var(--bg-card); padding:10px; margin-bottom:10px; border-radius:var(--radius); border:1px solid var(--border);';
+            
             div.innerHTML = `
-                <div style="flex:1;"><strong style="color:white;">${v.nombre}</strong><p style="font-size:0.8rem; color:var(--text-muted); overflow:hidden;">${v.videoUrl}</p></div>
+                <div style="flex:1;">
+                    <strong style="color:white;">${v.nombre}</strong>
+                    <p style="font-size:0.8rem; color:var(--text-muted);">${v.videoUrl}</p>
+                </div>
                 <div style="display:flex; gap:10px; align-items:center;">
-                    <label style="font-size:0.8rem; color:white; margin:0;"><input type="checkbox" onchange="toggleVideoInPlaylist('${v.id}', this.checked)" ${v.enPlaylist?'checked':''} style="width:auto;"> Playlist</label>
+                    <label style="font-size:0.8rem; color:white; margin:0; cursor:pointer;">
+                        <input type="checkbox" onchange="toggleVideoInPlaylist('${v.id}', this.checked)" ${v.enPlaylist?'checked':''} style="width:auto;"> Playlist
+                    </label>
                     <button class="btn-delete" style="padding:5px 10px;" onclick="deleteVideo('${v.id}')">X</button>
                 </div>`;
             container.appendChild(div);
         });
-    } catch(e) { container.innerHTML = 'Error'; }
+    } catch(e) { console.error(e); container.innerHTML = 'Error cargando videos.'; }
 }
 
+// LISTENER FORMULARIO VIDEO (AQUÍ ESTABA EL ERROR DE RECARGA)
+const addVideoForm = getEl('add-video-form');
+if (addVideoForm) {
+    addVideoForm.addEventListener('submit', async (e) => {
+        e.preventDefault(); // <--- ESTO EVITA QUE SE RECARGUE LA PÁGINA
+        
+        const nombre = getVal('video-name');
+        const url = getVal('video-url'); // Aquí pondrás solo "video.mp4"
+
+        if(!nombre || !url) return;
+
+        try {
+            await db.collection('videos').add({
+                nombre: nombre,
+                videoUrl: url, 
+                enPlaylist: true, // Se agrega directo a playlist
+                fechaCreacion: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            showMessage('✅ Video guardado correctamente.');
+            e.target.reset();
+            loadVideoManagement();
+        } catch(err) { 
+            console.error(err);
+            showMessage('Error al guardar video.'); 
+        }
+    });
+}
+
+// --- B. GESTIÓN DE DISEÑOS PERSONALIZABLES (CARRUSEL) ---
+async function loadCustomBoxesManagement() {
+    const container = getEl('custom-box-list');
+    if(!container) return;
+    container.innerHTML = '<p>Cargando diseños...</p>';
+    
+    try {
+        const snap = await db.collection('configuracion_cajas').orderBy('fechaCreacion', 'desc').get();
+        container.innerHTML = snap.empty ? '<p class="text-muted">No hay diseños en el carrusel.</p>' : '';
+        
+        snap.forEach(doc => {
+            const c = {id: doc.id, ...doc.data()};
+            // Detectamos si es URL completa o archivo local para la vista previa en Admin
+            let imgSrc = c.archivo;
+            if (!imgSrc.startsWith('http')) {
+                // Asumimos que en el admin no tienes la carpeta local, mostramos icono o nombre
+                // O si tienes el admin en la misma carpeta que la tienda, funcionará.
+                // Si no se ve la imagen en admin no importa, lo importante es que se vea en la tienda.
+                imgSrc = 'https://placehold.co/50?text=IMG'; 
+            }
+
+            const div = document.createElement('div');
+            div.className = 'data-card';
+            div.style.cssText = 'display:flex; justify-content:space-between; align-items:center; background:var(--bg-card); padding:10px; margin-bottom:10px; border-radius:var(--radius); border:1px solid var(--border);';
+            
+            div.innerHTML = `
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <div style="background:#fff; padding:2px; border-radius:4px;">
+                        <img src="${imgSrc}" style="width:40px; height:40px; object-fit:cover;" onerror="this.src='https://placehold.co/40?text=📦'">
+                    </div>
+                    <div>
+                        <strong style="color:white; display:block;">${c.nombre}</strong>
+                        <span style="font-size:0.7rem; color:var(--info);">Archivo: ${c.archivo}</span>
+                    </div>
+                </div>
+                <button class="btn-delete" style="padding:5px 10px;" onclick="deleteCustomBox('${c.id}')">X</button>
+            `;
+            container.appendChild(div);
+        });
+    } catch(e) { console.error(e); container.innerHTML = 'Error al cargar diseños.'; }
+}
+
+const addCustomBoxForm = getEl('add-custom-box-form');
+if(addCustomBoxForm) {
+    addCustomBoxForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const nombre = getVal('custom-box-name');
+        const archivo = getVal('custom-box-url'); // Ej: "caja-navidad.png"
+        
+        if(!nombre || !archivo) return;
+
+        try {
+            await db.collection('configuracion_cajas').add({
+                nombre: nombre,
+                archivo: archivo, 
+                fechaCreacion: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            showMessage('✅ Diseño agregado al carrusel.');
+            e.target.reset();
+            loadCustomBoxesManagement();
+        } catch(err) { showMessage('Error al guardar.'); }
+    });
+}
+
+// --- C. EMPAQUES STANDARD (DROPDOWN) ---
 async function loadPackagingVisibility() {
     const container = getEl('packaging-list');
+    if(!container) return;
     container.innerHTML = '<p>Cargando...</p>';
     try {
         const snap = await db.collection('empaques').orderBy('fechaCreacion', 'desc').get();
-        container.innerHTML = snap.empty ? '<p class="text-muted">Sin empaques.</p>' : '';
+        container.innerHTML = snap.empty ? '<p class="text-muted">Sin empaques standard.</p>' : '';
         snap.forEach(doc => {
             const e = {id: doc.id, ...doc.data()};
             const isVisible = e.visible !== false;
             const div = document.createElement('div');
             div.className = 'data-card';
-            div.style.display = 'flex'; div.style.justifyContent='space-between'; div.style.background='var(--bg-card)'; div.style.padding='15px'; div.style.marginBottom='10px'; div.style.border='1px solid var(--border)'; div.style.borderRadius='var(--radius)';
+            div.style.cssText = 'display:flex; justify-content:space-between; background:var(--bg-card); padding:10px; margin-bottom:10px; border-radius:var(--radius); border:1px solid var(--border);';
             div.innerHTML = `
                 <div><strong style="color:white;">${e.nombre}</strong><p style="font-size:0.8rem; color:${isVisible?'var(--success)':'var(--danger)'}">${isVisible?'Visible':'Oculto'}</p></div>
                 <div style="display:flex; gap:10px;">
@@ -499,11 +604,31 @@ async function loadPackagingVisibility() {
     } catch(e) { container.innerHTML = 'Error'; }
 }
 
-async function togglePackagingVisibility(id, state) { await db.collection('empaques').doc(id).update({visible: !state}); loadPackagingVisibility(); }
-async function deletePackaging(id) { if(confirm('Borrar?')) { await db.collection('empaques').doc(id).delete(); loadPackagingVisibility(); } }
-async function toggleVideoInPlaylist(id, state) { await db.collection('videos').doc(id).update({enPlaylist: state}); }
-async function deleteVideo(id) { if(confirm('Borrar?')) { await db.collection('videos').doc(id).delete(); loadVideoManagement(); } }
+const addPackagingForm = getEl('add-packaging-form');
+if (addPackagingForm) {
+    addPackagingForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const nombre = getVal('packaging-name');
+        if (!nombre) return;
+        try {
+            await db.collection('empaques').add({
+                nombre: nombre,
+                visible: true,
+                fechaCreacion: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            showMessage('✅ Empaque standard agregado.');
+            e.target.reset();
+            loadPackagingVisibility();
+        } catch (error) { showMessage('Error.'); }
+    });
+}
 
+// FUNCIONES AUXILIARES DE ELIMINACIÓN Y ESTADO
+async function togglePackagingVisibility(id, state) { await db.collection('empaques').doc(id).update({visible: !state}); loadPackagingVisibility(); }
+async function deletePackaging(id) { if(confirm('¿Borrar empaque standard?')) { await db.collection('empaques').doc(id).delete(); loadPackagingVisibility(); } }
+async function deleteCustomBox(id) { if(confirm('¿Borrar diseño personalizado?')) { await db.collection('configuracion_cajas').doc(id).delete(); loadCustomBoxesManagement(); } }
+async function toggleVideoInPlaylist(id, state) { await db.collection('videos').doc(id).update({enPlaylist: state}); }
+async function deleteVideo(id) { if(confirm('¿Borrar video?')) { await db.collection('videos').doc(id).delete(); loadVideoManagement(); } }
 // --- GESTIÓN DE DISEÑOS PERSONALIZABLES (CARRUSEL) ---
 async function loadCustomBoxesManagement() {
     const container = getEl('custom-box-list');
