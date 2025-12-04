@@ -74,6 +74,7 @@ async function showScreen(screenId) {
         case 'theme-screen': loadCurrentTheme(); break;
         case 'packaging-screen': 
             loadPackagingVisibility(); 
+            loadCustomBoxesManagement(); // <--- NUEVA FUNCIÓN
             loadVideoManagement(); 
             break;
         case 'manual-order-screen':
@@ -503,8 +504,68 @@ async function deletePackaging(id) { if(confirm('Borrar?')) { await db.collectio
 async function toggleVideoInPlaylist(id, state) { await db.collection('videos').doc(id).update({enPlaylist: state}); }
 async function deleteVideo(id) { if(confirm('Borrar?')) { await db.collection('videos').doc(id).delete(); loadVideoManagement(); } }
 
+// --- GESTIÓN DE DISEÑOS PERSONALIZABLES (CARRUSEL) ---
+async function loadCustomBoxesManagement() {
+    const container = getEl('custom-box-list');
+    if(!container) return;
+    container.innerHTML = '<p>Cargando diseños...</p>';
+    
+    try {
+        // Usamos una colección nueva para separar lógica
+        const snap = await db.collection('configuracion_cajas').orderBy('fechaCreacion', 'desc').get();
+        container.innerHTML = snap.empty ? '<p class="text-muted">No hay diseños cargados.</p>' : '';
+        
+        snap.forEach(doc => {
+            const c = {id: doc.id, ...doc.data()};
+            const div = document.createElement('div');
+            div.className = 'data-card';
+            div.style.cssText = 'display:flex; justify-content:space-between; align-items:center; background:var(--bg-card); padding:10px; margin-bottom:10px; border-radius:var(--radius); border:1px solid var(--border);';
+            
+            div.innerHTML = `
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <img src="${c.archivo}" style="width:40px; height:40px; object-fit:cover; border-radius:4px;">
+                    <div>
+                        <strong style="color:white; display:block;">${c.nombre}</strong>
+                        <a href="${c.archivo}" target="_blank" style="font-size:0.7rem; color:var(--info);">Ver Imagen</a>
+                    </div>
+                </div>
+                <button class="btn-delete" style="padding:5px 10px;" onclick="deleteCustomBox('${c.id}')">X</button>
+            `;
+            container.appendChild(div);
+        });
+    } catch(e) { console.error(e); container.innerHTML = 'Error al cargar diseños.'; }
+}
+
+const addCustomBoxForm = getEl('add-custom-box-form');
+if(addCustomBoxForm) {
+    addCustomBoxForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const nombre = getVal('custom-box-name');
+        const url = getVal('custom-box-url');
+        
+        if(!nombre || !url) return;
+
+        try {
+            await db.collection('configuracion_cajas').add({
+                nombre: nombre,
+                archivo: url, // Usamos 'archivo' para mantener compatibilidad con el código de tienda
+                fechaCreacion: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            showMessage('Diseño agregado al carrusel.');
+            e.target.reset();
+            loadCustomBoxesManagement();
+        } catch(err) { showMessage('Error al guardar.'); }
+    });
+}
+
+async function deleteCustomBox(id) {
+    if(confirm('¿Borrar este diseño del carrusel?')) {
+        await db.collection('configuracion_cajas').doc(id).delete();
+        loadCustomBoxesManagement();
+    }
+}
 // ====================================================================================
-// 6. PEDIDOS WEB
+// 6. PEDIDOS WEB (ACTUALIZADO PARA VER PERSONALIZACIÓN)
 // ====================================================================================
 function loadOrders() {
     const list = getEl('orders-list');
@@ -512,20 +573,47 @@ function loadOrders() {
     const q = db.collection('pedidos').where('estado', 'in', ['Pendiente', 'Confirmado']).orderBy('fechaCreacion', 'desc');
     
     const unsub = q.onSnapshot(snap => {
-        if (snap.empty) { list.innerHTML = '<p style="text-align:center;">Sin pedidos.</p>'; return; }
+        if (snap.empty) { list.innerHTML = '<p style="text-align:center;">Sin pedidos pendientes.</p>'; return; }
         list.innerHTML = '';
+        
         snap.forEach(doc => {
             const p = doc.data();
-            if(p.canalVenta) return; 
+            if(p.canalVenta) return; // Ignorar ventas manuales aquí si quieres
+            
             const div = document.createElement('div');
             div.className = 'finance-card'; 
             div.style.borderLeft = '4px solid var(--info)';
             div.style.marginBottom = '15px';
             
+            // Lógica para resaltar Empaque Personalizado
+            let empaqueHtml = '';
+            if (p.empaque) {
+                if (p.empaque.includes('Personalizado')) {
+                    // Formateamos para que se lea bonito el detalle
+                    // El string viene tipo: Personalizado: "Hola" | Color: ...
+                    const detalles = p.empaque.replace(/\|/g, '<br>'); // Cambiamos pipes por saltos de línea
+                    empaqueHtml = `
+                        <div style="background: rgba(255, 193, 7, 0.15); border: 1px solid var(--warning); padding: 8px; border-radius: 6px; margin-top: 5px; color: #fbbf24; font-size: 0.85rem;">
+                            <strong>🎨 EMPAQUE PERSONALIZADO:</strong><br>
+                            ${detalles}
+                        </div>
+                    `;
+                } else {
+                    empaqueHtml = `<p style="font-size:0.85rem; color:var(--text-muted); margin-top:5px;">📦 Empaque: ${p.empaque}</p>`;
+                }
+            }
+            
             div.innerHTML = `
-                <div style="display:flex; justify-content:space-between;"><strong>${p.folio} - ${p.datosCliente?.nombre}</strong><span class="order-status status-${p.estado}">${p.estado}</span></div>
-                <div style="font-size:0.9rem; color:var(--text-muted);"><p>Total: $${p.montoTotal.toFixed(2)}</p><p>Tel: ${p.datosCliente?.telefono}</p></div>
-                <div style="margin-top:10px; display:flex; gap:10px;">
+                <div style="display:flex; justify-content:space-between;">
+                    <strong>${p.folio} - ${p.datosCliente?.nombre}</strong>
+                    <span class="order-status status-${p.estado}">${p.estado}</span>
+                </div>
+                <div style="font-size:0.9rem; color:var(--text-muted);">
+                    <p>Total: $${p.montoTotal.toFixed(2)}</p>
+                    <p>Tel: <a href="tel:${p.datosCliente?.telefono}" style="color:inherit;">${p.datosCliente?.telefono}</a></p>
+                </div>
+                
+                ${empaqueHtml} <div style="margin-top:10px; display:flex; gap:10px;">
                     ${p.estado === 'Pendiente' ? `<button class="btn-primary" onclick="updateOrderStatus('${doc.id}', 'Confirmado', event)">Confirmar</button>` : ''}
                     <button class="btn-success" onclick="updateOrderStatus('${doc.id}', 'Entregado', event)">Entregado</button>
                     <button class="btn-delete" onclick="promptCancelOrder('${doc.id}', event)">Cancelar</button>
