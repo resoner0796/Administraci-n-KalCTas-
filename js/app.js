@@ -1353,6 +1353,7 @@ function closeMarketingModal() {
 }
 
 // ENVÍO DE CAMPAÑA
+// ENVÍO DE CAMPAÑA (ACTUALIZADO)
 const marketingForm = getEl('marketing-form');
 if (marketingForm) {
     marketingForm.addEventListener('submit', async (e) => {
@@ -1363,9 +1364,14 @@ if (marketingForm) {
         btn.disabled = true;
         btn.textContent = "Enviando...";
 
-        const selectedEmails = Array.from(document.querySelectorAll('.customer-checkbox:checked')).map(cb => cb.value);
+        // Filtramos correos válidos y quitamos espacios
+        const selectedEmails = Array.from(document.querySelectorAll('.customer-checkbox:checked'))
+            .map(cb => cb.value.trim())
+            .filter(email => email.includes('@') && email.includes('.'));
+
         const subject = getEl('marketing-subject').value;
         const message = getEl('marketing-message').value;
+        const image = getEl('marketing-image').value; // <--- LEEMOS LA IMAGEN
 
         try {
             const response = await fetch('/api/marketing', {
@@ -1374,7 +1380,8 @@ if (marketingForm) {
                 body: JSON.stringify({
                     destinatarios: selectedEmails,
                     asunto: subject,
-                    mensaje: message
+                    mensaje: message,
+                    imagenUrl: image // <--- LA ENVIAMOS
                 })
             });
 
@@ -1384,13 +1391,14 @@ if (marketingForm) {
                 showMessage("✅ Campaña enviada con éxito!");
                 closeMarketingModal();
                 e.target.reset();
-                // Deseleccionar todos
+                // Limpiar selección
                 document.querySelectorAll('.customer-checkbox').forEach(cb => cb.checked = false);
-                getEl('select-all-customers').checked = false;
+                if(getEl('select-all-customers')) getEl('select-all-customers').checked = false;
             } else {
                 throw new Error(result.message || "Error en el servidor");
             }
         } catch (error) {
+            console.error(error);
             showMessage("Error al enviar: " + error.message);
         } finally {
             btn.disabled = false;
