@@ -344,17 +344,27 @@
 
         <div id="marketing-modal" class="edit-modal">
             <div class="modal-content">
-                <h2 style="color: var(--primary);">📢 Enviar Correo Masivo</h2>
-                <p id="marketing-recipient-count" style="color: var(--success); margin-bottom: 15px;">Seleccionados: 0</p>
+                <h2 style="color: var(--primary);">📢 Nueva Campaña</h2>
+                <p id="marketing-recipient-count" style="color: var(--success); margin-bottom: 15px; font-weight: bold; text-align: center;">Seleccionados: 0</p>
                 
                 <form id="marketing-form">
-                    <label>Asunto del Correo</label>
-                    <input type="text" id="marketing-subject" placeholder="Ej: ¡Llegaron modelos de Navidad! 🎄" required>
+                    <div>
+                        <label>Imagen Promocional (Opcional)</label>
+                        <input type="text" id="marketing-image" placeholder="Pega aquí el link de la imagen (https://...)" style="font-size: 0.9rem;">
+                        <small style="color: var(--text-muted);">Tip: Puedes copiar el link de una imagen de Facebook o de tu tienda.</small>
+                    </div>
+
+                    <div>
+                        <label>Asunto del Correo</label>
+                        <input type="text" id="marketing-subject" placeholder="Ej: ¡Llegaron modelos de Navidad! 🎄" required>
+                    </div>
                     
-                    <label>Mensaje</label>
-                    <textarea id="marketing-message" placeholder="Escribe aquí tu mensaje para los clientes..." style="height: 150px;" required></textarea>
+                    <div>
+                        <label>Mensaje</label>
+                        <textarea id="marketing-message" placeholder="Escribe aquí tu mensaje..." style="height: 150px; font-family: inherit;" required></textarea>
+                    </div>
                     
-                    <button type="submit" class="btn-primary">🚀 Enviar Campaña</button>
+                    <button type="submit" class="btn-primary" style="margin-top: 10px;">🚀 Enviar Campaña</button>
                 </form>
                 <button class="btn-neutral" onclick="closeMarketingModal()" style="width: 100%; margin-top: 10px;">Cancelar</button>
             </div>
