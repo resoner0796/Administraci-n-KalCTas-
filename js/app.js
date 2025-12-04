@@ -604,22 +604,30 @@ async function loadPackagingVisibility() {
     } catch(e) { container.innerHTML = 'Error'; }
 }
 
+// --- CORRECCIÓN EN ADMIN JS (app.js) ---
 const addPackagingForm = getEl('add-packaging-form');
 if (addPackagingForm) {
     addPackagingForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         const nombre = getVal('packaging-name');
+        // AQUÍ ESTABA EL DETALLE: Leemos el valor del input de imagen
+        const imagenUrl = getVal('packaging-image-url'); 
+        
         if (!nombre) return;
         try {
             await db.collection('empaques').add({
                 nombre: nombre,
+                imagenUrl: imagenUrl || '', // Guardamos la URL o vacío para que no sea undefined
                 visible: true,
                 fechaCreacion: firebase.firestore.FieldValue.serverTimestamp()
             });
             showMessage('✅ Empaque standard agregado.');
             e.target.reset();
             loadPackagingVisibility();
-        } catch (error) { showMessage('Error.'); }
+        } catch (error) { 
+            console.error(error);
+            showMessage('Error al guardar.'); 
+        }
     });
 }
 
