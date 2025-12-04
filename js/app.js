@@ -629,66 +629,7 @@ async function deletePackaging(id) { if(confirm('¿Borrar empaque standard?')) {
 async function deleteCustomBox(id) { if(confirm('¿Borrar diseño personalizado?')) { await db.collection('configuracion_cajas').doc(id).delete(); loadCustomBoxesManagement(); } }
 async function toggleVideoInPlaylist(id, state) { await db.collection('videos').doc(id).update({enPlaylist: state}); }
 async function deleteVideo(id) { if(confirm('¿Borrar video?')) { await db.collection('videos').doc(id).delete(); loadVideoManagement(); } }
-// --- GESTIÓN DE DISEÑOS PERSONALIZABLES (CARRUSEL) ---
-async function loadCustomBoxesManagement() {
-    const container = getEl('custom-box-list');
-    if(!container) return;
-    container.innerHTML = '<p>Cargando diseños...</p>';
-    
-    try {
-        // Usamos una colección nueva para separar lógica
-        const snap = await db.collection('configuracion_cajas').orderBy('fechaCreacion', 'desc').get();
-        container.innerHTML = snap.empty ? '<p class="text-muted">No hay diseños cargados.</p>' : '';
-        
-        snap.forEach(doc => {
-            const c = {id: doc.id, ...doc.data()};
-            const div = document.createElement('div');
-            div.className = 'data-card';
-            div.style.cssText = 'display:flex; justify-content:space-between; align-items:center; background:var(--bg-card); padding:10px; margin-bottom:10px; border-radius:var(--radius); border:1px solid var(--border);';
-            
-            div.innerHTML = `
-                <div style="display:flex; align-items:center; gap:10px;">
-                    <img src="${c.archivo}" style="width:40px; height:40px; object-fit:cover; border-radius:4px;">
-                    <div>
-                        <strong style="color:white; display:block;">${c.nombre}</strong>
-                        <a href="${c.archivo}" target="_blank" style="font-size:0.7rem; color:var(--info);">Ver Imagen</a>
-                    </div>
-                </div>
-                <button class="btn-delete" style="padding:5px 10px;" onclick="deleteCustomBox('${c.id}')">X</button>
-            `;
-            container.appendChild(div);
-        });
-    } catch(e) { console.error(e); container.innerHTML = 'Error al cargar diseños.'; }
-}
 
-const addCustomBoxForm = getEl('add-custom-box-form');
-if(addCustomBoxForm) {
-    addCustomBoxForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const nombre = getVal('custom-box-name');
-        const url = getVal('custom-box-url');
-        
-        if(!nombre || !url) return;
-
-        try {
-            await db.collection('configuracion_cajas').add({
-                nombre: nombre,
-                archivo: url, // Usamos 'archivo' para mantener compatibilidad con el código de tienda
-                fechaCreacion: firebase.firestore.FieldValue.serverTimestamp()
-            });
-            showMessage('Diseño agregado al carrusel.');
-            e.target.reset();
-            loadCustomBoxesManagement();
-        } catch(err) { showMessage('Error al guardar.'); }
-    });
-}
-
-async function deleteCustomBox(id) {
-    if(confirm('¿Borrar este diseño del carrusel?')) {
-        await db.collection('configuracion_cajas').doc(id).delete();
-        loadCustomBoxesManagement();
-    }
-}
 // ====================================================================================
 // 6. PEDIDOS WEB (ACTUALIZADO PARA VER PERSONALIZACIÓN)
 // ====================================================================================
