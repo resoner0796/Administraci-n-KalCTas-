@@ -73,8 +73,9 @@ async function showScreen(screenId) {
         case 'sales-report-table-screen': loadSalesReportTable(); break;
         case 'theme-screen': loadCurrentTheme(); break;
         case 'packaging-screen': 
+            loadDeliveryLocations(); // <--- NUEVA FUNCIÓN
             loadPackagingVisibility(); 
-            loadCustomBoxesManagement(); // <--- NUEVA FUNCIÓN
+            loadCustomBoxesManagement();
             loadVideoManagement(); 
             break;
         case 'manual-order-screen':
@@ -637,6 +638,60 @@ async function deletePackaging(id) { if(confirm('¿Borrar empaque standard?')) {
 async function deleteCustomBox(id) { if(confirm('¿Borrar diseño personalizado?')) { await db.collection('configuracion_cajas').doc(id).delete(); loadCustomBoxesManagement(); } }
 async function toggleVideoInPlaylist(id, state) { await db.collection('videos').doc(id).update({enPlaylist: state}); }
 async function deleteVideo(id) { if(confirm('¿Borrar video?')) { await db.collection('videos').doc(id).delete(); loadVideoManagement(); } }
+
+// --- D. GESTIÓN DE PUNTOS DE ENTREGA ---
+async function loadDeliveryLocations() {
+    const container = getEl('location-list');
+    if(!container) return;
+    container.innerHTML = '<p>Cargando puntos...</p>';
+    
+    try {
+        // Colección nueva: 'puntos_entrega'
+        const snap = await db.collection('puntos_entrega').orderBy('fechaCreacion', 'desc').get();
+        container.innerHTML = snap.empty ? '<p class="text-muted">No hay puntos registrados.</p>' : '';
+        
+        snap.forEach(doc => {
+            const l = {id: doc.id, ...doc.data()};
+            const div = document.createElement('div');
+            div.className = 'data-card';
+            div.style.cssText = 'display:flex; justify-content:space-between; align-items:center; background:var(--bg-card); padding:10px; margin-bottom:10px; border-radius:var(--radius); border:1px solid var(--border);';
+            
+            div.innerHTML = `
+                <div><strong style="color:white;">📍 ${l.nombre}</strong></div>
+                <button class="btn-delete" style="padding:5px 10px;" onclick="deleteLocation('${l.id}')">X</button>
+            `;
+            container.appendChild(div);
+        });
+    } catch(e) { console.error(e); container.innerHTML = 'Error al cargar.'; }
+}
+
+const addLocationForm = getEl('add-location-form');
+if (addLocationForm) {
+    addLocationForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const nombre = getVal('location-name');
+        
+        if(!nombre) return;
+
+        try {
+            await db.collection('puntos_entrega').add({
+                nombre: nombre,
+                fechaCreacion: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            showMessage('✅ Punto de entrega agregado.');
+            e.target.reset();
+            loadDeliveryLocations();
+        } catch(err) { showMessage('Error al guardar.'); }
+    });
+}
+
+async function deleteLocation(id) {
+    if(confirm('¿Eliminar este punto de entrega?')) {
+        await db.collection('puntos_entrega').doc(id).delete();
+        loadDeliveryLocations();
+    }
+}
+
 
 // ====================================================================================
 // 6. PEDIDOS WEB (ACTUALIZADO PARA VER PERSONALIZACIÓN)
