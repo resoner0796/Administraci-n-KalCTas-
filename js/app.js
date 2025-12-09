@@ -1135,34 +1135,83 @@ function showConfirmModal(type, id, text) {
 function cancelAction() { getEl('confirm-modal').style.display = 'none'; actionToConfirm = null; }
 async function confirmAction() { if(actionToConfirm) await actionToConfirm(); cancelAction(); }
 
+// ====================================================================================
+// CORRECCIÓN: CAMBIO DE ESTADO (FIX ERROR "UNDEFINED" EN UTILIDAD NEGOCIO)
+// ====================================================================================
 async function updateOrderStatus(pedidoId, newStatus, event) {
     event.stopPropagation();
     const pedidoRef = db.collection('pedidos').doc(pedidoId);
+    
+    // Cambiamos el texto del botón temporalmente para dar feedback visual
+    const btn = event.target;
+    const originalText = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = "...";
+
     try {
         await db.runTransaction(async (t) => {
             const configDoc = await t.get(db.collection('configuracion').doc('tienda'));
             const costPerProduct = configDoc.exists && configDoc.data().costoPorProducto ? configDoc.data().costoPorProducto : CAPITAL_PER_PRODUCT;
             const shippingCost = configDoc.exists && configDoc.data().costoEnvio ? configDoc.data().costoEnvio : SHIPPING_COST;
+            
             const pedidoDoc = await t.get(pedidoRef);
+            if (!pedidoDoc.exists) throw new Error("El pedido no existe.");
+            
             const pedidoData = pedidoDoc.data();
             const updatesForOrder = { estado: newStatus, fechaActualizacion: firebase.firestore.FieldValue.serverTimestamp() };
+            
+            // SI SE MARCA COMO ENTREGADO (Y NO LO ESTABA YA), HACEMOS CUENTAS
             if (newStatus === 'Entregado' && pedidoData.estado !== 'Entregado') {
                 const totalVenta = pedidoData.montoTotal || 0;
+                // Calculamos items contando la cantidad de cada uno
                 const numeroProductos = pedidoData.productos?.reduce((sum, p) => sum + (p.cantidad || 1), 0) || 0;
+                
                 const hasShipping = pedidoData.datosEntrega?.tipo === 'Envío a domicilio';
                 const gastoEnvio = hasShipping ? shippingCost : 0;
+                
                 const capitalMonto = numeroProductos * costPerProduct;
                 const utilidadTotal = totalVenta - capitalMonto - gastoEnvio;
+                
                 const utilidadNegocio = utilidadTotal * 0.50;
                 const utilidadUlises = utilidadTotal * 0.25;
                 const utilidadDariana = utilidadTotal * 0.25;
 
-                if (hasShipping) t.set(db.collection('movimientos').doc(), { monto: -gastoEnvio, concepto: 'Gasto de Envío', tipo: 'Gastos', fecha: new Date(), relatedOrderId: pedidoId });
-                if (capitalMonto > 0) t.set(db.collection('movimientos').doc(), { monto: capitalMonto, concepto: 'Ingreso Capital', tipo: 'Capital', fecha: new Date(), relatedOrderId: pedidoId });
+                // 1. Registrar movimientos de Gasto y Capital
+                if (hasShipping) {
+                    t.set(db.collection('movimientos').doc(), { 
+                        monto: -gastoEnvio, concepto: 'Gasto de Envío', tipo: 'Gastos', fecha: new Date(), relatedOrderId: pedidoId 
+                    });
+                }
                 
-                const addP = (m,c,s) => { if(m!==0) t.set(db.collection('movimientos').doc(), {monto:m, concepto:c, tipo:c, socio:s, fecha:new Date(), relatedOrderId:pedidoId}) };
-                addP(utilidadNegocio, 'Utilidad Negocio'); addP(utilidadUlises, 'Utilidad Socio', 'Ulises'); addP(utilidadDariana, 'Utilidad Socio', 'Dariana');
+                if (capitalMonto > 0) {
+                    t.set(db.collection('movimientos').doc(), { 
+                        monto: capitalMonto, concepto: 'Ingreso Capital', tipo: 'Capital', fecha: new Date(), relatedOrderId: pedidoId 
+                    });
+                }
+                
+                // 2. Función Helper corregida para registrar utilidades
+                const addP = (m, c, s) => { 
+                    if (m !== 0) {
+                        const movData = {
+                            monto: m, 
+                            concepto: c, 
+                            tipo: c, 
+                            fecha: new Date(), 
+                            relatedOrderId: pedidoId
+                        };
+                        // Solo agregamos la propiedad 'socio' si 's' tiene valor, para evitar error 'undefined'
+                        if (s) movData.socio = s; 
+                        
+                        t.set(db.collection('movimientos').doc(), movData);
+                    }
+                };
 
+                // --- AQUÍ ESTABA EL ERROR ANTES (FALTABA EL 3ER ARGUMENTO EN NEGOCIO) ---
+                addP(utilidadNegocio, 'Utilidad Negocio', 'Negocio'); // <--- AHORA SÍ PASAMOS 'Negocio'
+                addP(utilidadUlises, 'Utilidad Socio', 'Ulises');
+                addP(utilidadDariana, 'Utilidad Socio', 'Dariana');
+
+                // 3. Actualizar Resumen Financiero
                 t.update(db.collection('finanzas').doc('resumen'), {
                     ventas: firebase.firestore.FieldValue.increment(totalVenta),
                     gastos: firebase.firestore.FieldValue.increment(gastoEnvio),
@@ -1172,12 +1221,32 @@ async function updateOrderStatus(pedidoId, newStatus, event) {
                     utilidadUlisesTotal: firebase.firestore.FieldValue.increment(utilidadUlises),
                     utilidadDarianaTotal: firebase.firestore.FieldValue.increment(utilidadDariana)
                 });
-                for (const p of pedidoData.productos) if (p.id) t.update(db.collection('productos').doc(p.id), { cantidadVendida: firebase.firestore.FieldValue.increment(p.cantidad || 1) });
+
+                // 4. Actualizar contador de ventas en cada producto
+                if (pedidoData.productos) {
+                    for (const p of pedidoData.productos) {
+                        if (p.id) {
+                            t.update(db.collection('productos').doc(p.id), { 
+                                cantidadVendida: firebase.firestore.FieldValue.increment(p.cantidad || 1) 
+                            });
+                        }
+                    }
+                }
             }
+            
             t.update(pedidoRef, updatesForOrder);
         });
-        showMessage(`Pedido ${newStatus}`);
-    } catch (e) { console.error(e); showMessage('Error'); }
+        
+        showMessage(`✅ Pedido marcado como ${newStatus}`);
+        
+    } catch (e) { 
+        console.error(e); 
+        // Ahora el mensaje te dirá la razón exacta si vuelve a fallar
+        showMessage('Error: ' + e.message); 
+    } finally {
+        btn.disabled = false;
+        btn.textContent = originalText;
+    }
 }
 
 async function loadMovementCategories() {
