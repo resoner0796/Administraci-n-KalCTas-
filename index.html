@@ -279,25 +279,32 @@
         </section>
 
         <section id="packaging-screen" style="display: none;">
-            <h1>Configuración de Empaques</h1>
+            <h1>Configuración de Extras</h1>
             
-            <div class="form-card">
-                <h3>📦 Empaques Standard (Lista Desplegable)</h3>
+            <div class="form-card" style="border-left: 4px solid var(--primary);">
+                <h3>📍 Puntos de Entrega (Dinámicos)</h3>
+                <form id="add-location-form">
+                    <input type="text" id="location-name" placeholder="Nombre (Ej: Plaza Periférico)" required>
+                    <button type="submit" class="btn-primary">Agregar Punto</button>
+                </form>
+                <div id="location-list" style="margin-top:15px;"></div>
+            </div>
+
+            <div class="form-card" style="margin-top: 20px;">
+                <h3>📦 Empaques Standard (Lista)</h3>
                 <form id="add-packaging-form">
                     <input type="text" id="packaging-name" placeholder="Nombre (Ej: Bolsa Plástica)" required>
                     <input type="text" id="packaging-image-url" placeholder="URL Imagen (Opcional)">
-                    <button type="submit" class="btn-primary">Agregar Standard</button>
+                    <button type="submit" class="btn-neutral">Agregar Standard</button>
                 </form>
                 <div id="packaging-list" style="margin-top:15px;"></div>
             </div>
 
             <div class="form-card" style="margin-top: 20px; border-left: 4px solid var(--warning);">
-                <h3>🎨 Diseños para Personalizar (Carrusel)</h3>
-                <p style="font-size: 0.8rem; color: var(--text-muted);">Estas imágenes aparecerán en el modal cuando el cliente elija "Personalizado".</p>
-                
+                <h3>🎨 Diseños Personalizables (Carrusel)</h3>
                 <form id="add-custom-box-form">
                     <input type="text" id="custom-box-name" placeholder="Nombre (Ej: Caja Navidad)" required>
-                    <input type="text" id="custom-box-url" placeholder="URL de la Imagen (Cuadrada)" required>
+                    <input type="text" id="custom-box-url" placeholder="Nombre archivo (Ej: navidad.png)" required>
                     <button type="submit" class="btn-primary" style="background: var(--warning); color: #000;">Agregar Diseño</button>
                 </form>
                 <div id="custom-box-list" style="margin-top:15px;"></div>
@@ -307,7 +314,7 @@
                 <h3>🎥 Video Promocional</h3>
                 <form id="add-video-form">
                     <input type="text" id="video-name" placeholder="Título" required>
-                    <input type="text" id="video-url" placeholder="URL Video" required>
+                    <input type="text" id="video-url" placeholder="Nombre archivo (Ej: video.mp4)" required>
                     <button type="submit" class="btn-neutral">Guardar Video</button>
                 </form>
                 <div id="video-list" style="margin-top:15px;"></div>
