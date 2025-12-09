@@ -141,6 +141,7 @@
 
         <section id="finance-screen" style="display: none;">
             <h1>Finanzas</h1>
+            
             <div class="finance-panel">
                 <div class="finance-card" onclick="showMovementsHistory('Ventas')"><h3>Ventas</h3><p id="total-sales">$0.00</p></div>
                 <div class="finance-card" onclick="showMovementsHistory('Gastos')"><h3>Gastos</h3><p id="total-expenses">$0.00</p></div>
@@ -175,6 +176,28 @@
                     </form>
                 </div>
             </div>
+
+            <div class="form-card" style="margin-top: 20px; border-left: 4px solid var(--danger);">
+                <h3>📉 Retiro de Utilidad (Socios)</h3>
+                <form id="withdraw-profit-form">
+                    <label>Selecciona quién retira:</label>
+                    <select id="withdraw-partner" required style="width: 100%; margin-bottom: 10px; padding: 10px; border-radius: 8px; border: 1px solid #444; background: #222; color: white;">
+                        <option value="" disabled selected>-- Selecciona Socio --</option>
+                        <option value="Dariana">Dariana</option>
+                        <option value="Ulises">Ulises</option>
+                        <option value="Negocio">Negocio (Caja Chica)</option>
+                    </select>
+
+                    <div style="display:flex; gap:10px; margin-bottom: 10px;">
+                        <input type="number" id="withdraw-amount" placeholder="Monto a retirar ($)" step="0.01" required style="flex: 1;">
+                    </div>
+                    
+                    <input type="text" id="withdraw-details" placeholder="Detalles (Ej: Liquidación Diciembre)" required style="margin-bottom: 10px;">
+                    
+                    <button type="submit" class="btn-danger" style="width: 100%;">Confirmar Retiro</button>
+                </form>
+            </div>
+            
             <button class="close-button" onclick="showScreen('main-menu')">Volver</button>
         </section>
 
