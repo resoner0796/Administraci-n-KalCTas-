@@ -972,9 +972,11 @@ async function deleteRestock(id) {
 }
 
 // ====================================================================================
-// CORRECCIÓN: REPORTE GRÁFICO (FIX ZONA HORARIA)
+// CORRECCIÓN DEFINITIVA: REPORTE GRÁFICO (MODO TEXTO LOCAL)
 // ====================================================================================
 function loadSalesData() {
+    console.log("⚡ Cargando Reporte Gráfico v3 (Hora Local Forzada)..."); // Verás esto en la consola si ya se actualizó
+    
     const container = getEl('sales-list');
     container.innerHTML = '<p class="text-center">Cargando...</p>';
     
@@ -997,22 +999,19 @@ function loadSalesData() {
             const fechaObj = p.fechaActualizacion?.toDate();
             
             if (fechaObj) {
-                // --- AQUÍ ESTABA EL ERROR, CORREGIDO AHORA ---
-                // Construimos la fecha LOCAL manualmente (YYYY-MM-DD) para que coincida con tu reloj
-                const year = fechaObj.getFullYear();
-                const month = String(fechaObj.getMonth() + 1).padStart(2, '0');
-                const day = String(fechaObj.getDate()).padStart(2, '0');
-                const fechaLocalKey = `${year}-${month}-${day}`; // Ejemplo: "2025-12-05"
-                // ---------------------------------------------
+                // --- TRUCO 'fr-CA' PARA OBTENER YYYY-MM-DD LOCAL ---
+                // Esto obtiene la fecha tal cual la ves en tu reloj, en formato YYYY-MM-DD
+                // Ejemplo: "2025-12-05". No hace conversiones UTC.
+                const fechaLocalKey = fechaObj.toLocaleDateString('fr-CA'); 
+                // ---------------------------------------------------
 
-                // Sumamos al acumulado de ese día
+                // Sumamos al acumulado de ese día (usando el texto como llave única)
                 salesByDate[fechaLocalKey] = (salesByDate[fechaLocalKey] || 0) + (p.montoTotal || 0);
 
                 html += `<tr>
                     <td style="font-weight:bold;">${p.folio||'MANUAL'}</td>
                     <td>${p.datosCliente?.nombre||p.clienteManual}</td>
-                    <td>${fechaObj.toLocaleDateString()}</td>
-                    <td style="color:var(--success); text-align:right;">$${(p.montoTotal||0).toFixed(2)}</td>
+                    <td>${fechaObj.toLocaleDateString()}</td> <td style="color:var(--success); text-align:right;">$${(p.montoTotal||0).toFixed(2)}</td>
                 </tr>`;
             }
         });
@@ -1020,7 +1019,7 @@ function loadSalesData() {
         html += `</tbody></table></div>`;
         container.innerHTML = html;
         
-        // Actualizamos la gráfica con los datos corregidos
+        // Actualizamos la gráfica
         if(window.updateChart) updateChart(salesByDate);
     });
     
