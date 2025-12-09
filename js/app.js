@@ -869,6 +869,76 @@ if(addSupplyForm) {
 }
 async function deleteSupply(id) { if(!confirm('Borrar?')) return; const doc = await db.collection('insumos').doc(id).get(); if(!doc.exists) return; const cost = doc.data().costoTotal; const batch = db.batch(); batch.delete(db.collection('insumos').doc(id)); batch.update(db.collection('finanzas').doc('resumen'), { gastos: firebase.firestore.FieldValue.increment(-cost), utilidad: firebase.firestore.FieldValue.increment(cost) }); await batch.commit(); showMessage('Eliminado.'); }
 
+// ==========================================
+// NUEVO: LÓGICA DE RETIRO DE UTILIDADES
+// ==========================================
+const withdrawForm = getEl('withdraw-profit-form');
+if (withdrawForm) {
+    withdrawForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        // Obtenemos los valores
+        const partner = getEl('withdraw-partner').value;
+        const amount = parseFloat(getEl('withdraw-amount').value);
+        const details = getEl('withdraw-details').value;
+
+        // Validaciones básicas
+        if (!partner || !amount || amount <= 0) {
+            showMessage("Por favor selecciona un socio y un monto válido.");
+            return;
+        }
+
+        // Mapeo: Qué campo de la BD actualizar según el socio
+        let dbField = '';
+        if (partner === 'Ulises') dbField = 'utilidadUlisesTotal';
+        else if (partner === 'Dariana') dbField = 'utilidadDarianaTotal';
+        else if (partner === 'Negocio') dbField = 'utilidadNegocioTotal';
+        else {
+            showMessage("Socio no identificado.");
+            return;
+        }
+
+        const btn = e.target.querySelector('button[type="submit"]');
+        btn.disabled = true;
+        btn.textContent = "Procesando...";
+
+        try {
+            const batch = db.batch();
+
+            // 1. Crear el movimiento en el historial (Para que quede registro)
+            const movRef = db.collection('movimientos').doc();
+            batch.set(movRef, {
+                monto: -amount, // Negativo porque sale dinero
+                concepto: 'Retiro de Utilidad',
+                tipo: 'Retiro Socio', // Tipo específico para filtrar luego si quieres
+                socio: partner,
+                nota: details,
+                fecha: firebase.firestore.FieldValue.serverTimestamp()
+            });
+
+            // 2. Actualizar el acumulado del socio en Finanzas (RESTAR)
+            const finRef = db.collection('finanzas').doc('resumen');
+            
+            // Usamos computed property names [] para usar la variable dbField
+            batch.update(finRef, {
+                [dbField]: firebase.firestore.FieldValue.increment(-amount)
+            });
+
+            await batch.commit();
+
+            showMessage(`✅ Retiro de $${amount.toFixed(2)} registrado para ${partner}.`);
+            e.target.reset();
+
+        } catch (err) {
+            console.error(err);
+            showMessage("Error al registrar el retiro.");
+        } finally {
+            btn.disabled = false;
+            btn.textContent = "📉 Registrar Retiro";
+        }
+    });
+}
+
 // ====================================================================================
 // 8. RESTOCK Y REPORTES
 // ====================================================================================
