@@ -972,22 +972,46 @@ async function deleteRestock(id) {
 }
 
 // ====================================================================================
-// CORRECCIÓN DEFINITIVA: REPORTE GRÁFICO (MODO TEXTO LOCAL)
+// REPORTE GRÁFICO v5: FILTRO MENSUAL + TOTAL GRANDE
 // ====================================================================================
-function loadSalesData() {
-    console.log("⚡ Cargando Reporte Gráfico v3 (Hora Local Forzada)..."); // Verás esto en la consola si ya se actualizó
-    
+function loadSalesData(mode = 'global', value = null) {
+    // 1. Limpieza inicial
+    unsubscribes.forEach(u => u());
+    unsubscribes = [];
+
     const container = getEl('sales-list');
-    container.innerHTML = '<p class="text-center">Cargando...</p>';
+    const totalDisplay = getEl('period-total-display'); // El nuevo elemento del total
     
-    // Traemos los últimos 50 pedidos entregados
-    const q = db.collection('pedidos').where('estado', '==', 'Entregado').orderBy('fechaActualizacion', 'desc').limit(50);
+    container.innerHTML = '<p class="text-center">Cargando datos...</p>';
+    if(totalDisplay) totalDisplay.textContent = '...'; // Feedback visual de carga
+    
+    let q = db.collection('pedidos').where('estado', '==', 'Entregado');
+
+    // --- LÓGICA DEL FILTRO ---
+    if (mode === 'month' && value) {
+        console.log("📅 Filtrando por mes:", value);
+        const [year, month] = value.split('-').map(Number);
+        const startDate = new Date(year, month - 1, 1); 
+        const endDate = new Date(year, month, 0, 23, 59, 59); 
+
+        q = q.where('fechaActualizacion', '>=', startDate)
+             .where('fechaActualizacion', '<=', endDate)
+             .orderBy('fechaActualizacion', 'desc');
+             
+    } else {
+        console.log("🌎 Carga Global");
+        q = q.orderBy('fechaActualizacion', 'desc').limit(50);
+        const inputMonth = getEl('sales-month-filter');
+        if(inputMonth) inputMonth.value = '';
+    }
     
     const unsub = q.onSnapshot(snap => {
         const salesByDate = {};
+        let totalSum = 0; // Variable para sumar el total del periodo
         
         if(snap.empty) { 
-            container.innerHTML='<p class="text-center">Sin ventas registradas.</p>'; 
+            container.innerHTML='<p class="text-center" style="padding: 20px;">No se encontraron ventas entregadas.</p>'; 
+            if(totalDisplay) totalDisplay.textContent = '$0.00';
             if(window.salesChart) { window.salesChart.destroy(); window.salesChart = null; }
             return; 
         }
@@ -999,19 +1023,19 @@ function loadSalesData() {
             const fechaObj = p.fechaActualizacion?.toDate();
             
             if (fechaObj) {
-                // --- TRUCO 'fr-CA' PARA OBTENER YYYY-MM-DD LOCAL ---
-                // Esto obtiene la fecha tal cual la ves en tu reloj, en formato YYYY-MM-DD
-                // Ejemplo: "2025-12-05". No hace conversiones UTC.
-                const fechaLocalKey = fechaObj.toLocaleDateString('fr-CA'); 
-                // ---------------------------------------------------
+                // Sumar al total general
+                const monto = p.montoTotal || 0;
+                totalSum += monto;
 
-                // Sumamos al acumulado de ese día (usando el texto como llave única)
-                salesByDate[fechaLocalKey] = (salesByDate[fechaLocalKey] || 0) + (p.montoTotal || 0);
+                // Agrupar por fecha local
+                const fechaLocalKey = fechaObj.toLocaleDateString('fr-CA'); 
+                salesByDate[fechaLocalKey] = (salesByDate[fechaLocalKey] || 0) + monto;
 
                 html += `<tr>
                     <td style="font-weight:bold;">${p.folio||'MANUAL'}</td>
                     <td>${p.datosCliente?.nombre||p.clienteManual}</td>
-                    <td>${fechaObj.toLocaleDateString()}</td> <td style="color:var(--success); text-align:right;">$${(p.montoTotal||0).toFixed(2)}</td>
+                    <td>${fechaObj.toLocaleDateString()}</td>
+                    <td style="color:var(--success); text-align:right;">$${monto.toFixed(2)}</td>
                 </tr>`;
             }
         });
@@ -1019,8 +1043,22 @@ function loadSalesData() {
         html += `</tbody></table></div>`;
         container.innerHTML = html;
         
-        // Actualizamos la gráfica
+        // --- ACTUALIZAR EL MARCADOR GIGANTE ---
+        if(totalDisplay) {
+            // Animación sencilla de conteo si quieres, o directo:
+            totalDisplay.textContent = `$${totalSum.toFixed(2)}`;
+        }
+
+        // Actualizar gráfica
         if(window.updateChart) updateChart(salesByDate);
+
+    }, error => {
+        console.error("Error ventas:", error);
+        if (error.code === 'failed-precondition') {
+            container.innerHTML = `<p class="text-center" style="color:orange;">⚠️ Requiere Índice Nuevo.<br>Abre consola (F12) y da clic al link.</p>`;
+        } else {
+            container.innerHTML = `<p class="text-center">Error: ${error.message}</p>`;
+        }
     });
     
     unsubscribes.push(unsub);
