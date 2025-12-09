@@ -1053,12 +1053,34 @@ async function loadSalesReportTable() {
 // ====================================================================================
 // 9. AUTH Y FUNCIONES GLOBALES
 // ====================================================================================
+// ====================================================================================
+// CORRECCIÓN GRÁFICA: ALINEACIÓN DE DATOS (FIX DESFASE)
+// ====================================================================================
 function updateChart(data) {
     const ctx = getEl('sales-chart').getContext('2d');
     if (salesChart) salesChart.destroy();
+
+    // 1. Ordenamos las fechas Cronológicamente
+    const sortedLabels = Object.keys(data).sort();
+
+    // 2. Extraemos los valores EN EL MISMO ORDEN que las fechas ordenadas
+    // ANTES: Object.values(data) -> Traía los datos desordenados (más nuevos primero)
+    // AHORA: Mapeamos usando las fechas ya ordenadas
+    const sortedValues = sortedLabels.map(fecha => data[fecha]);
+
     salesChart = new Chart(ctx, {
         type: 'line',
-        data: { labels: Object.keys(data).sort(), datasets: [{ label: 'Ventas ($)', data: Object.values(data), borderColor: '#d946ef', tension: 0.3, fill: true, backgroundColor: 'rgba(217,70,239,0.1)' }] },
+        data: { 
+            labels: sortedLabels, 
+            datasets: [{ 
+                label: 'Ventas ($)', 
+                data: sortedValues, // <--- AHORA SÍ COINCIDEN
+                borderColor: '#d946ef', 
+                tension: 0.3, 
+                fill: true, 
+                backgroundColor: 'rgba(217,70,239,0.1)' 
+            }] 
+        },
         options: { responsive: true, maintainAspectRatio: false }
     });
 }
