@@ -971,24 +971,59 @@ async function deleteRestock(id) {
     await batch.commit(); showMessage('Revertido.');
 }
 
+// ====================================================================================
+// CORRECCIÓN: REPORTE GRÁFICO (FIX ZONA HORARIA)
+// ====================================================================================
 function loadSalesData() {
     const container = getEl('sales-list');
     container.innerHTML = '<p class="text-center">Cargando...</p>';
+    
+    // Traemos los últimos 50 pedidos entregados
     const q = db.collection('pedidos').where('estado', '==', 'Entregado').orderBy('fechaActualizacion', 'desc').limit(50);
+    
     const unsub = q.onSnapshot(snap => {
         const salesByDate = {};
-        if(snap.empty) { container.innerHTML='<p class="text-center">Sin ventas.</p>'; return; }
+        
+        if(snap.empty) { 
+            container.innerHTML='<p class="text-center">Sin ventas registradas.</p>'; 
+            if(window.salesChart) { window.salesChart.destroy(); window.salesChart = null; }
+            return; 
+        }
+
         let html = `<div class="table-wrapper"><table><thead><tr><th>Folio</th><th>Cliente</th><th>Fecha</th><th>Total</th></tr></thead><tbody>`;
+        
         snap.forEach(doc => {
             const p = doc.data();
-            const iso = p.fechaActualizacion?.toDate().toISOString().split('T')[0];
-            if(iso) salesByDate[iso] = (salesByDate[iso]||0) + (p.montoTotal||0);
-            html += `<tr><td style="font-weight:bold;">${p.folio||'MANUAL'}</td><td>${p.datosCliente?.nombre||p.clienteManual}</td><td>${p.fechaActualizacion?.toDate().toLocaleDateString()}</td><td style="color:var(--success); text-align:right;">$${(p.montoTotal||0).toFixed(2)}</td></tr>`;
+            const fechaObj = p.fechaActualizacion?.toDate();
+            
+            if (fechaObj) {
+                // --- AQUÍ ESTABA EL ERROR, CORREGIDO AHORA ---
+                // Construimos la fecha LOCAL manualmente (YYYY-MM-DD) para que coincida con tu reloj
+                const year = fechaObj.getFullYear();
+                const month = String(fechaObj.getMonth() + 1).padStart(2, '0');
+                const day = String(fechaObj.getDate()).padStart(2, '0');
+                const fechaLocalKey = `${year}-${month}-${day}`; // Ejemplo: "2025-12-05"
+                // ---------------------------------------------
+
+                // Sumamos al acumulado de ese día
+                salesByDate[fechaLocalKey] = (salesByDate[fechaLocalKey] || 0) + (p.montoTotal || 0);
+
+                html += `<tr>
+                    <td style="font-weight:bold;">${p.folio||'MANUAL'}</td>
+                    <td>${p.datosCliente?.nombre||p.clienteManual}</td>
+                    <td>${fechaObj.toLocaleDateString()}</td>
+                    <td style="color:var(--success); text-align:right;">$${(p.montoTotal||0).toFixed(2)}</td>
+                </tr>`;
+            }
         });
+        
         html += `</tbody></table></div>`;
         container.innerHTML = html;
+        
+        // Actualizamos la gráfica con los datos corregidos
         if(window.updateChart) updateChart(salesByDate);
     });
+    
     unsubscribes.push(unsub);
 }
 
