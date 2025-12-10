@@ -2116,74 +2116,90 @@ async function deleteCoupon(id) {
     }
 }
 // ====================================================================================
-// GESTIÓN DE BANNER (CARPETA /BANNERS)
+// GESTIÓN DE MULTI-BANNERS
 // ====================================================================================
+let currentBanners = []; // Lista temporal
+
 async function loadBannerConfig() {
     try {
         const doc = await db.collection('configuracion').doc('banner').get();
         if (doc.exists) {
             const data = doc.data();
-            const rawName = data.imagenUrl || '';
-            
-            getEl('banner-image-url').value = rawName;
-            getEl('banner-link').value = data.link || '';
             getEl('banner-active').checked = data.activo || false;
             
-            // Vista previa inteligente
-            if (rawName) {
-                updateBannerPreview(rawName);
+            // Compatibilidad: Si antes tenías solo 1 imagen, la convertimos en array
+            if (data.imagenUrl && !data.listaBanners) {
+                currentBanners = [{ img: data.imagenUrl, link: data.link || '' }];
+            } else {
+                currentBanners = data.listaBanners || [];
             }
+            renderBannerList();
         }
-    } catch (e) {
-        console.error("Error cargando banner:", e);
-    }
+    } catch (e) { console.error(e); }
 }
 
-function updateBannerPreview(rawName) {
-    let src = rawName;
-    if (!rawName.startsWith('http') && !rawName.startsWith('data:')) {
-        // En el admin también buscamos en la carpeta banners/
-        // Nota: Asegúrate de que la carpeta 'banners' exista donde tienes alojado el admin
-        const cleanName = rawName.replace(/^banners\//, '');
-        src = 'banners/' + cleanName;
+function renderBannerList() {
+    const container = getEl('banner-list-container');
+    container.innerHTML = '';
+    
+    if (currentBanners.length === 0) {
+        container.innerHTML = '<p style="font-size:0.8rem; color:#666;">Sin banners. Agrega uno arriba.</p>';
+        return;
     }
-    
-    const img = getEl('banner-preview-img');
-    const container = getEl('banner-preview');
-    
-    img.src = src;
-    img.onerror = () => { container.style.display = 'none'; }; // Si no existe la imagen, oculta el preview
-    img.onload = () => { container.style.display = 'block'; }; // Si carga, muéstralo
+
+    currentBanners.forEach((b, index) => {
+        let imgSrc = b.img;
+        if (!imgSrc.startsWith('http') && !imgSrc.startsWith('data:')) {
+            const cleanName = imgSrc.replace(/^banners\//, '');
+            imgSrc = 'https://kalctas.com/banners/' + cleanName; // Ajusta tu URL base real si es necesario para el preview
+        }
+
+        const div = document.createElement('div');
+        div.style.cssText = 'display:flex; justify-content:space-between; align-items:center; background:var(--bg-card); padding:8px; border-radius:6px; border:1px solid #333;';
+        div.innerHTML = `
+            <div style="display:flex; align-items:center; gap:10px;">
+                <img src="${imgSrc}" style="height:30px; width:auto; border-radius:4px;" onerror="this.style.display='none'">
+                <div style="font-size:0.85rem;">
+                    <div style="color:white;">${b.img}</div>
+                    <div style="color:#aaa; font-size:0.7rem;">${b.link || 'Sin link'}</div>
+                </div>
+            </div>
+            <button class="btn-delete" style="padding:2px 8px;" onclick="removeBanner(${index})">X</button>
+        `;
+        container.appendChild(div);
+    });
 }
 
-const bannerForm = getEl('banner-config-form');
-if (bannerForm) {
-    bannerForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const url = getVal('banner-image-url');
-        const link = getVal('banner-link');
-        const activo = getEl('banner-active').checked;
-
-        if (!url) return showMessage("Escribe el nombre del archivo.");
-
-        try {
-            await db.collection('configuracion').doc('banner').set({
-                imagenUrl: url,
-                link: link,
-                activo: activo,
-                fechaActualizacion: firebase.firestore.FieldValue.serverTimestamp()
-            });
-            showMessage('✅ Banner actualizado.');
-            updateBannerPreview(url);
-        } catch (err) {
-            console.error(err);
-            showMessage('Error al guardar.');
-        }
-    });
+function addBannerToList() {
+    const imgInput = getEl('new-banner-img');
+    const linkInput = getEl('new-banner-link');
+    const img = imgInput.value.trim();
     
-    // Preview en tiempo real mientras escribes
-    getEl('banner-image-url').addEventListener('input', (e) => {
-        updateBannerPreview(e.target.value);
-    });
+    if (!img) return showMessage("Escribe el nombre de la imagen.");
+    
+    currentBanners.push({ img: img, link: linkInput.value.trim() });
+    
+    imgInput.value = '';
+    linkInput.value = '';
+    renderBannerList();
+}
+
+function removeBanner(index) {
+    currentBanners.splice(index, 1);
+    renderBannerList();
+}
+
+async function saveBannersConfig() {
+    try {
+        await db.collection('configuracion').doc('banner').set({
+            listaBanners: currentBanners, // Guardamos el array
+            activo: getEl('banner-active').checked,
+            fechaActualizacion: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        showMessage('✅ Banners actualizados.');
+    } catch (err) {
+        console.error(err);
+        showMessage('Error al guardar.');
+    }
 }
 
