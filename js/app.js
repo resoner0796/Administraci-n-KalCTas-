@@ -79,6 +79,7 @@ case 'packaging-screen':
     loadCustomBoxesManagement();
     loadVideoManagement();
     loadCoupons(); // <--- AGREGA ESTA LÍNEA
+    loadBannerConfig();
     break;
             case 'stock-requests-screen': // <--- AGREGA ESTA LÍNEA
         loadStockRequests();      // <--- Y ESTA
@@ -2114,3 +2115,75 @@ async function deleteCoupon(id) {
         loadCoupons();
     }
 }
+// ====================================================================================
+// GESTIÓN DE BANNER (CARPETA /BANNERS)
+// ====================================================================================
+async function loadBannerConfig() {
+    try {
+        const doc = await db.collection('configuracion').doc('banner').get();
+        if (doc.exists) {
+            const data = doc.data();
+            const rawName = data.imagenUrl || '';
+            
+            getEl('banner-image-url').value = rawName;
+            getEl('banner-link').value = data.link || '';
+            getEl('banner-active').checked = data.activo || false;
+            
+            // Vista previa inteligente
+            if (rawName) {
+                updateBannerPreview(rawName);
+            }
+        }
+    } catch (e) {
+        console.error("Error cargando banner:", e);
+    }
+}
+
+function updateBannerPreview(rawName) {
+    let src = rawName;
+    if (!rawName.startsWith('http') && !rawName.startsWith('data:')) {
+        // En el admin también buscamos en la carpeta banners/
+        // Nota: Asegúrate de que la carpeta 'banners' exista donde tienes alojado el admin
+        const cleanName = rawName.replace(/^banners\//, '');
+        src = 'banners/' + cleanName;
+    }
+    
+    const img = getEl('banner-preview-img');
+    const container = getEl('banner-preview');
+    
+    img.src = src;
+    img.onerror = () => { container.style.display = 'none'; }; // Si no existe la imagen, oculta el preview
+    img.onload = () => { container.style.display = 'block'; }; // Si carga, muéstralo
+}
+
+const bannerForm = getEl('banner-config-form');
+if (bannerForm) {
+    bannerForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const url = getVal('banner-image-url');
+        const link = getVal('banner-link');
+        const activo = getEl('banner-active').checked;
+
+        if (!url) return showMessage("Escribe el nombre del archivo.");
+
+        try {
+            await db.collection('configuracion').doc('banner').set({
+                imagenUrl: url,
+                link: link,
+                activo: activo,
+                fechaActualizacion: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            showMessage('✅ Banner actualizado.');
+            updateBannerPreview(url);
+        } catch (err) {
+            console.error(err);
+            showMessage('Error al guardar.');
+        }
+    });
+    
+    // Preview en tiempo real mientras escribes
+    getEl('banner-image-url').addEventListener('input', (e) => {
+        updateBannerPreview(e.target.value);
+    });
+}
+
