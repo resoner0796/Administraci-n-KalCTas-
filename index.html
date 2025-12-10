@@ -73,9 +73,10 @@
                 </select>
                 <input type="text" id="product-image-url" placeholder="URL Imagen" required>
                 <div style="display:flex; gap:10px;">
-                    <input type="number" id="product-stock" placeholder="Stock" required>
-                    <input type="number" id="product-price" placeholder="Precio" step="0.01" required>
-                </div>
+    <input type="number" id="product-stock" placeholder="Stock" required>
+    <input type="number" id="product-price" placeholder="Precio Regular" step="0.01" required>
+    <input type="number" id="product-promo-price" placeholder="Precio Oferta (Opcional)" step="0.01" style="border: 1px solid var(--warning);">
+</div>
                 <button type="submit" class="btn-primary">Guardar</button>
             </form>
             <button class="close-button" onclick="showScreen('inventory-screen')">Cancelar</button>
@@ -457,7 +458,11 @@
                         <option value="KalCTasLargas">KalCTas Largas</option>
                     </select>
                     <label>Imagen</label><input type="text" id="edit-image-url">
-                    <div style="display:flex; gap:10px;"><input type="number" id="edit-stock" placeholder="Stock"><input type="number" id="edit-price" placeholder="Precio"></div>
+                    <div style="display:flex; gap:10px;">
+    <input type="number" id="edit-stock" placeholder="Stock">
+    <input type="number" id="edit-price" placeholder="Precio Regular">
+    <input type="number" id="edit-promo-price" placeholder="Oferta" step="0.01" style="border: 1px solid var(--warning);">
+</div>
                     <label><input type="checkbox" id="edit-visible" style="width:auto;"> Visible</label>
                     <button type="submit" class="btn-primary">Guardar</button>
                 </form>
