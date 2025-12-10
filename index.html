@@ -45,6 +45,7 @@
                 <button onclick="showScreen('raw-materials-screen')" class="btn-neutral">🏷️ Insumos</button>
                 <button onclick="showScreen('sales-history-screen')" class="btn-neutral">💰 Historial Global</button>
                 <button onclick="showScreen('theme-screen')" class="btn-neutral">🎨 Tema Tienda</button>
+                <button onclick="showScreen('stock-requests-screen')" style="background: linear-gradient(135deg, #f59e0b, #d97706); color: black;">🔔 Lista de Espera</button>
                 <button onclick="showScreen('packaging-screen')" class="btn-neutral">🧸 Configurar Extras</button>
                 <button id="install-app-button" class="btn-success" style="display:none;">📲 Instalar App</button>
             </div>
@@ -200,8 +201,18 @@
             
             <button class="close-button" onclick="showScreen('main-menu')">Volver</button>
         </section>
+<section id="stock-requests-screen" style="display: none;">
+    <h1>🔔 Solicitudes de Stock</h1>
+    <p style="text-align: center; color: var(--text-muted); margin-bottom: 20px;">
+        Clientes esperando modelos agotados. <br>
+        <small>Solo podrás notificar si ya agregaste stock al inventario.</small>
+    </p>
+    
+    <div id="stock-requests-list" class="card-grid">
+        </div>
 
-
+    <button class="close-button" onclick="showScreen('main-menu')">Volver</button>
+</section>
         
         <section id="restock-screen" style="display: none;">
             <h1>Re-Stock</h1>
