@@ -1860,7 +1860,7 @@ if (marketingForm) {
     });
 }
 // ====================================================================================
-// 10. GESTIÓN DE LISTA DE ESPERA (STOCK REQUESTS)
+// 10. GESTIÓN DE SOLICITUDES DE STOCK (CORREGIDO)
 // ====================================================================================
 
 async function loadStockRequests() {
@@ -1869,10 +1869,10 @@ async function loadStockRequests() {
     container.innerHTML = '<p class="text-center">Cargando lista de espera...</p>';
 
     try {
-        // 1. Buscamos solicitudes pendientes
+        // CORRECCIÓN AQUÍ: Cambiamos 'fechaSolicitud' por 'fecha' para que coincida con la tienda
         const snap = await db.collection('solicitudes_stock')
             .where('estado', '==', 'pendiente')
-            .orderBy('fechaSolicitud', 'desc')
+            .orderBy('fecha', 'desc') 
             .get();
 
         if (snap.empty) {
@@ -1880,7 +1880,7 @@ async function loadStockRequests() {
             return;
         }
 
-        // 2. Agrupamos por Producto ID (Para no mostrar una lista infinita)
+        // 2. Agrupamos por Producto ID
         const groups = {};
         
         snap.forEach(doc => {
@@ -1891,8 +1891,8 @@ async function loadStockRequests() {
                 groups[pid] = {
                     nombre: d.nombreProducto,
                     emails: [],
-                    requestIds: [], // Guardamos IDs para borrar la solicitud después
-                    fecha: d.fechaSolicitud
+                    requestIds: [], 
+                    fecha: d.fecha // CORRECCIÓN AQUÍ TAMBIÉN
                 };
             }
             // Evitamos duplicados de email para el mismo producto
@@ -1905,29 +1905,26 @@ async function loadStockRequests() {
         // 3. Renderizamos las tarjetas
         container.innerHTML = '';
         
-        // Recorremos los grupos y verificamos stock actual
         for (const [pid, data] of Object.entries(groups)) {
             let stockActual = 0;
             let imagenUrl = '';
 
-            // Consultamos stock e imagen del producto
             const pDoc = await db.collection('productos').doc(pid).get();
             if (pDoc.exists) {
                 stockActual = pDoc.data().stock;
                 imagenUrl = pDoc.data().imagenUrl;
-                // Si es local, le ponemos la ruta base, si es http se queda igual
                 if(imagenUrl && !imagenUrl.startsWith('http')) imagenUrl = 'https://kalctas.com/' + imagenUrl;
             }
 
             const div = document.createElement('div');
-            div.className = 'finance-card'; // Reusamos estilo de tarjeta
+            div.className = 'finance-card'; 
             div.style.borderLeft = stockActual > 0 ? '4px solid var(--success)' : '4px solid var(--danger)';
             div.style.marginBottom = '15px';
 
             const emailsStr = data.emails.join(','); 
             const idsStr = JSON.stringify(data.requestIds); 
 
-            // Botón dinámico: Verde si hay stock, Gris si no
+            // Botón dinámico
             const btnState = stockActual > 0 
                 ? `<button class="btn-success" style="width:100%; margin-top:10px;" onclick="notificarDisponibilidad('${data.nombre.replace(/'/g, "\\'")}', '${emailsStr}', '${imagenUrl}', this)" data-ids='${idsStr}'>📧 Notificar Disponibilidad</button>`
                 : `<button class="btn-neutral" style="width:100%; margin-top:10px; opacity:0.5; cursor:not-allowed;" disabled>⚠️ Sin Stock (Surte primero)</button>`;
@@ -1957,7 +1954,12 @@ async function loadStockRequests() {
 
     } catch (error) {
         console.error("Error cargando solicitudes:", error);
-        container.innerHTML = '<p class="text-center">Error al cargar datos.</p>';
+        // Tip visual por si pide índice nuevo
+        if (error.code === 'failed-precondition') {
+             container.innerHTML = '<p class="text-center" style="color:orange;">⚠️ Falta Índice Nuevo. Abre la consola (F12) y da clic al link.</p>';
+        } else {
+             container.innerHTML = '<p class="text-center">Error al cargar datos.</p>';
+        }
     }
 }
 
