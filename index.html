@@ -315,6 +315,32 @@
     <div id="coupon-list" style="margin-top:15px;"></div>
 </div>
 
+<div class="form-card" style="margin-top: 20px; border-left: 4px solid #f43f5e;">
+    <h3>📢 Banner Promocional</h3>
+    <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 10px;">
+        Sube tu imagen a la carpeta <strong>/banners</strong> y escribe el nombre aquí.
+    </p>
+    <form id="banner-config-form">
+        <label>Nombre del archivo:</label>
+        <input type="text" id="banner-image-url" placeholder="Ej: navidad.jpg" required>
+        
+        <label>Enlace al dar click (Opcional):</label>
+        <input type="text" id="banner-link" placeholder="Ej: #pantalla-2-4">
+        
+        <div style="margin-top: 10px;">
+            <label style="cursor:pointer; display:flex; align-items:center; gap:5px;">
+                <input type="checkbox" id="banner-active" style="width: auto;"> Activar Banner en Tienda
+            </label>
+        </div>
+
+        <div id="banner-preview" style="margin-top: 15px; border: 1px dashed #444; padding: 5px; display: none; text-align: center;">
+            <p style="font-size: 0.7rem; color: #aaa; margin-bottom: 5px;">Vista Previa (Si el archivo existe):</p>
+            <img id="banner-preview-img" src="" style="width: 100%; height: auto; max-height: 100px; object-fit: cover;">
+        </div>
+
+        <button type="submit" class="btn-primary" style="margin-top: 15px; background: #f43f5e;">Guardar Cambios</button>
+    </form>
+</div>
             <div class="form-card" style="margin-top: 20px;">
                 <h3>📦 Empaques Standard (Lista)</h3>
                 <form id="add-packaging-form">
