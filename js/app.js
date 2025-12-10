@@ -78,6 +78,9 @@ async function showScreen(screenId) {
             loadCustomBoxesManagement();
             loadVideoManagement(); 
             break;
+            case 'stock-requests-screen': // <--- AGREGA ESTA LÍNEA
+        loadStockRequests();      // <--- Y ESTA
+        break;
         case 'manual-order-screen':
             await loadProductModels();
             getEl('manual-order-items').innerHTML = '';
@@ -1855,4 +1858,154 @@ if (marketingForm) {
             btn.textContent = originalText;
         }
     });
+}
+// ====================================================================================
+// 10. GESTIÓN DE LISTA DE ESPERA (STOCK REQUESTS)
+// ====================================================================================
+
+async function loadStockRequests() {
+    const container = getEl('stock-requests-list');
+    if (!container) return;
+    container.innerHTML = '<p class="text-center">Cargando lista de espera...</p>';
+
+    try {
+        // 1. Buscamos solicitudes pendientes
+        const snap = await db.collection('solicitudes_stock')
+            .where('estado', '==', 'pendiente')
+            .orderBy('fechaSolicitud', 'desc')
+            .get();
+
+        if (snap.empty) {
+            container.innerHTML = '<p style="text-align:center; color:var(--text-muted); padding:20px;">✅ No hay nadie esperando stock por ahora.</p>';
+            return;
+        }
+
+        // 2. Agrupamos por Producto ID (Para no mostrar una lista infinita)
+        const groups = {};
+        
+        snap.forEach(doc => {
+            const d = doc.data();
+            const pid = d.productoId;
+            
+            if (!groups[pid]) {
+                groups[pid] = {
+                    nombre: d.nombreProducto,
+                    emails: [],
+                    requestIds: [], // Guardamos IDs para borrar la solicitud después
+                    fecha: d.fechaSolicitud
+                };
+            }
+            // Evitamos duplicados de email para el mismo producto
+            if (!groups[pid].emails.includes(d.email)) {
+                groups[pid].emails.push(d.email);
+                groups[pid].requestIds.push(doc.id);
+            }
+        });
+
+        // 3. Renderizamos las tarjetas
+        container.innerHTML = '';
+        
+        // Recorremos los grupos y verificamos stock actual
+        for (const [pid, data] of Object.entries(groups)) {
+            let stockActual = 0;
+            let imagenUrl = '';
+
+            // Consultamos stock e imagen del producto
+            const pDoc = await db.collection('productos').doc(pid).get();
+            if (pDoc.exists) {
+                stockActual = pDoc.data().stock;
+                imagenUrl = pDoc.data().imagenUrl;
+                // Si es local, le ponemos la ruta base, si es http se queda igual
+                if(imagenUrl && !imagenUrl.startsWith('http')) imagenUrl = 'https://kalctas.com/' + imagenUrl;
+            }
+
+            const div = document.createElement('div');
+            div.className = 'finance-card'; // Reusamos estilo de tarjeta
+            div.style.borderLeft = stockActual > 0 ? '4px solid var(--success)' : '4px solid var(--danger)';
+            div.style.marginBottom = '15px';
+
+            const emailsStr = data.emails.join(','); 
+            const idsStr = JSON.stringify(data.requestIds); 
+
+            // Botón dinámico: Verde si hay stock, Gris si no
+            const btnState = stockActual > 0 
+                ? `<button class="btn-success" style="width:100%; margin-top:10px;" onclick="notificarDisponibilidad('${data.nombre.replace(/'/g, "\\'")}', '${emailsStr}', '${imagenUrl}', this)" data-ids='${idsStr}'>📧 Notificar Disponibilidad</button>`
+                : `<button class="btn-neutral" style="width:100%; margin-top:10px; opacity:0.5; cursor:not-allowed;" disabled>⚠️ Sin Stock (Surte primero)</button>`;
+
+            div.innerHTML = `
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                    <div>
+                        <strong style="color:white; font-size:1.1rem;">${data.nombre}</strong>
+                        <div style="font-size:0.85rem; color:var(--text-muted);">
+                            Stock actual: <strong style="color:${stockActual>0?'var(--success)':'var(--danger)'}">${stockActual}</strong>
+                        </div>
+                    </div>
+                    <div style="background:var(--bg-input); padding:5px 10px; border-radius:5px; text-align:center;">
+                        <span style="font-size:1.2rem; font-weight:bold; display:block;">${data.emails.length}</span>
+                        <span style="font-size:0.7rem;">Interesados</span>
+                    </div>
+                </div>
+                
+                <div style="background:rgba(0,0,0,0.2); padding:10px; border-radius:5px; font-size:0.8rem; color:#aaa; margin-bottom:10px; max-height:60px; overflow-y:auto;">
+                    ${data.emails.join(', ')}
+                </div>
+
+                ${btnState}
+            `;
+            container.appendChild(div);
+        }
+
+    } catch (error) {
+        console.error("Error cargando solicitudes:", error);
+        container.innerHTML = '<p class="text-center">Error al cargar datos.</p>';
+    }
+}
+
+async function notificarDisponibilidad(nombreProducto, emailsString, imagenUrl, btnElement) {
+    if (!confirm(`¿Enviar correo a los clientes esperando "${nombreProducto}"?`)) return;
+
+    const emails = emailsString.split(',');
+    const requestIds = JSON.parse(btnElement.dataset.ids); // Recuperamos IDs guardados
+    
+    const originalText = btnElement.textContent;
+    btnElement.disabled = true;
+    btnElement.textContent = "Enviando correos...";
+
+    try {
+        // Reutilizamos tu API de Marketing existente
+        const response = await fetch('/api/marketing', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                destinatarios: emails,
+                asunto: `¡Ya llegaron! ${nombreProducto} está disponible 🥳`,
+                mensaje: `Hola 👋,\n\n¡Buenas noticias! Nos pediste que te avisáramos y cumplimos.\n\nEl modelo **${nombreProducto}** ya está disponible de nuevo en la tienda.\n\n¡Corre porque vuelan! 🏃💨`,
+                imagenUrl: imagenUrl || "" 
+            })
+        });
+
+        if (response.ok) {
+            // Actualizamos estado a 'notificado' para sacarlos de la lista
+            const batch = db.batch();
+            requestIds.forEach(id => {
+                const ref = db.collection('solicitudes_stock').doc(id);
+                batch.update(ref, { 
+                    estado: 'notificado', 
+                    fechaNotificacion: firebase.firestore.FieldValue.serverTimestamp() 
+                });
+            });
+            await batch.commit();
+
+            showMessage(`✅ ¡Listo! Se avisó a ${emails.length} clientes.`);
+            loadStockRequests(); // Recargar la lista para quitar la tarjeta
+        } else {
+            throw new Error("El servidor de correos falló.");
+        }
+
+    } catch (error) {
+        console.error(error);
+        showMessage("Error al enviar: " + error.message);
+        btnElement.disabled = false;
+        btnElement.textContent = originalText;
+    }
 }
