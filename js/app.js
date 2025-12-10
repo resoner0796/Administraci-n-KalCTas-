@@ -198,11 +198,16 @@ async function toggleProductVisibility(id, vis) {
     await db.collection('productos').doc(id).update({ visible: !vis }); loadInventory();
 }
 
-// PRODUCTO ADD/EDIT
+// PRODUCTO ADD
 const addProductForm = getEl('add-product-form');
 if (addProductForm) {
     addProductForm.addEventListener('submit', async (e) => {
         e.preventDefault();
+        
+        // Leemos el precio oferta (si está vacío, se guarda como null o 0)
+        const promoVal = parseFloat(getVal('product-promo-price'));
+        const precioPromocion = isNaN(promoVal) ? null : promoVal;
+
         try {
             await db.collection('productos').add({
                 nombre: getVal('product-name'),
@@ -210,8 +215,10 @@ if (addProductForm) {
                 imagenUrl: getVal('product-image-url'),
                 stock: parseInt(getVal('product-stock')),
                 precio: parseFloat(getVal('product-price')),
+                precioPromocion: precioPromocion, // <--- NUEVO CAMPO
                 cantidadVendida: 0,
-                visible: true
+                visible: true,
+                fechaCreacion: firebase.firestore.FieldValue.serverTimestamp() // Agregamos fecha para la etiqueta "Nuevo"
             });
             showMessage('¡Producto agregado!');
             e.target.reset();
@@ -230,6 +237,11 @@ async function editProduct(id) {
         getEl('edit-image-url').value = d.imagenUrl;
         getEl('edit-stock').value = d.stock;
         getEl('edit-price').value = d.precio;
+        
+        // --- NUEVO: Cargar precio oferta ---
+        getEl('edit-promo-price').value = d.precioPromocion || ''; 
+        // -----------------------------------
+
         getEl('edit-visible').checked = d.visible !== false;
         getEl('edit-modal').style.display = 'flex';
     }
@@ -240,12 +252,17 @@ if (editProductForm) {
     editProductForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         const id = getVal('edit-product-id');
+        
+        const promoVal = parseFloat(getVal('edit-promo-price'));
+        const precioPromocion = isNaN(promoVal) ? null : promoVal;
+
         try {
             await db.collection('productos').doc(id).update({
                 nombre: getVal('edit-name'),
                 categoria: getVal('edit-category'),
                 stock: parseInt(getVal('edit-stock')),
                 precio: parseFloat(getVal('edit-price')),
+                precioPromocion: precioPromocion, // <--- GUARDAR NUEVO DATO
                 visible: getEl('edit-visible').checked,
                 imagenUrl: getVal('edit-image-url')
             });
