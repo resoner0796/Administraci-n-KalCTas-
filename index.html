@@ -302,6 +302,19 @@
                 <div id="location-list" style="margin-top:15px;"></div>
             </div>
 
+              <div class="form-card" style="margin-top: 20px; border-left: 4px solid #8b5cf6;">
+    <h3>🎟️ Cupones de Descuento</h3>
+    <form id="add-coupon-form">
+        <div style="display:flex; gap:10px;">
+            <input type="text" id="coupon-code" placeholder="Código (Ej: PROMO10)" style="text-transform:uppercase;" required>
+            <input type="number" id="coupon-discount" placeholder="%" min="1" max="100" style="width: 80px;" required>
+        </div>
+        <input type="number" id="coupon-limit" placeholder="Límite de usos (Ej: 50)" min="1" required>
+        <button type="submit" class="btn-primary" style="background: #8b5cf6;">Crear Cupón</button>
+    </form>
+    <div id="coupon-list" style="margin-top:15px;"></div>
+</div>
+
             <div class="form-card" style="margin-top: 20px;">
                 <h3>📦 Empaques Standard (Lista)</h3>
                 <form id="add-packaging-form">
