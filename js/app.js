@@ -72,12 +72,14 @@ async function showScreen(screenId) {
         case 'sales-screen': loadSalesData(); break;
         case 'sales-report-table-screen': loadSalesReportTable(); break;
         case 'theme-screen': loadCurrentTheme(); break;
-        case 'packaging-screen': 
-            loadDeliveryLocations(); // <--- NUEVA FUNCIÓN
-            loadPackagingVisibility(); 
-            loadCustomBoxesManagement();
-            loadVideoManagement(); 
-            break;
+
+case 'packaging-screen':
+    loadDeliveryLocations();
+    loadPackagingVisibility();
+    loadCustomBoxesManagement();
+    loadVideoManagement();
+    loadCoupons(); // <--- AGREGA ESTA LÍNEA
+    break;
             case 'stock-requests-screen': // <--- AGREGA ESTA LÍNEA
         loadStockRequests();      // <--- Y ESTA
         break;
@@ -2026,5 +2028,89 @@ async function notificarDisponibilidad(nombreProducto, emailsString, imagenUrl, 
         showMessage("Error al enviar: " + error.message);
         btnElement.disabled = false;
         btnElement.textContent = originalText;
+    }
+}
+
+// ====================================================================================
+// GESTIÓN DE CUPONES (ADMIN)
+// ====================================================================================
+async function loadCoupons() {
+    const container = document.getElementById('coupon-list');
+    if (!container) return;
+    container.innerHTML = '<p>Cargando cupones...</p>';
+
+    try {
+        const snap = await db.collection('cupones').orderBy('fechaCreacion', 'desc').get();
+        container.innerHTML = snap.empty ? '<p class="text-muted">No hay cupones activos.</p>' : '';
+
+        snap.forEach(doc => {
+            const c = { id: doc.id, ...doc.data() };
+            // Calculamos si está agotado
+            const agotado = c.usos >= c.limite;
+            const colorEstado = agotado ? 'var(--danger)' : 'var(--success)';
+            const textoEstado = agotado ? 'AGOTADO' : 'ACTIVO';
+
+            const div = document.createElement('div');
+            div.className = 'data-card';
+            div.style.cssText = 'display:flex; justify-content:space-between; align-items:center; background:var(--bg-card); padding:10px; margin-bottom:10px; border-radius:var(--radius); border:1px solid var(--border);';
+
+            div.innerHTML = `
+                <div>
+                    <strong style="color:white; font-size: 1.1rem;">${c.codigo}</strong>
+                    <span style="background:${colorEstado}; color:white; padding:2px 6px; border-radius:4px; font-size:0.7rem; margin-left:8px;">${textoEstado}</span>
+                    <div style="font-size:0.8rem; color:var(--text-muted); margin-top:4px;">
+                        Descuento: <strong>${c.descuento}%</strong> | Usados: <strong>${c.usos}</strong> / ${c.limite}
+                    </div>
+                </div>
+                <button class="btn-delete" style="padding:5px 10px;" onclick="deleteCoupon('${c.id}')">X</button>
+            `;
+            container.appendChild(div);
+        });
+    } catch (e) {
+        console.error(e);
+        container.innerHTML = 'Error al cargar.';
+    }
+}
+
+const addCouponForm = document.getElementById('add-coupon-form');
+if (addCouponForm) {
+    addCouponForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const codigo = document.getElementById('coupon-code').value.trim().toUpperCase();
+        const descuento = parseInt(document.getElementById('coupon-discount').value);
+        const limite = parseInt(document.getElementById('coupon-limit').value);
+
+        if (!codigo || !descuento || !limite) return;
+
+        try {
+            // Verificar si ya existe (opcional, pero recomendado)
+            const snap = await db.collection('cupones').where('codigo', '==', codigo).get();
+            if (!snap.empty) {
+                alert("Ese código ya existe.");
+                return;
+            }
+
+            await db.collection('cupones').add({
+                codigo: codigo,
+                descuento: descuento,
+                limite: limite,
+                usos: 0, // Inicia en 0
+                fechaCreacion: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            
+            alert('✅ Cupón creado exitosamente.'); // Puedes usar tu showMessage si prefieres
+            e.target.reset();
+            loadCoupons();
+        } catch (err) {
+            console.error(err);
+            alert('Error al crear cupón.');
+        }
+    });
+}
+
+async function deleteCoupon(id) {
+    if (confirm('¿Eliminar este cupón permanentemente?')) {
+        await db.collection('cupones').doc(id).delete();
+        loadCoupons();
     }
 }
